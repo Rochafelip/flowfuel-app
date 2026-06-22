@@ -86,7 +86,17 @@ class LoginViewModel @Inject constructor(
                     if (!fieldErrors.isNullOrEmpty()) {
                         _state.update { it.copy(isSubmitting = false, serverErrors = fieldErrors) }
                     } else {
-                        _state.update { it.copy(isSubmitting = false, error = result.error) }
+                        // E-mail/senha errados chegam como 401 AUTH_BAD_CREDENTIALS, mas
+                        // apiCall() colapsa todo 401 em AppError.Unauthorized antes do
+                        // code ser lido — sem isso a tela mostraria "sessão expirada"
+                        // para uma simples senha errada. Mesmo padrão de reinterpretação
+                        // local já usado em ChangePasswordViewModel.
+                        val error = if (result.error == AppError.Unauthorized) {
+                            AppError.Api("INVALID_CREDENTIALS")
+                        } else {
+                            result.error
+                        }
+                        _state.update { it.copy(isSubmitting = false, error = error) }
                     }
                 }
             }

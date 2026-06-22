@@ -52,5 +52,12 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- Sentry tem auto-init próprio via ContentProvider, independente do nosso
+             SentryAndroid.init() em FlowFuelApplication. Desabilitado aqui para que o
+             handler nativo de crash só seja anexado quando chamamos init() com uma DSN
+             real (BuildConfig.SENTRY_DSN não vazio) — caso contrário ele roda sempre,
+             mesmo sem DSN configurada. -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
     </application>
 </manifest>
