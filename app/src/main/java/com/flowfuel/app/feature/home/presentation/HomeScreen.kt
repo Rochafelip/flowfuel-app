@@ -217,8 +217,10 @@ private fun HomeContent(
 ) {
     val isFirstUse = dashboard.totalRefuels == 0
 
-    val consumptionUnit = if (vehicle.energyType.equals("Elétrico", ignoreCase = true))
-        "km/kWh" else "km/L"
+    // Prioriza a unidade informada pelo backend; cai para inferência client-side
+    // só se o servidor não a enviar (ex: resposta antiga/incompleta).
+    val consumptionUnit = dashboard.consumptionUnit
+        ?: if (vehicle.energyType.equals("ELECTRIC", ignoreCase = true)) "km/kWh" else "km/L"
     val consumptionValue = dashboard.averageConsumption
         ?.let { "%.1f".format(it) }
         ?: "—"
@@ -250,8 +252,7 @@ private fun HomeContent(
 
         // ── 2. Stats: odômetro (+ gasto total quando há dados) ────────────
         item {
-            val displayedOdometer = if (dashboard.lastOdometer > 0.0)
-                dashboard.lastOdometer else vehicle.currentKm.toDouble()
+            val displayedOdometer = vehicle.currentKm.toDouble()
 
             if (isFirstUse) {
                 FFStatTile(
@@ -444,11 +445,12 @@ private fun LastRefuelCard(dashboard: DashboardData) {
                     label = "Data",
                     value = formatDate(dashboard.lastRefuelDate),
                 )
-                // Litros
-                if (dashboard.lastRefuelLiters != null) {
+                // Quantidade (litros ou kWh, conforme o tipo de energia)
+                if (dashboard.lastRefuelEnergyAmount != null) {
+                    val unit = dashboard.lastRefuelEnergyUnit ?: "L"
                     LastRefuelRow(
-                        label = "Litros",
-                        value = "%.2f L".format(dashboard.lastRefuelLiters)
+                        label = if (unit == "kWh") "Energia" else "Litros",
+                        value = "%.2f %s".format(dashboard.lastRefuelEnergyAmount, unit)
                             .replace('.', ','),
                     )
                 }
@@ -459,14 +461,14 @@ private fun LastRefuelCard(dashboard: DashboardData) {
                         value = formatBrl(dashboard.lastRefuelAmount),
                     )
                 }
-                // Preço por litro calculado
-                if (dashboard.lastRefuelLiters != null && dashboard.lastRefuelAmount != null
-                    && dashboard.lastRefuelLiters > 0.0
+                // Preço por unidade calculado
+                if (dashboard.lastRefuelEnergyAmount != null && dashboard.lastRefuelAmount != null
+                    && dashboard.lastRefuelEnergyAmount > 0.0
                 ) {
-                    val pricePerLiter = dashboard.lastRefuelAmount / dashboard.lastRefuelLiters
+                    val pricePerUnit = dashboard.lastRefuelAmount / dashboard.lastRefuelEnergyAmount
                     LastRefuelRow(
-                        label = "Preço/litro",
-                        value = formatBrl(pricePerLiter),
+                        label = if (dashboard.lastRefuelEnergyUnit == "kWh") "Preço/kWh" else "Preço/litro",
+                        value = formatBrl(pricePerUnit),
                         highlight = true,
                     )
                 }

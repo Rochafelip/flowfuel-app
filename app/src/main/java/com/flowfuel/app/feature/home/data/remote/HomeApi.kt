@@ -7,16 +7,41 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+// Espelha DashboardDTO do backend (.claude/docs_api/openapi.yaml). Para veículos
+// HYBRID, totalEnergy/averagePrice/averageConsumption/energyUnit/priceUnit/
+// consumptionUnit vêm null e o detalhamento por tipo vem em [breakdown].
+
+@Serializable
+data class FuelMetricsDto(
+    val totalEnergy: Double? = null,
+    val totalSpent: Double? = null,
+    val averagePrice: Double? = null,
+    val averageConsumption: Double? = null,
+    val energyUnit: String? = null,
+    val priceUnit: String? = null,
+    val consumptionUnit: String? = null,
+)
+
+@Serializable
+data class HybridBreakdownDto(
+    val fuel: FuelMetricsDto? = null,
+    val electric: FuelMetricsDto? = null,
+)
 
 @Serializable
 data class DashboardResponseDto(
-    val averageConsumption: Double? = null,
-    val lastOdometer: Double? = null,
-    val totalSpent: Double? = null,
+    val vehicleId: Int? = null,
+    val energyType: String? = null,
     val totalRefuels: Int? = null,
+    val totalSpent: Double? = null,
+    val totalEnergy: Double? = null,
+    val averagePrice: Double? = null,
+    val averageConsumption: Double? = null,
+    val energyUnit: String? = null,
+    val priceUnit: String? = null,
+    val consumptionUnit: String? = null,
+    val breakdown: HybridBreakdownDto? = null,
     val lastRefuelDate: String? = null,
-    val lastRefuelLiters: Double? = null,
-    val lastRefuelAmount: Double? = null,
 )
 
 // ─── Abastecimento ────────────────────────────────────────────────────────────

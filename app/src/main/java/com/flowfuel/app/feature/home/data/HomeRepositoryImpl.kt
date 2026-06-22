@@ -3,8 +3,11 @@ package com.flowfuel.app.feature.home.data
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.network.apiCall
+import com.flowfuel.app.feature.history.data.remote.HistoryApi
+import com.flowfuel.app.feature.history.data.remote.RefuelItemDto
 import com.flowfuel.app.feature.home.data.remote.CreateRefuelRequestDto
 import com.flowfuel.app.feature.home.data.remote.DashboardApi
+import com.flowfuel.app.feature.home.data.remote.DashboardResponseDto
 import com.flowfuel.app.feature.home.data.remote.RefuelApi
 import com.flowfuel.app.feature.home.domain.HomeRepository
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
@@ -19,6 +22,7 @@ class HomeRepositoryImpl @Inject constructor(
     private val vehicleApi: VehicleApi,
     private val dashboardApi: DashboardApi,
     private val refuelApi: RefuelApi,
+    private val historyApi: HistoryApi,
 ) : HomeRepository {
 
     override suspend fun getActiveVehicle(): AppResult<ActiveVehicleData> =
@@ -37,15 +41,35 @@ class HomeRepositoryImpl @Inject constructor(
 
     override suspend fun getDashboard(vehicleId: Int): AppResult<DashboardData> =
         apiCall { dashboardApi.getDashboard(vehicleId) }.map { dto ->
-            DashboardData(
-                averageConsumption = dto.averageConsumption,
-                lastOdometer       = dto.lastOdometer ?: 0.0,
-                totalSpent         = dto.totalSpent ?: 0.0,
-                totalRefuels       = dto.totalRefuels ?: 0,
-                lastRefuelDate     = dto.lastRefuelDate,
-                lastRefuelLiters   = dto.lastRefuelLiters,
-                lastRefuelAmount   = dto.lastRefuelAmount,
-            )
+            // O endpoint de dashboard não traz litros/valor do último abastecimento
+            // (não existem no DashboardDTO real) — busca-se à parte em /refuels,
+            // que já é ordenado por data desc (mais recente primeiro).
+            val lastRefuel = (apiCall { historyApi.getRefuelHistory(vehicleId, page = 0, size = 1) }
+                as? AppResult.Success)?.value?.content?.firstOrNull()
+            buildDashboardData(dto, lastRefuel)
+        }
+
+    private fun buildDashboardData(dto: DashboardResponseDto, lastRefuel: RefuelItemDto?) = DashboardData(
+        averageConsumption     = dto.averageConsumption,
+        consumptionUnit        = dto.consumptionUnit,
+        totalSpent              = dto.totalSpent ?: 0.0,
+        totalRefuels            = dto.totalRefuels ?: 0,
+        lastRefuelDate          = dto.lastRefuelDate,
+        lastRefuelEnergyAmount  = lastRefuel?.energyAmount,
+        lastRefuelAmount        = lastRefuel?.totalAmount,
+        lastRefuelEnergyUnit    = lastRefuelEnergyUnit(dto.energyType, lastRefuel?.refuelType),
+    )
+
+    private fun lastRefuelEnergyUnit(vehicleEnergyType: String?, refuelType: String?): String? =
+        when {
+            vehicleEnergyType == "HYBRID" -> when (refuelType) {
+                "ELECTRIC" -> "kWh"
+                "FUEL" -> "L"
+                else -> null
+            }
+            vehicleEnergyType == "ELECTRIC" -> "kWh"
+            vehicleEnergyType == "COMBUSTION" -> "L"
+            else -> null
         }
 
     override suspend fun createRefuel(request: CreateRefuelRequest): AppResult<Unit> =

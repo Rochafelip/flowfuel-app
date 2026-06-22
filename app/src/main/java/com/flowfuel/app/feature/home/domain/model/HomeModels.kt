@@ -18,12 +18,16 @@ data class ActiveVehicleData(
 /** Dados do painel de controle para um veículo. */
 data class DashboardData(
     val averageConsumption: Double?,
-    val lastOdometer: Double,
+    /** Unidade de consumo informada pelo backend (ex: "km/L", "km/kWh"); null para HYBRID. */
+    val consumptionUnit: String?,
     val totalSpent: Double,
     val totalRefuels: Int,
     val lastRefuelDate: String?,
-    val lastRefuelLiters: Double?,
+    /** Litros ou kWh do último abastecimento — vem de /refuels, não do endpoint de dashboard. */
+    val lastRefuelEnergyAmount: Double?,
     val lastRefuelAmount: Double?,
+    /** Unidade do último abastecimento (ex: "L", "kWh"), inferida do refuelType/energyType. */
+    val lastRefuelEnergyUnit: String?,
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }

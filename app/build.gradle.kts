@@ -29,6 +29,19 @@ android {
     if (localPropsFile.exists()) localProps.load(localPropsFile.inputStream())
     val sentryDsn = localProps.getProperty("sentry.dsn", "")
 
+    val releaseKeystorePath = localProps.getProperty("release.keystore.path", "")
+
+    signingConfigs {
+        if (releaseKeystorePath.isNotBlank()) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = localProps.getProperty("release.keystore.storePassword", "")
+                keyAlias = localProps.getProperty("release.keystore.alias", "")
+                keyPassword = localProps.getProperty("release.keystore.keyPassword", "")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -45,6 +58,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (releaseKeystorePath.isNotBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             buildConfigField("String", "API_BASE_URL", "\"https://flowfuel-api.fly.dev/api/v1/\"")
             buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
         }
