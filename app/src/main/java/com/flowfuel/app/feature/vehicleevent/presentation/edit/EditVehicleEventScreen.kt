@@ -275,7 +275,7 @@ private fun EditEventForm(
                 value = state.odometerKm,
                 onValueChange = viewModel::onOdometerKmChange,
                 label = "Quilometragem",
-                kind = FFNumberKind.Odometer,
+                kind = FFNumberKind.WholeNumber,
                 errorText = state.odometerError,
                 enabled = !state.isSubmitting,
                 imeAction = ImeAction.Next,
