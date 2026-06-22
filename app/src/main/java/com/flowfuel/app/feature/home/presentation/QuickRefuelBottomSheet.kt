@@ -57,7 +57,10 @@ fun QuickRefuelBottomSheet(
 
     val quantityLabel = if (effectiveElectric) "kWh carregados" else "Litros abastecidos"
     val quantityError = if (effectiveElectric) "Informe a quantidade de kWh" else "Informe a quantidade de litros"
-    val priceLabel    = if (effectiveElectric) "Valor por kWh" else "Valor por litro"
+    // form.totalPriceRaw é o valor TOTAL pago (não o preço por unidade) — o
+    // preço por unidade é calculado a partir dele em HomeRepositoryImpl
+    // (totalPrice / liters), por isso o rótulo precisa dizer "valor total".
+    val priceLabel    = "Valor total pago"
 
     FFBottomSheet(onDismiss = onDismiss) {
         // ── Título ────────────────────────────────────────────────────────────
@@ -74,7 +77,7 @@ fun QuickRefuelBottomSheet(
             FFNumberField(
                 value = form.odometer,
                 onValueChange = onOdometerChange,
-                label = "Trip (km)",
+                label = "Odômetro (km)",
                 kind = FFNumberKind.Odometer,
                 errorText = if (form.odometerError) "Informe a leitura do odômetro"
                             else form.serverErrors?.firstOrNull { it.field == "odometer" }?.message,
