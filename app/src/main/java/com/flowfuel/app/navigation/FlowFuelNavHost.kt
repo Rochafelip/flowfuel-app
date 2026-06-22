@@ -228,6 +228,12 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
 
         // ── Cadastro de veículo ────────────────────────────────────────────
         composable(Destinations.VEHICLE_ADD) {
+            // Sem back stack anterior quando chega aqui pelo auto-redirect do
+            // picker (0 veículos, pós-login) — nesse caso não há nada
+            // significativo para voltar, então a flecha de voltar é ocultada
+            // (mesmo padrão de VehiclePickerScreen). Quando aberto a partir de
+            // "Novo veículo" na aba Veículos, há stack anterior e o voltar funciona normal.
+            val canGoBack = navController.previousBackStackEntry != null
             AddVehicleScreen(
                 onSuccess = {
                     // Após cadastrar, vai para o container principal limpando toda a back stack
@@ -235,7 +241,7 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onBack = { navController.popBackStack() },
+                onBack = if (canGoBack) { { navController.popBackStack() } } else null,
             )
         }
 

@@ -123,7 +123,7 @@ private object PlateVisualTransformation : VisualTransformation {
 @Composable
 fun AddVehicleScreen(
     onSuccess: () -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     viewModel: AddVehicleViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
