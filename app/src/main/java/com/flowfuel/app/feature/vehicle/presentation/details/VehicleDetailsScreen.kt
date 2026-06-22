@@ -63,6 +63,7 @@ import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 // ─── Tela de detalhes do veículo ──────────────────────────────────────────────
 
@@ -250,7 +251,7 @@ private fun VehicleDetailsContent(
                     VehicleInfoRow(
                         Icons.Default.Speed,
                         "Odômetro",
-                        "%,d km".format(vehicle.odometerKm),
+                        String.format(Locale("pt", "BR"), "%,d km", vehicle.odometerKm),
                     )
                     if (vehicle.energyType == EnergyType.Combustion || vehicle.energyType == EnergyType.Hybrid) {
                         VehicleInfoRow(

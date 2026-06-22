@@ -435,7 +435,7 @@ private fun Step3Content(
             value = state.odometer,
             onValueChange = viewModel::onOdometerChange,
             label = stringResource(R.string.vehicle_odometer),
-            kind = FFNumberKind.Odometer,
+            kind = FFNumberKind.WholeNumber,
             leadingIcon = Icons.Outlined.Speed,
             errorText = state.serverErrors?.firstOrNull { it.field == "odometerKm" }?.message,
             imeAction = ImeAction.Next,

@@ -415,7 +415,7 @@ fun EditVehicleScreen(
                             value         = state.odometer,
                             onValueChange = viewModel::onOdometerChange,
                             label         = stringResource(R.string.vehicle_odometer),
-                            kind          = FFNumberKind.Odometer,
+                            kind          = FFNumberKind.WholeNumber,
                             leadingIcon   = Icons.Outlined.Speed,
                             errorText     = if (state.odometerError) stringResource(R.string.error_required)
                                             else state.serverErrors?.firstOrNull { it.field == "odometerKm" }?.message,

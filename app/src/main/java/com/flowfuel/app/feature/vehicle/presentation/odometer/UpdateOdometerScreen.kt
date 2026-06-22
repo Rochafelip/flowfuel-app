@@ -40,6 +40,7 @@ import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 @Composable
 fun UpdateOdometerScreen(
@@ -58,7 +59,7 @@ fun UpdateOdometerScreen(
                 is UpdateOdometerEffect.NavigateBackWithResult -> {
                     snackbarHostState.showSnackbar(
                         FFSnackbarVisuals(
-                            message = "Odômetro atualizado para ${"%,d".format(effect.updatedKm)} km",
+                            message = "Odômetro atualizado para ${String.format(Locale("pt", "BR"), "%,d", effect.updatedKm)} km",
                             kind = FFSnackbarKind.Success,
                         )
                     )
@@ -90,7 +91,7 @@ fun UpdateOdometerScreen(
         },
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        val currentKmLabel = "%,d km".format(state.currentKm)
+        val currentKmLabel = String.format(Locale("pt", "BR"), "%,d km", state.currentKm)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -114,7 +115,7 @@ fun UpdateOdometerScreen(
                 value = state.newKm,
                 onValueChange = viewModel::onNewKmChange,
                 label = stringResource(R.string.vehicle_odometer_new_km_label),
-                kind = FFNumberKind.Odometer,
+                kind = FFNumberKind.WholeNumber,
                 errorText = if (state.regressionError) {
                     stringResource(R.string.vehicle_odometer_regression_error)
                 } else null,

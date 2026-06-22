@@ -53,6 +53,7 @@ import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 // ─── Tela de gerenciamento de veículos ────────────────────────────────────────
 
@@ -246,7 +247,7 @@ private fun VehicleManageItem(
         FFVehicleCard(
             nickname   = "${vehicle.brand} ${vehicle.model}",
             plate      = vehicle.licensePlate ?: "—",
-            odometerKm = "%,d".format(vehicle.odometerKm),
+            odometerKm = String.format(Locale("pt", "BR"), "%,d", vehicle.odometerKm),
             isActive   = isActive,
             modifier   = Modifier.fillMaxWidth(),
             onClick    = onNavigateToVehicleDetails,

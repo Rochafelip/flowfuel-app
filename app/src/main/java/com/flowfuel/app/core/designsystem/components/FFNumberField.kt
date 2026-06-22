@@ -8,7 +8,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 
-enum class FFNumberKind { Decimal, Currency, Odometer }
+enum class FFNumberKind { Decimal, Currency, Odometer, WholeNumber }
 
 @Composable
 fun FFNumberField(
@@ -28,17 +28,20 @@ fun FFNumberField(
         val cleaned = when (kind) {
             FFNumberKind.Odometer ->
                 input.filter(Char::isDigit).take(OdometerVisualTransformation.MAX_DIGITS)
+            FFNumberKind.WholeNumber ->
+                input.filter(Char::isDigit).take(WholeNumberVisualTransformation.MAX_DIGITS)
             else ->
                 input.filter { it.isDigit() || it == ',' || it == '.' }
         }
         onValueChange(cleaned)
     }
     val keyboardType = when (kind) {
-        FFNumberKind.Odometer -> KeyboardType.Number
+        FFNumberKind.Odometer, FFNumberKind.WholeNumber -> KeyboardType.Number
         else -> KeyboardType.Decimal
     }
     val visualTransformation = when (kind) {
         FFNumberKind.Odometer -> OdometerVisualTransformation()
+        FFNumberKind.WholeNumber -> WholeNumberVisualTransformation()
         else -> VisualTransformation.None
     }
     FFTextField(
