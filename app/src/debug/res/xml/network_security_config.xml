@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Configuração de segurança de rede exclusiva para builds DEBUG.
+    Libera tráfego HTTP (cleartext) globalmente — seguro pois este arquivo
+    só é empacotado no build de debug, nunca no release.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

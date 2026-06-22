@@ -1,0 +1,620 @@
+package com.flowfuel.app.navigation
+
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.flowfuel.app.core.datastore.SessionStore
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.flowfuel.app.feature.auth.presentation.changepassword.ChangePasswordScreen
+import com.flowfuel.app.feature.auth.presentation.editprofile.EditProfileScreen
+import com.flowfuel.app.feature.auth.presentation.checkemail.CheckEmailScreen
+import com.flowfuel.app.feature.auth.presentation.forgot.ForgotPasswordScreen
+import com.flowfuel.app.feature.auth.presentation.login.LoginScreen
+import com.flowfuel.app.feature.auth.presentation.resetpassword.ResetPasswordScreen
+import com.flowfuel.app.feature.auth.presentation.register.RegisterScreen
+import com.flowfuel.app.feature.history.presentation.details.RefuelDetailsScreen
+import com.flowfuel.app.feature.history.presentation.edit.EditRefuelScreen
+import com.flowfuel.app.feature.onboarding.OnboardingScreen
+import com.flowfuel.app.feature.vehicle.presentation.add.AddVehicleScreen
+import com.flowfuel.app.feature.vehicle.presentation.details.VehicleDetailsScreen
+import com.flowfuel.app.feature.vehicle.presentation.edit.EditVehicleScreen
+import com.flowfuel.app.feature.vehicle.presentation.list.VehiclePickerScreen
+import com.flowfuel.app.feature.vehicle.presentation.odometer.UpdateOdometerScreen
+import com.flowfuel.app.feature.vehicleevent.presentation.create.CreateVehicleEventScreen
+import com.flowfuel.app.feature.vehicleevent.presentation.details.VehicleEventDetailsScreen
+import com.flowfuel.app.feature.vehicleevent.presentation.edit.EditVehicleEventScreen
+import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.launch
+
+@Composable
+fun FlowFuelNavHost(onSplashReady: () -> Unit) {
+    val navController = rememberNavController()
+    val splashVm: SplashViewModel = hiltViewModel()
+    val start by splashVm.start.collectAsState()
+
+    LaunchedEffect(start) {
+        when (start) {
+            StartDestination.Loading -> Unit
+
+            StartDestination.Onboarding -> {
+                onSplashReady()
+                navController.navigate(Destinations.ONBOARDING) {
+                    popUpTo(Destinations.SPLASH) { inclusive = true }
+                }
+            }
+
+            StartDestination.Login -> {
+                onSplashReady()
+                navController.navigate(Destinations.LOGIN) {
+                    popUpTo(Destinations.SPLASH) { inclusive = true }
+                }
+            }
+
+            // Sessão ativa, sem veículo escolhido: mostra o picker
+            StartDestination.VehiclePicker -> {
+                onSplashReady()
+                navController.navigate(Destinations.VEHICLE_PICKER) {
+                    popUpTo(Destinations.SPLASH) { inclusive = true }
+                }
+            }
+
+            // Sessão ativa + veículo ativo já definido: pula o picker
+            StartDestination.Home -> {
+                onSplashReady()
+                navController.navigate(Destinations.MAIN_CONTAINER) {
+                    popUpTo(Destinations.SPLASH) { inclusive = true }
+                }
+            }
+        }
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = Destinations.SPLASH,
+        enterTransition = { defaultEnter() },
+        exitTransition = { defaultExit() },
+        popEnterTransition = { defaultEnter() },
+        popExitTransition = { defaultExit() },
+    ) {
+        // ── Splash ─────────────────────────────────────────────────────────
+        composable(Destinations.SPLASH) { /* janela splash fica visível */ }
+
+        // ── Onboarding ─────────────────────────────────────────────────────
+        composable(Destinations.ONBOARDING) {
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+            val store = remember(context) {
+                EntryPointAccessors.fromApplication(context, NavEntryPoint::class.java).sessionStore()
+            }
+            fun markAndGoToLogin() {
+                scope.launch { store.markOnboarded() }
+                navController.navigate(Destinations.LOGIN) {
+                    popUpTo(Destinations.ONBOARDING) { inclusive = true }
+                }
+            }
+            OnboardingScreen(
+                onNavigateToLogin = { markAndGoToLogin() },
+                onNavigateToRegister = {
+                    markAndGoToLogin()
+                    navController.navigate(Destinations.REGISTER)
+                },
+            )
+        }
+
+        // ── Login ──────────────────────────────────────────────────────────
+        composable(Destinations.LOGIN) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(Destinations.VEHICLE_PICKER) {
+                        popUpTo(Destinations.LOGIN) { inclusive = true }
+                    }
+                },
+                onGoToRegister = { navController.navigate(Destinations.REGISTER) },
+                onGoToForgot = { navController.navigate(Destinations.FORGOT) },
+                onAccountNotActivated = { email ->
+                    navController.navigate(Destinations.checkEmail(email))
+                },
+            )
+        }
+
+        // ── Registro ───────────────────────────────────────────────────────
+        composable(Destinations.REGISTER) {
+            RegisterScreen(
+                onRegisterSuccess = { email ->
+                    navController.navigate(Destinations.checkEmail(email)) {
+                        popUpTo(Destinations.LOGIN) { inclusive = false }
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Confirme seu e-mail (A5 / ADR-014) ────────────────────────────
+        composable(
+            route = Destinations.CHECK_EMAIL,
+            arguments = listOf(navArgument("email") { type = NavType.StringType }),
+        ) { entry ->
+            val email = entry.arguments?.getString("email")
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                ?: ""
+            CheckEmailScreen(
+                email = email,
+                onBack = { navController.popBackStack() },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(Destinations.LOGIN) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Esqueci a senha ────────────────────────────────────────────────
+        composable(Destinations.FORGOT) {
+            ForgotPasswordScreen(
+                onBack = { navController.popBackStack() },
+                onGoToResetPassword = { email ->
+                    navController.navigate(Destinations.resetPassword(email))
+                },
+            )
+        }
+
+        // ── Conclusão de reset de senha (código manual, e-mail desligado em prod) ──
+        composable(
+            route = Destinations.RESET_PASSWORD,
+            arguments = listOf(navArgument("email") { type = NavType.StringType }),
+        ) { entry ->
+            val email = entry.arguments?.getString("email")
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                ?: ""
+            ResetPasswordScreen(
+                email = email,
+                onSuccess = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(Destinations.LOGIN) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Seleção de veículo ─────────────────────────────────────────────
+        // Ponto de entrada pós-login. Redireciona automaticamente para
+        // VEHICLE_ADD se o usuário não tiver nenhum veículo cadastrado,
+        // ou para LOGIN se o token estiver expirado/inválido.
+        composable(Destinations.VEHICLE_PICKER) {
+            // Quando o picker é aberto a partir da Home (troca de veículo), existe
+            // uma entrada anterior na back stack e oferecemos o botão de voltar.
+            // No fluxo pós-login o picker é a raiz, então não há volta.
+            val canGoBack = navController.previousBackStackEntry != null
+            VehiclePickerScreen(
+                onNavigateToAddVehicle = {
+                    // Sem veículos: substitui o picker pelo cadastro na stack
+                    navController.navigate(Destinations.VEHICLE_ADD) {
+                        popUpTo(Destinations.VEHICLE_PICKER) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    // Veículo selecionado: vai para o container principal limpando
+                    // toda a back stack. Garante uma única instância do container
+                    // tanto no fluxo pós-login quanto na troca de veículo.
+                    navController.navigate(Destinations.MAIN_CONTAINER) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    // Token expirado: limpa toda a stack e volta para o login
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = if (canGoBack) {
+                    { navController.popBackStack() }
+                } else null,
+            )
+        }
+
+        // ── Cadastro de veículo ────────────────────────────────────────────
+        composable(Destinations.VEHICLE_ADD) {
+            AddVehicleScreen(
+                onSuccess = {
+                    // Após cadastrar, vai para o container principal limpando toda a back stack
+                    navController.navigate(Destinations.MAIN_CONTAINER) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Detalhes do veículo ────────────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_DETAILS,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+        ) { entry ->
+            val odometerUpdated by entry.savedStateHandle
+                .getStateFlow("odometer_updated", false)
+                .collectAsStateWithLifecycle()
+
+            VehicleDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToEdit = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEdit(vehicleId))
+                },
+                onNavigateToUpdateOdometer = { vehicleId, currentKm ->
+                    navController.navigate(Destinations.vehicleOdometer(vehicleId, currentKm))
+                },
+                onNavigateToEvents = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEvents(vehicleId))
+                },
+                odometerUpdated = odometerUpdated,
+                onOdometerUpdatedConsumed = {
+                    entry.savedStateHandle["odometer_updated"] = false
+                },
+            )
+        }
+
+        // ── Edição de veículo ──────────────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_EDIT,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+        ) {
+            EditVehicleScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    // Sinaliza a VehiclesScreen para recarregar a lista ao retornar
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["vehicle_updated"] = true
+                    }
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Atualizar odômetro ─────────────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_ODOMETER,
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.IntType },
+                navArgument("currentKm") { type = NavType.IntType },
+            ),
+        ) {
+            UpdateOdometerScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.VEHICLE_DETAILS)
+                            .savedStateHandle["odometer_updated"] = true
+                    }
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Detalhes do abastecimento ──────────────────────────────────────
+        composable(
+            route = Destinations.REFUEL_DETAILS,
+            arguments = listOf(navArgument("refuelId") { type = NavType.IntType }),
+        ) { entry ->
+            val refuelId = entry.arguments?.getInt("refuelId") ?: return@composable
+            val refuelUpdated by entry.savedStateHandle
+                .getStateFlow("refuel_updated", false)
+                .collectAsStateWithLifecycle()
+
+            RefuelDetailsScreen(
+                onBack           = { navController.popBackStack() },
+                onNavigateToEdit = { navController.navigate(Destinations.refuelEdit(refuelId)) },
+                onDeletedNavigateBack = {
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["history_needs_refresh"] = true
+                    }
+                    navController.popBackStack()
+                },
+                refuelUpdated           = refuelUpdated,
+                onRefuelUpdatedConsumed = { entry.savedStateHandle["refuel_updated"] = false },
+            )
+        }
+
+        // ── Edição de abastecimento ────────────────────────────────────────
+        composable(
+            route = Destinations.REFUEL_EDIT,
+            arguments = listOf(navArgument("refuelId") { type = NavType.IntType }),
+        ) {
+            EditRefuelScreen(
+                onBack  = { navController.popBackStack() },
+                onSaved = {
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.REFUEL_DETAILS)
+                            .savedStateHandle["refuel_updated"] = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["history_needs_refresh"] = true
+                    }
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        // ── Lista de eventos do veículo ────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_EVENTS,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+        ) { entry ->
+            val eventCreated by entry.savedStateHandle
+                .getStateFlow("event_created", false)
+                .collectAsStateWithLifecycle()
+            val eventDeleted by entry.savedStateHandle
+                .getStateFlow("event_deleted", -1)
+                .collectAsStateWithLifecycle()
+
+            VehicleEventsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCreate = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEventCreate(vehicleId))
+                },
+                onNavigateToDetails = { eventId ->
+                    navController.navigate(Destinations.vehicleEventDetails(eventId))
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                eventCreated = eventCreated,
+                onEventCreatedConsumed = { entry.savedStateHandle["event_created"] = false },
+                eventDeleted = eventDeleted,
+                onEventDeletedConsumed = { entry.savedStateHandle["event_deleted"] = -1 },
+            )
+        }
+
+        // ── Criar evento do veículo ────────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_EVENT_CREATE,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+        ) {
+            CreateVehicleEventScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    val signaled = runCatching {
+                        navController.getBackStackEntry(Destinations.VEHICLE_EVENTS)
+                            .savedStateHandle["event_created"] = true
+                        true
+                    }.getOrDefault(false)
+                    if (!signaled) {
+                        runCatching {
+                            navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                                .savedStateHandle["tab_event_created"] = true
+                        }
+                    }
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Detalhes do evento ─────────────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_EVENT_DETAILS,
+            arguments = listOf(navArgument("eventId") { type = NavType.IntType }),
+        ) { entry ->
+            val eventId = entry.arguments?.getInt("eventId") ?: return@composable
+            val eventUpdated by entry.savedStateHandle
+                .getStateFlow("event_updated", false)
+                .collectAsStateWithLifecycle()
+
+            VehicleEventDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate(Destinations.vehicleEventEdit(id))
+                },
+                onDeletedBack = {
+                    val signaled = runCatching {
+                        navController.getBackStackEntry(Destinations.VEHICLE_EVENTS)
+                            .savedStateHandle["event_deleted"] = eventId
+                        true
+                    }.getOrDefault(false)
+                    if (!signaled) {
+                        runCatching {
+                            navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                                .savedStateHandle["tab_event_deleted"] = eventId
+                        }
+                    }
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                eventUpdated = eventUpdated,
+                onEventUpdatedConsumed = { entry.savedStateHandle["event_updated"] = false },
+            )
+        }
+
+        // ── Editar evento do veículo ───────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_EVENT_EDIT,
+            arguments = listOf(navArgument("eventId") { type = NavType.IntType }),
+        ) {
+            EditVehicleEventScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.VEHICLE_EVENT_DETAILS)
+                            .savedStateHandle["event_updated"] = true
+                    }
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Container principal (Home + abas) ──────────────────────────────
+        composable(Destinations.MAIN_CONTAINER) { entry ->
+            val passwordChanged by entry.savedStateHandle
+                .getStateFlow("password_changed", false)
+                .collectAsStateWithLifecycle()
+            val vehicleUpdated by entry.savedStateHandle
+                .getStateFlow("vehicle_updated", false)
+                .collectAsStateWithLifecycle()
+            val historyNeedsRefresh by entry.savedStateHandle
+                .getStateFlow("history_needs_refresh", false)
+                .collectAsStateWithLifecycle()
+            val tabEventCreated by entry.savedStateHandle
+                .getStateFlow("tab_event_created", false)
+                .collectAsStateWithLifecycle()
+            val tabEventDeleted by entry.savedStateHandle
+                .getStateFlow("tab_event_deleted", -1)
+                .collectAsStateWithLifecycle()
+            val profileUpdated by entry.savedStateHandle
+                .getStateFlow("profile_updated", false)
+                .collectAsStateWithLifecycle()
+
+            MainContainerScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToAddVehicle = {
+                    navController.navigate(Destinations.VEHICLE_ADD)
+                },
+                onNavigateToVehicleDetails = { vehicleId ->
+                    navController.navigate(Destinations.vehicleDetails(vehicleId))
+                },
+                onNavigateToEditVehicle = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEdit(vehicleId))
+                },
+                onNavigateToVehicleEvents = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEvents(vehicleId))
+                },
+                onNavigateToEventCreate = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEventCreate(vehicleId))
+                },
+                onNavigateToEventDetails = { eventId ->
+                    navController.navigate(Destinations.vehicleEventDetails(eventId))
+                },
+                onNavigateToRefuelDetails = { refuelId ->
+                    navController.navigate(Destinations.refuelDetails(refuelId))
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(Destinations.EDIT_PROFILE)
+                },
+                onNavigateToChangePassword = {
+                    navController.navigate(Destinations.CHANGE_PASSWORD)
+                },
+                passwordChanged = passwordChanged,
+                onPasswordChangedConsumed = {
+                    entry.savedStateHandle["password_changed"] = false
+                },
+                vehicleUpdated = vehicleUpdated,
+                onVehicleUpdatedConsumed = {
+                    entry.savedStateHandle["vehicle_updated"] = false
+                },
+                historyNeedsRefresh = historyNeedsRefresh,
+                onHistoryRefreshConsumed = {
+                    entry.savedStateHandle["history_needs_refresh"] = false
+                },
+                tabEventCreated = tabEventCreated,
+                onTabEventCreatedConsumed = {
+                    entry.savedStateHandle["tab_event_created"] = false
+                },
+                tabEventDeleted = tabEventDeleted,
+                onTabEventDeletedConsumed = {
+                    entry.savedStateHandle["tab_event_deleted"] = -1
+                },
+                profileUpdated = profileUpdated,
+                onProfileUpdatedConsumed = {
+                    entry.savedStateHandle["profile_updated"] = false
+                },
+            )
+        }
+
+        // ── Edição de perfil ───────────────────────────────────────────────
+        composable(Destinations.EDIT_PROFILE) {
+            EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("profile_updated", true)
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ── Troca de senha ─────────────────────────────────────────────────
+        composable(Destinations.CHANGE_PASSWORD) {
+            ChangePasswordScreen(
+                onSuccess = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("password_changed", true)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+    }
+}
+
+private fun AnimatedContentTransitionScope<*>.defaultEnter() =
+    slideIntoContainer(
+        AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(250),
+    )
+
+private fun AnimatedContentTransitionScope<*>.defaultExit() =
+    slideOutOfContainer(
+        AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(250),
+    )
+
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface NavEntryPoint {
+    fun sessionStore(): SessionStore
+}

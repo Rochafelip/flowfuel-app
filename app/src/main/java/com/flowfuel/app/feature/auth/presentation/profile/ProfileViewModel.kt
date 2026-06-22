@@ -1,0 +1,202 @@
+package com.flowfuel.app.feature.auth.presentation.profile
+
+import android.net.Uri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.flowfuel.app.core.datastore.SessionStore
+import com.flowfuel.app.core.domain.AppError
+import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.feature.auth.domain.model.UserProfile
+import com.flowfuel.app.feature.auth.domain.usecase.DeleteAccountUseCase
+import com.flowfuel.app.feature.auth.domain.usecase.DeleteProfilePictureUseCase
+import com.flowfuel.app.feature.auth.domain.usecase.GetProfileStatsUseCase
+import com.flowfuel.app.feature.auth.domain.usecase.GetProfileUseCase
+import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
+import com.flowfuel.app.feature.auth.domain.usecase.ProfileStats
+import com.flowfuel.app.feature.auth.domain.usecase.UploadProfilePictureUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
+
+// ─── State ─────────────────────────────────────────────────────────────────────
+
+sealed interface ProfileUiState {
+    data object Loading : ProfileUiState
+    data class Content(
+        val profile: UserProfile,
+        val stats: ProfileStats? = null,
+        val isLoggingOut: Boolean = false,
+        val isUploadingPhoto: Boolean = false,
+        val isDeletingPhoto: Boolean = false,
+        val showDeleteDialog: Boolean = false,
+        val isDeletingAccount: Boolean = false,
+    ) : ProfileUiState
+    data class Error(val message: String) : ProfileUiState
+}
+
+// ─── Effects ───────────────────────────────────────────────────────────────────
+
+sealed interface ProfileEffect {
+    data object NavigateToLogin : ProfileEffect
+    data object NavigateToEditProfile : ProfileEffect
+    data object NavigateToChangePassword : ProfileEffect
+    data object ShowUploadError : ProfileEffect
+    data object ShowDeleteError : ProfileEffect
+}
+
+// ─── ViewModel ─────────────────────────────────────────────────────────────────
+
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val getProfile: GetProfileUseCase,
+    private val getProfileStats: GetProfileStatsUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val sessionStore: SessionStore,
+    private val uploadProfilePicture: UploadProfilePictureUseCase,
+    private val deleteProfilePicture: DeleteProfilePictureUseCase,
+    private val deleteAccount: DeleteAccountUseCase,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
+    val state: StateFlow<ProfileUiState> = _state.asStateFlow()
+
+    private val _effects = Channel<ProfileEffect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
+
+    init {
+        load()
+    }
+
+    fun load() {
+        _state.update { ProfileUiState.Loading }
+        viewModelScope.launch {
+            Timber.d("Profile › buscando perfil do usuário")
+            when (val result = getProfile()) {
+                is AppResult.Success -> {
+                    Timber.d("Profile › perfil recebido: ${result.value.email}")
+                    _state.update { ProfileUiState.Content(result.value) }
+                    loadStats()
+                }
+                is AppResult.Failure -> {
+                    Timber.e("Profile › erro ao buscar perfil: ${result.error}")
+                    handleError(result.error)
+                }
+            }
+        }
+    }
+
+    private fun loadStats() {
+        viewModelScope.launch {
+            Timber.d("Profile › buscando estatísticas")
+            val stats = getProfileStats()
+            Timber.d("Profile › stats: veículos=${stats.vehiclesCount} abastec=${stats.refuelsCount} eventos=${stats.eventsCount}")
+            _state.update { current ->
+                (current as? ProfileUiState.Content)?.copy(stats = stats) ?: current
+            }
+        }
+    }
+
+    fun logout() {
+        val current = _state.value
+        if (current is ProfileUiState.Content) {
+            _state.update { current.copy(isLoggingOut = true) }
+        }
+        viewModelScope.launch {
+            sessionStore.clear()
+            logoutUseCase()
+            _effects.send(ProfileEffect.NavigateToLogin)
+        }
+    }
+
+    fun onEditProfile() {
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToEditProfile) }
+    }
+
+    fun onChangePassword() {
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToChangePassword) }
+    }
+
+    fun onPickImage(uri: Uri) {
+        val current = _state.value as? ProfileUiState.Content ?: return
+        _state.update { current.copy(isUploadingPhoto = true) }
+        viewModelScope.launch {
+            when (val result = uploadProfilePicture(uri)) {
+                is AppResult.Success -> {
+                    _state.update {
+                        current.copy(
+                            isUploadingPhoto = false,
+                            profile = current.profile.copy(profilePictureUrl = result.value),
+                        )
+                    }
+                    load()
+                }
+                is AppResult.Failure -> {
+                    Timber.e("Profile › erro ao enviar foto: ${result.error}")
+                    _state.update { current.copy(isUploadingPhoto = false) }
+                    _effects.send(ProfileEffect.ShowUploadError)
+                }
+            }
+        }
+    }
+
+    fun onDeletePicture() {
+        val current = _state.value as? ProfileUiState.Content ?: return
+        _state.update { current.copy(isDeletingPhoto = true) }
+        viewModelScope.launch {
+            when (val result = deleteProfilePicture()) {
+                is AppResult.Success -> {
+                    _state.update {
+                        current.copy(
+                            isDeletingPhoto = false,
+                            profile = current.profile.copy(profilePictureUrl = null),
+                        )
+                    }
+                    load()
+                }
+                is AppResult.Failure -> {
+                    Timber.e("Profile › erro ao remover foto: ${result.error}")
+                    _state.update { current.copy(isDeletingPhoto = false) }
+                    _effects.send(ProfileEffect.ShowDeleteError)
+                }
+            }
+        }
+    }
+
+    fun onShowDeleteDialog() {
+        val current = _state.value as? ProfileUiState.Content ?: return
+        _state.update { current.copy(showDeleteDialog = true) }
+    }
+
+    fun onDismissDeleteDialog() {
+        val current = _state.value as? ProfileUiState.Content ?: return
+        _state.update { current.copy(showDeleteDialog = false) }
+    }
+
+    fun onDeleteAccountConfirmed() {
+        val current = _state.value as? ProfileUiState.Content ?: return
+        _state.update { current.copy(showDeleteDialog = false, isDeletingAccount = true) }
+        viewModelScope.launch {
+            deleteAccount()
+            _effects.send(ProfileEffect.NavigateToLogin)
+        }
+    }
+
+    private suspend fun handleError(error: AppError) {
+        when (error) {
+            AppError.Unauthorized -> {
+                sessionStore.clear()
+                _effects.send(ProfileEffect.NavigateToLogin)
+            }
+            AppError.Network -> _state.update { ProfileUiState.Error("Sem conexão. Verifique sua internet.") }
+            is AppError.Api -> _state.update { ProfileUiState.Error("Erro ao carregar perfil (${error.code}).") }
+            is AppError.Unknown -> _state.update { ProfileUiState.Error("Erro inesperado. Tente novamente.") }
+        }
+    }
+}

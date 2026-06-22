@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FlowFuel</string>
+
+    <!-- Common -->
+    <string name="action_continue">Continuar</string>
+    <string name="action_back">Voltar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_confirm">Confirmar</string>
+    <string name="action_retry">Tentar novamente</string>
+    <string name="action_save">Salvar</string>
+    <string name="action_delete">Excluir</string>
+    <string name="action_edit">Editar</string>
+
+    <!-- Onboarding -->
+    <string name="onb_title_1">Dashboard personalizado</string>
+    <string name="onb_desc_1">Acompanhe km/L, gasto por mês e tendências — tudo em um painel limpo e intuitivo.</string>
+    <string name="onb_title_2">Histórico de abastecimentos</string>
+    <string name="onb_desc_2">Registre cada abastecimento em segundos direto do posto e consulte o histórico completo.</string>
+    <string name="onb_title_3">Prontuário do veículo</string>
+    <string name="onb_desc_3">Revisões, trocas de óleo e manutenções registradas em um histórico completo do seu carro.</string>
+    <string name="onb_skip">Pular</string>
+    <string name="onb_get_started">Começar</string>
+    <string name="onb_create_account">Criar conta</string>
+    <string name="onb_sign_in">Entrar</string>
+
+    <!-- Auth -->
+    <string name="auth_tagline">Controle inteligente do seu combustível</string>
+    <string name="auth_login_title">Entrar</string>
+    <string name="auth_login_subtitle">Bem-vindo de volta ao FlowFuel</string>
+    <string name="auth_email">E-mail</string>
+    <string name="auth_password">Senha</string>
+    <string name="auth_password_confirm">Confirmar senha</string>
+    <string name="auth_name">Nome</string>
+    <string name="auth_forgot">Esqueci minha senha</string>
+    <string name="auth_login_cta">Entrar</string>
+    <string name="auth_no_account">Não tem conta? <b>Cadastre-se</b></string>
+    <string name="auth_have_account">Já tem conta? <b>Entrar</b></string>
+    <string name="auth_register_title">Criar conta</string>
+    <string name="auth_register_subtitle">Comece a controlar seu combustível</string>
+    <string name="auth_register_cta">Criar conta</string>
+    <string name="auth_forgot_title">Recuperar senha</string>
+    <string name="auth_forgot_subtitle">Enviaremos instruções para o seu e-mail</string>
+    <string name="auth_forgot_cta">Enviar instruções</string>
+    <string name="auth_forgot_sent">Se o e-mail existir, você receberá as instruções em instantes.</string>
+    <string name="auth_forgot_success_title">Verifique sua caixa de entrada</string>
+    <string name="auth_forgot_success_cta">Voltar para o login</string>
+    <string name="auth_forgot_have_token_cta">Já tenho um código → Redefinir senha</string>
+    <string name="auth_phone">Telefone</string>
+
+    <!-- Reset de senha (conclusão, código manual) -->
+    <string name="reset_password_title">Redefinir senha</string>
+    <string name="reset_password_subtitle">Cole o código de redefinição enviado para %1$s e escolha uma nova senha.</string>
+    <string name="reset_password_token">Código de redefinição</string>
+    <string name="reset_password_new">Nova senha</string>
+    <string name="reset_password_confirm">Confirmar nova senha</string>
+    <string name="reset_password_cta">Redefinir senha</string>
+    <string name="error_reset_invalid">Código de redefinição inválido, expirado ou já usado.</string>
+
+    <!-- Check Email / Ativação de conta (A5) -->
+    <string name="check_email_title">Confirme seu e-mail</string>
+    <string name="check_email_subtitle">Enviamos um link de ativação para</string>
+    <string name="check_email_instruction">Clique no link no e-mail para ativar sua conta e volte aqui para entrar.</string>
+    <string name="check_email_resend">Reenviar e-mail</string>
+    <string name="check_email_resend_loading">Reenviando…</string>
+    <string name="check_email_resend_cooldown">Reenviar em %ds</string>
+    <string name="check_email_resend_sent">Se houver uma conta pendente, reenviamos o link de ativação.</string>
+    <string name="check_email_already_confirmed">Já confirmei → Entrar</string>
+    <string name="check_email_activation_confirmed">Conta ativada com sucesso. Faça login.</string>
+    <string name="check_email_manual_token_label">Não recebeu o e-mail? Cole o código de ativação abaixo.</string>
+    <string name="check_email_manual_token_field">Código de ativação</string>
+    <string name="check_email_manual_token_cta">Ativar com código</string>
+    <string name="error_account_not_activated">Conta ainda não ativada. Verifique seu e-mail.</string>
+    <string name="error_activation_invalid">Código de ativação inválido, expirado ou já usado.</string>
+
+    <!-- Validation -->
+    <string name="error_required">Campo obrigatório</string>
+    <string name="error_email_invalid">E-mail inválido</string>
+    <string name="error_password_short">Use pelo menos 8 caracteres</string>
+    <string name="error_password_mismatch">As senhas não conferem</string>
+    <string name="error_phone_invalid">Telefone inválido (ex: +5511999999999)</string>
+
+    <!-- Errors API -->
+    <string name="error_network">Sem conexão. Verifique sua internet.</string>
+    <string name="error_unauthorized">Sessão expirada. Entre novamente.</string>
+    <string name="error_invalid_credentials">E-mail ou senha incorretos.</string>
+    <string name="error_email_taken">Este e-mail já está em uso.</string>
+    <string name="error_password_current_wrong">Senha atual incorreta.</string>
+    <string name="error_forbidden">Você não tem permissão para esta ação.</string>
+    <string name="error_not_found">Recurso não encontrado.</string>
+    <string name="error_business_rule">Operação não permitida pelas regras do sistema.</string>
+    <string name="error_validation_failed">Verifique os dados e tente novamente.</string>
+    <string name="error_conflict">Operação em conflito.</string>
+    <string name="error_rate_limited">Muitas tentativas. Tente novamente em alguns minutos.</string>
+    <string name="error_unknown">Algo deu errado. Tente novamente.</string>
+
+    <!-- Change Password -->
+    <string name="change_password_title">Trocar senha</string>
+    <string name="change_password_current">Senha atual</string>
+    <string name="change_password_new">Nova senha</string>
+    <string name="change_password_confirm">Confirmar nova senha</string>
+    <string name="change_password_cta">Confirmar</string>
+
+    <!-- Empty / states -->
+    <string name="state_empty_title">Nada por aqui ainda</string>
+    <string name="state_error_title">Tivemos um problema</string>
+    <string name="state_loading">Carregando…</string>
+
+    <!-- Vehicle — Seleção -->
+    <string name="vehicle_picker_title">Meus veículos</string>
+    <string name="vehicle_picker_subtitle">Selecione o veículo que deseja usar agora.</string>
+    <string name="vehicle_picker_fab">Novo veículo</string>
+
+    <!-- Vehicle — Cadastro -->
+    <string name="vehicle_add_title">Cadastrar veículo</string>
+    <string name="vehicle_add_subtitle">Essas informações ajudam o app a calcular seu consumo corretamente.</string>
+    <string name="vehicle_add_cta">Cadastrar veículo</string>
+    <string name="vehicle_add_continue">Continuar</string>
+    <string name="vehicle_add_fill_later">Preencher depois</string>
+    <string name="vehicle_wizard_step1">Identificação</string>
+    <string name="vehicle_wizard_step2">Classificação</string>
+    <string name="vehicle_wizard_step3">Detalhes</string>
+
+    <!-- Vehicle — Seções -->
+    <string name="vehicle_section_info">Informações principais</string>
+    <string name="vehicle_section_type">Tipo do veículo</string>
+    <string name="vehicle_section_energy">Tipo de energia</string>
+    <string name="vehicle_section_fuel">Tipo de combustível</string>
+    <string name="vehicle_section_tech">Dados técnicos</string>
+
+    <!-- Vehicle — Campos -->
+    <string name="vehicle_brand">Marca</string>
+    <string name="vehicle_model">Modelo</string>
+    <string name="vehicle_manufacture_year">Ano de fabricação</string>
+    <string name="vehicle_model_year">Ano do modelo</string>
+    <string name="vehicle_plate">Placa</string>
+    <string name="vehicle_color">Cor (opcional)</string>
+    <string name="vehicle_odometer">Odômetro atual (km)</string>
+    <string name="vehicle_tank_capacity">Capacidade do tanque (L)</string>
+    <string name="vehicle_battery_capacity">Capacidade da bateria (kWh)</string>
+
+    <!-- Vehicle — Tipos -->
+    <string name="vehicle_type_car">Carro</string>
+    <string name="vehicle_type_motorcycle">Moto</string>
+    <string name="vehicle_energy_combustion">Combustão</string>
+    <string name="vehicle_energy_combustion_desc">Gasolina, Etanol, Diesel ou GNV</string>
+    <string name="vehicle_energy_electric">Elétrico</string>
+    <string name="vehicle_energy_electric_desc">100% bateria, kWh</string>
+    <string name="vehicle_energy_hybrid">Híbrido</string>
+    <string name="vehicle_energy_hybrid_desc">Elétrico + combustível</string>
+    <string name="vehicle_fuel_gasoline">Gasolina</string>
+    <string name="vehicle_fuel_ethanol">Etanol</string>
+    <string name="vehicle_fuel_diesel">Diesel</string>
+    <string name="vehicle_fuel_flex">Flex</string>
+    <string name="vehicle_fuel_gnv">GNV</string>
+
+    <!-- Vehicle — Edição -->
+    <string name="vehicle_edit_title">Editar veículo</string>
+    <string name="vehicle_edit_cta">Salvar alterações</string>
+    <string name="vehicle_updated_success">Veículo atualizado com sucesso</string>
+    <string name="vehicle_discard_title">Descartar alterações?</string>
+    <string name="vehicle_discard_message">As alterações não salvas serão perdidas.</string>
+    <string name="vehicle_discard_confirm">Descartar</string>
+
+    <!-- Vehicle — Atualizar Odômetro -->
+    <string name="vehicle_odometer_update_title">Atualizar Odômetro</string>
+    <string name="vehicle_odometer_new_km_label">Nova quilometragem (km)</string>
+    <string name="vehicle_odometer_confirm_cta">Confirmar</string>
+    <string name="vehicle_odometer_regression_error">Novo valor deve ser ≥ ao odômetro atual</string>
+
+    <!-- Vehicle — Erros -->
+    <string name="error_plate_invalid">Placa inválida (ex: ABC1234)</string>
+    <string name="error_year_invalid">Ano inválido</string>
+    <string name="error_model_year_invalid">Ano do modelo inválido</string>
+
+    <!-- Home — Topo -->
+    <string name="home_logout">Sair</string>
+
+    <!-- Home — Cards de consumo -->
+    <string name="home_consumption_label">Consumo médio</string>
+    <string name="home_consumption_unit_combustion">km/L</string>
+    <string name="home_consumption_unit_electric">km/kWh</string>
+    <string name="home_consumption_no_data">Registre o primeiro abastecimento para calcular o consumo</string>
+    <string name="home_consumption_one_refuel">Baseado em 1 abastecimento • mínimo 2 para calcular</string>
+    <string name="home_consumption_n_refuels">Baseado em %d abastecimentos</string>
+
+    <!-- Home — Stats -->
+    <string name="home_stat_odometer">Odômetro atual</string>
+    <string name="home_stat_total_spent">Gasto total</string>
+    <string name="home_stat_total_refuels">Abastecimentos</string>
+
+    <!-- Home — Último abastecimento -->
+    <string name="home_last_refuel_title">Último abastecimento</string>
+    <string name="home_last_refuel_empty">Nenhum abastecimento registrado ainda.</string>
+    <string name="home_last_refuel_date">Data</string>
+    <string name="home_last_refuel_liters">Litros</string>
+    <string name="home_last_refuel_amount">Valor pago</string>
+    <string name="home_last_refuel_price_per_liter">Preço/litro</string>
+
+    <!-- Home — CTA / Bottom Sheet -->
+    <string name="home_cta_register">Registrar abastecimento</string>
+    <string name="home_sheet_title">Registrar abastecimento</string>
+    <string name="home_field_odometer">Odômetro (km)</string>
+    <string name="home_field_liters">Litros abastecidos</string>
+    <string name="home_field_value_per_litres">Valor do litro</string>
+    <string name="home_field_full_tank">Tanque cheio</string>
+    <string name="home_field_full_tank_desc">Abastecimento completo até o limite</string>
+    <string name="home_submit_btn">Registrar abastecimento</string>
+    <string name="home_submit_btn_loading">Registrando…</string>
+
+    <!-- Home — Validação -->
+    <string name="home_error_odometer">Informe a leitura do odômetro</string>
+    <string name="home_error_liters">Informe a quantidade de litros</string>
+    <string name="home_error_price">Informe o valor pago</string>
+
+    <!-- Home — Feedback -->
+    <string name="home_refuel_registered">Abastecimento registrado com sucesso!</string>
+
+    <!-- Profile — Edição -->
+    <string name="profile_edit_title">Editar perfil</string>
+    <string name="profile_edit_cta">Salvar alterações</string>
+    <string name="profile_updated_success">Perfil atualizado com sucesso</string>
+    <string name="profile_discard_title">Descartar alterações?</string>
+    <string name="profile_discard_message">As alterações não salvas serão perdidas.</string>
+    <string name="profile_discard_confirm">Descartar</string>
+    <string name="profile_field_name">Nome</string>
+    <string name="profile_field_phone">Telefone (opcional)</string>
+    <string name="profile_name_error">Nome obrigatório</string>
+</resources>
