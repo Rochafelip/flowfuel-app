@@ -88,6 +88,8 @@
     <string name="error_password_current_wrong">Senha atual incorreta.</string>
     <string name="error_forbidden">Você não tem permissão para esta ação.</string>
     <string name="error_not_found">Recurso não encontrado.</string>
+    <string name="error_session_expired">Sua sessão expirou. Faça login novamente.</string>
+    <string name="error_session_revoked">Sessão encerrada em outro dispositivo. Faça login novamente.</string>
     <string name="error_business_rule">Operação não permitida pelas regras do sistema.</string>
     <string name="error_validation_failed">Verifique os dados e tente novamente.</string>
     <string name="error_conflict">Operação em conflito.</string>

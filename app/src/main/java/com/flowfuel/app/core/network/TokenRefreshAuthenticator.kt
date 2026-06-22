@@ -9,6 +9,7 @@ import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import timber.log.Timber
 import javax.inject.Inject
@@ -91,7 +92,11 @@ class TokenRefreshAuthenticator @Inject constructor(
                     .build()
             } catch (e: Exception) {
                 Timber.w(e, "TokenRefresh: falha ao renovar token — limpando sessão")
-                runBlocking { sessionStore.clear() }
+                val reason = (e as? HttpException)?.let { problemDetailsOf(it)?.code }
+                runBlocking {
+                    sessionStore.setForcedLogoutReason(reason)
+                    sessionStore.clear()
+                }
                 null
             }
         }

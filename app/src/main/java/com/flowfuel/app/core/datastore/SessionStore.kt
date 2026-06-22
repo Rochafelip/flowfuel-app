@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -78,6 +79,21 @@ class SessionStore @Inject constructor(
     suspend fun markOnboarded() {
         context.dataStore.edit { it[Keys.ONBOARDED] = true }
     }
+
+    // ─── Motivo do logout forçado ────────────────────────────────────────────
+    // Sinal efêmero (em memória, não persistido) lido uma única vez pela tela
+    // de login para explicar por que a sessão foi encerrada (ex: refresh token
+    // revogado/expirado). Setado pelo TokenRefreshAuthenticator antes de clear().
+
+    private val _forcedLogoutReason = MutableStateFlow<String?>(null)
+
+    fun setForcedLogoutReason(code: String?) {
+        _forcedLogoutReason.value = code
+    }
+
+    /** Lê e limpa o motivo do logout forçado (consumo único). */
+    fun consumeForcedLogoutReason(): String? =
+        _forcedLogoutReason.value.also { _forcedLogoutReason.value = null }
 
     // ─── Veículo ativo ────────────────────────────────────────────────────────
 

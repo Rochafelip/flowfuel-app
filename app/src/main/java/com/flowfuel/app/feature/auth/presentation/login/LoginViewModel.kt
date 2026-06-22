@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.auth.presentation.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.common.Validators
+import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.FieldError
@@ -38,6 +39,7 @@ sealed interface LoginEffect {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val login: LoginUseCase,
+    private val sessionStore: SessionStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginUiState())
@@ -45,6 +47,15 @@ class LoginViewModel @Inject constructor(
 
     private val _effects = Channel<LoginEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    init {
+        // Motivo de um logout forçado (ex: refresh token revogado/expirado em
+        // outra tela) — consumido uma única vez para explicar ao usuário por
+        // que ele caiu de volta no login.
+        sessionStore.consumeForcedLogoutReason()?.let { code ->
+            _state.update { it.copy(error = AppError.Api(code)) }
+        }
+    }
 
     fun onEmailChange(value: String) = _state.update { it.copy(email = value, emailError = false, error = null, serverErrors = null) }
     fun onPasswordChange(value: String) = _state.update { it.copy(password = value, passwordError = false, error = null, serverErrors = null) }
