@@ -40,11 +40,6 @@ data class CreateVehicleRequestDto(
 )
 
 @Serializable
-data class UpdateOdometerRequestDto(
-    val odometerKm: Int,
-)
-
-@Serializable
 data class UpdateVehicleRequestDto(
     val brand: String? = null,
     val model: String? = null,
@@ -120,11 +115,13 @@ interface VehicleApi {
 
     /**
      * Atualiza apenas o odômetro do veículo.
-     * Usa [ResponseBody]? para suportar tanto 200+corpo quanto 204 sem corpo.
+     * O backend espera o novo valor como query param `currentKm` — sem corpo
+     * (ver openapi.yaml: PUT /vehicles/{id}/odometer, nome de parâmetro
+     * enganoso, mas é o único parâmetro do endpoint além do id).
      */
     @PUT("vehicles/{id}/odometer")
     suspend fun updateOdometer(
         @Path("id") id: Int,
-        @Body body: UpdateOdometerRequestDto,
-    ): ResponseBody?
+        @Query("currentKm") newKm: Int,
+    ): VehicleResponseDto
 }

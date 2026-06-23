@@ -5,7 +5,6 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.network.apiCall
 import com.flowfuel.app.feature.vehicle.data.remote.CreateVehicleRequestDto
-import com.flowfuel.app.feature.vehicle.data.remote.UpdateOdometerRequestDto
 import com.flowfuel.app.feature.vehicle.data.remote.UpdateVehicleRequestDto
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleResponseDto
@@ -95,25 +94,9 @@ class VehicleRepositoryImpl @Inject constructor(
 
     // ─── Odômetro ─────────────────────────────────────────────────────────────
 
-    /**
-     * Chama PUT /vehicles/{id}/odometer.
-     * Usa try-catch manual (mesmo padrão de [setActiveVehicle]) pois [ResponseBody]?
-     * não passa pelo conversor JSON e suporta tanto 200 quanto 204.
-     */
-    override suspend fun updateOdometer(vehicleId: Int, newKm: Int): AppResult<Unit> = try {
-        api.updateOdometer(vehicleId, UpdateOdometerRequestDto(odometerKm = newKm))?.close()
-        AppResult.Success(Unit)
-    } catch (e: HttpException) {
-        Timber.w("updateOdometer: HTTP ${e.code()}")
-        if (e.code() == 401) AppResult.Failure(AppError.Unauthorized)
-        else AppResult.Failure(AppError.Api("HTTP_${e.code()}", e.message()))
-    } catch (e: IOException) {
-        Timber.w(e, "updateOdometer: network error")
-        AppResult.Failure(AppError.Network)
-    } catch (e: Throwable) {
-        Timber.e(e, "updateOdometer: unexpected error")
-        AppResult.Failure(AppError.Unknown(e))
-    }
+    /** Chama PUT /vehicles/{id}/odometer com o novo valor no query param `currentKm`. */
+    override suspend fun updateOdometer(vehicleId: Int, newKm: Int): AppResult<Unit> =
+        apiCall { api.updateOdometer(vehicleId, newKm) }.map {}
 
     // ─── Criação ──────────────────────────────────────────────────────────────
 
