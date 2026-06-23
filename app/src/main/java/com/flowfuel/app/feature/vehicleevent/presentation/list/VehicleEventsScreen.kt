@@ -80,6 +80,8 @@ fun VehicleEventsScreen(
     onEventCreatedConsumed: () -> Unit = {},
     eventDeleted: Int = -1,
     onEventDeletedConsumed: () -> Unit = {},
+    eventUpdated: Boolean = false,
+    onEventUpdatedConsumed: () -> Unit = {},
     viewModel: VehicleEventsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -99,6 +101,13 @@ fun VehicleEventsScreen(
             viewModel.removeEvent(eventDeleted)
             snackbarHostState.showSnackbar(FFSnackbarVisuals("Evento excluído", FFSnackbarKind.Success))
             onEventDeletedConsumed()
+        }
+    }
+
+    LaunchedEffect(eventUpdated) {
+        if (eventUpdated) {
+            viewModel.refresh()
+            onEventUpdatedConsumed()
         }
     }
 

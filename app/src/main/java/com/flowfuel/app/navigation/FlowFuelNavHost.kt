@@ -382,6 +382,9 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
             val eventDeleted by entry.savedStateHandle
                 .getStateFlow("event_deleted", -1)
                 .collectAsStateWithLifecycle()
+            val eventUpdated by entry.savedStateHandle
+                .getStateFlow("event_updated", false)
+                .collectAsStateWithLifecycle()
 
             VehicleEventsScreen(
                 onBack = { navController.popBackStack() },
@@ -400,6 +403,8 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
                 onEventCreatedConsumed = { entry.savedStateHandle["event_created"] = false },
                 eventDeleted = eventDeleted,
                 onEventDeletedConsumed = { entry.savedStateHandle["event_deleted"] = -1 },
+                eventUpdated = eventUpdated,
+                onEventUpdatedConsumed = { entry.savedStateHandle["event_updated"] = false },
             )
         }
 
@@ -483,6 +488,17 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
                         navController.getBackStackEntry(Destinations.VEHICLE_EVENT_DETAILS)
                             .savedStateHandle["event_updated"] = true
                     }
+                    val signaled = runCatching {
+                        navController.getBackStackEntry(Destinations.VEHICLE_EVENTS)
+                            .savedStateHandle["event_updated"] = true
+                        true
+                    }.getOrDefault(false)
+                    if (!signaled) {
+                        runCatching {
+                            navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                                .savedStateHandle["tab_event_updated"] = true
+                        }
+                    }
                     navController.popBackStack()
                 },
                 onNavigateToLogin = {
@@ -509,6 +525,9 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
                 .collectAsStateWithLifecycle()
             val tabEventDeleted by entry.savedStateHandle
                 .getStateFlow("tab_event_deleted", -1)
+                .collectAsStateWithLifecycle()
+            val tabEventUpdated by entry.savedStateHandle
+                .getStateFlow("tab_event_updated", false)
                 .collectAsStateWithLifecycle()
             val profileUpdated by entry.savedStateHandle
                 .getStateFlow("profile_updated", false)
@@ -566,6 +585,10 @@ fun FlowFuelNavHost(onSplashReady: () -> Unit) {
                 tabEventDeleted = tabEventDeleted,
                 onTabEventDeletedConsumed = {
                     entry.savedStateHandle["tab_event_deleted"] = -1
+                },
+                tabEventUpdated = tabEventUpdated,
+                onTabEventUpdatedConsumed = {
+                    entry.savedStateHandle["tab_event_updated"] = false
                 },
                 profileUpdated = profileUpdated,
                 onProfileUpdatedConsumed = {

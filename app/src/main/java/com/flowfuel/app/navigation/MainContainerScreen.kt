@@ -74,6 +74,8 @@ fun MainContainerScreen(
     onTabEventCreatedConsumed: () -> Unit = {},
     tabEventDeleted: Int = -1,
     onTabEventDeletedConsumed: () -> Unit = {},
+    tabEventUpdated: Boolean = false,
+    onTabEventUpdatedConsumed: () -> Unit = {},
 ) {
     val innerNavController = rememberNavController()
     val backStackEntry by innerNavController.currentBackStackEntryAsState()
@@ -208,6 +210,8 @@ fun MainContainerScreen(
                     onEventCreatedConsumed = onTabEventCreatedConsumed,
                     eventDeleted = tabEventDeleted,
                     onEventDeletedConsumed = onTabEventDeletedConsumed,
+                    eventUpdated = tabEventUpdated,
+                    onEventUpdatedConsumed = onTabEventUpdatedConsumed,
                 )
             }
 
