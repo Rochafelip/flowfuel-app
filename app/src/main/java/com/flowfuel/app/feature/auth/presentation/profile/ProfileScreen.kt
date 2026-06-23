@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
@@ -210,6 +212,7 @@ private fun ProfileContent(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = FFTheme.spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -310,6 +313,8 @@ private fun ProfileContent(
             isLoggingOut         = isLoggingOut,
             onDeleteAccountRequest = onDeleteAccountRequest,
         )
+
+        Spacer(Modifier.height(FFTheme.spacing.xl))
     }
 }
 
