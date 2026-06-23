@@ -90,13 +90,20 @@ class CreateVehicleEventViewModel @Inject constructor(
         val eventDateError = if (s.eventDate.isBlank()) "Data obrigatória" else null
         val odometerError = s.odometerKm.takeIf { it.isNotBlank() }?.toIntOrNull()
             ?.let { if (it <= 0) "Deve ser maior que zero" else null }
+        // amount é obrigatório no backend (VehicleEventRequestDTO.amount, min 0.01) — sem
+        // essa validação local, o erro só aparecia como a mensagem crua do Bean Validation
+        // ("must not be null") vinda da API, sem tradução.
+        val amountError = s.amount.takeIf { it.isNotBlank() }?.toLongOrNull()?.let { cents ->
+            if (cents <= 0L) "Valor deve ser maior que zero" else null
+        } ?: if (s.amount.isBlank()) "Valor obrigatório" else null
 
-        if (titleError != null || eventDateError != null || odometerError != null) {
+        if (titleError != null || eventDateError != null || odometerError != null || amountError != null) {
             _state.update {
                 it.copy(
                     titleError = titleError,
                     eventDateError = eventDateError,
                     odometerError = odometerError,
+                    amountError = amountError,
                 )
             }
             return

@@ -113,13 +113,17 @@ class EditVehicleEventViewModel @Inject constructor(
         val eventDateError = if (editing.eventDate.isBlank()) "Data obrigatória" else null
         val odometerError = editing.odometerKm.takeIf { it.isNotBlank() }?.toIntOrNull()
             ?.let { if (it <= 0) "Deve ser maior que zero" else null }
+        val amountError = editing.amount.takeIf { it.isNotBlank() }?.toLongOrNull()?.let { cents ->
+            if (cents <= 0L) "Valor deve ser maior que zero" else null
+        } ?: if (editing.amount.isBlank()) "Valor obrigatório" else null
 
-        if (titleError != null || eventDateError != null || odometerError != null) {
+        if (titleError != null || eventDateError != null || odometerError != null || amountError != null) {
             updateEditing {
                 it.copy(
                     titleError = titleError,
                     eventDateError = eventDateError,
                     odometerError = odometerError,
+                    amountError = amountError,
                 )
             }
             return

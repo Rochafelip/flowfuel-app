@@ -194,7 +194,7 @@ fun CreateVehicleEventScreen(
                 FFTextField(
                     value = state.amount,
                     onValueChange = { viewModel.onAmountChange(it.filter(Char::isDigit)) },
-                    label = "Valor (R$)",
+                    label = "Valor (R$) *",
                     errorText = state.amountError,
                     enabled = !state.isSubmitting,
                     keyboardType = KeyboardType.Number,
