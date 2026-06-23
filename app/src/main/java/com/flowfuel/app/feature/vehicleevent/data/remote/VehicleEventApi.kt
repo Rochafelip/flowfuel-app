@@ -19,7 +19,7 @@ interface VehicleEventApi {
         @Path("vehicleId") vehicleId: Int,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20,
-        @Query("category") category: String? = null,
+        @Query("type") type: String? = null,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null,
     ): PagedResponseDto<VehicleEventResponseDto>

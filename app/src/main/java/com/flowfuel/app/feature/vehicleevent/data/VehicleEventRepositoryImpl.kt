@@ -28,14 +28,11 @@ class VehicleEventRepositoryImpl @Inject constructor(
     override suspend fun createEvent(request: CreateVehicleEventRequest): AppResult<VehicleEvent> {
         val body = CreateVehicleEventRequestDto(
             vehicleId = request.vehicleId,
-            category = request.category.apiValue,
-            title = request.title,
-            description = request.description,
+            type = request.category.apiValue,
+            description = combineDescription(request.title, request.description, request.notes),
             amount = request.amount,
             eventDate = request.eventDate,
-            odometerKm = request.odometerKm,
-            notes = request.notes,
-            receiptUrl = request.receiptUrl,
+            odometer = request.odometerKm,
         )
         return apiCall { api.createEvent(body) }.map { it.toDomain() }
     }
@@ -47,7 +44,7 @@ class VehicleEventRepositoryImpl @Inject constructor(
         dateFrom: String?,
         dateTo: String?,
     ): AppResult<PagedVehicleEvents> =
-        apiCall { api.getEventsByVehicle(vehicleId, page = page, size = 20, category = category?.apiValue, startDate = dateFrom, endDate = dateTo) }
+        apiCall { api.getEventsByVehicle(vehicleId, page = page, size = 20, type = category?.apiValue, startDate = dateFrom, endDate = dateTo) }
             .map { paged ->
                 PagedVehicleEvents(
                     items = paged.content.map { it.toDomain() },
@@ -62,13 +59,11 @@ class VehicleEventRepositoryImpl @Inject constructor(
 
     override suspend fun updateEvent(id: Int, request: UpdateVehicleEventRequest): AppResult<VehicleEvent> {
         val body = UpdateVehicleEventRequestDto(
-            category = request.category?.apiValue,
-            title = request.title,
-            description = request.description,
+            type = request.category?.apiValue,
+            description = combineDescription(request.title, request.description, request.notes),
             amount = request.amount,
             eventDate = request.eventDate,
-            odometerKm = request.odometerKm,
-            notes = request.notes,
+            odometer = request.odometerKm,
         )
         return apiCall { api.updateEvent(id, body) }.map { it.toDomain() }
     }
@@ -88,18 +83,49 @@ class VehicleEventRepositoryImpl @Inject constructor(
         AppResult.Failure(AppError.Unknown(e))
     }
 
-    private fun VehicleEventResponseDto.toDomain() = VehicleEvent(
-        id = id,
-        vehicleId = vehicleId,
-        category = EventCategory.entries.firstOrNull { it.apiValue == category } ?: EventCategory.OTHER,
-        title = title,
-        description = description,
-        amount = amount,
-        eventDate = eventDate,
-        odometerKm = odometerKm,
-        notes = notes,
-        receiptUrl = receiptUrl,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
+    private fun VehicleEventResponseDto.toDomain(): VehicleEvent {
+        val (title, desc) = splitDescription(description, category = type)
+        return VehicleEvent(
+            id = id,
+            vehicleId = vehicleId,
+            category = EventCategory.entries.firstOrNull { it.apiValue == type } ?: EventCategory.OTHER,
+            title = title,
+            description = desc,
+            amount = amount,
+            eventDate = eventDate,
+            odometerKm = odometer,
+            notes = null,
+            receiptUrl = null,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+    }
+
+    private companion object {
+        /**
+         * O backend não tem campos title/notes — só [description] (ver
+         * VehicleEventRequestDTO no openapi.yaml). Título, descrição e
+         * observações da UI são combinados em uma única string, separados por
+         * linha em branco, e desfeitos em [splitDescription] na leitura.
+         */
+        fun combineDescription(title: String?, description: String?, notes: String?): String =
+            listOfNotNull(
+                title?.trim()?.takeIf { it.isNotBlank() },
+                description?.trim()?.takeIf { it.isNotBlank() },
+                notes?.trim()?.takeIf { it.isNotBlank() },
+            ).joinToString("\n\n")
+
+        /** Inverso de [combineDescription]: primeira linha = título, resto = descrição. */
+        fun splitDescription(raw: String?, category: String): Pair<String, String?> {
+            val text = raw.orEmpty()
+            val separatorIndex = text.indexOf("\n\n")
+            return if (separatorIndex >= 0) {
+                text.substring(0, separatorIndex) to text.substring(separatorIndex + 2).takeIf { it.isNotBlank() }
+            } else {
+                text.ifBlank {
+                    EventCategory.entries.firstOrNull { it.apiValue == category }?.label ?: category
+                } to null
+            }
+        }
+    }
 }
