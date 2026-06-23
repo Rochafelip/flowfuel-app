@@ -138,6 +138,7 @@ class EditVehicleEventViewModel @Inject constructor(
                 ?.takeIf { it > 0.0 }
 
             val request = UpdateVehicleEventRequest(
+                vehicleId = original?.vehicleId ?: return@launch,
                 category = editing.category,
                 title = editing.title.trim(),
                 description = editing.description.trim().takeIf { it.isNotBlank() },

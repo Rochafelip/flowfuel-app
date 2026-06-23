@@ -59,6 +59,7 @@ class VehicleEventRepositoryImpl @Inject constructor(
 
     override suspend fun updateEvent(id: Int, request: UpdateVehicleEventRequest): AppResult<VehicleEvent> {
         val body = UpdateVehicleEventRequestDto(
+            vehicleId = request.vehicleId,
             type = request.category?.apiValue,
             description = combineDescription(request.title, request.description, request.notes),
             amount = request.amount,

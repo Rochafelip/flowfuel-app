@@ -44,6 +44,7 @@ data class CreateVehicleEventRequest(
 )
 
 data class UpdateVehicleEventRequest(
+    val vehicleId: Int,
     val category: EventCategory? = null,
     val title: String? = null,
     val description: String? = null,
