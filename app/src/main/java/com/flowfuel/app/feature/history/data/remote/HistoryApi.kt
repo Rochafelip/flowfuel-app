@@ -64,6 +64,7 @@ data class RefuelHistoryPageDto(
 
 @Serializable
 data class UpdateRefuelRequestDto(
+    val vehicleId: Int,
     val odometer: Double,
     val energyAmount: Double,
     val pricePerUnit: Double,

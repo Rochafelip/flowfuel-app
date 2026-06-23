@@ -15,6 +15,7 @@ data class EditRefuelUiState(
     val isSubmitting: Boolean = false,
     val submitError: AppError? = null,
     val vehicleEnergyType: String = "FUEL",
+    val vehicleId: Int = 0,
 )
 
 sealed interface EditRefuelEffect {

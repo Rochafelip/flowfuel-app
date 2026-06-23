@@ -17,6 +17,7 @@ data class RefuelItem(
 
 data class UpdateRefuelRequest(
     val id: Int,
+    val vehicleId: Int,
     val odometer: Double,
     val liters: Double,
     val totalPrice: Double,

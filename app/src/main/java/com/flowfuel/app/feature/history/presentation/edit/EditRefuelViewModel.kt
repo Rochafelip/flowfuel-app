@@ -43,6 +43,7 @@ class EditRefuelViewModel @Inject constructor(
         viewModelScope.launch {
             val vehicleResult = getActiveVehicle()
             val energyType = (vehicleResult as? AppResult.Success)?.value?.energyType ?: "FUEL"
+            val vehicleId = (vehicleResult as? AppResult.Success)?.value?.id ?: 0
 
             when (val refuelResult = getRefuelDetails(refuelId)) {
                 is AppResult.Success -> {
@@ -59,6 +60,7 @@ class EditRefuelViewModel @Inject constructor(
                             screenState       = EditRefuelScreenState.Ready,
                             form              = form,
                             vehicleEnergyType = energyType,
+                            vehicleId         = vehicleId,
                         )
                     }
                 }
@@ -136,6 +138,7 @@ class EditRefuelViewModel @Inject constructor(
             when (val result = updateRefuel(
                 UpdateRefuelRequest(
                     id         = refuelId,
+                    vehicleId  = s.vehicleId,
                     odometer   = form.odometerDouble,
                     liters     = form.liters.replace(',', '.').toDouble(),
                     totalPrice = form.totalPriceDouble,

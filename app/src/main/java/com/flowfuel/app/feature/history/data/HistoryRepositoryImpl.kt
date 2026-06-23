@@ -98,6 +98,7 @@ class HistoryRepositoryImpl @Inject constructor(
             api.updateRefuel(
                 id,
                 UpdateRefuelRequestDto(
+                    vehicleId    = request.vehicleId,
                     odometer     = request.odometer,
                     energyAmount = liters,
                     pricePerUnit = pricePerUnit,
