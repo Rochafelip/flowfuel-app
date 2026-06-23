@@ -13,9 +13,7 @@ import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.HttpException
 import timber.log.Timber
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,19 +48,6 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun deleteProfilePicture(userId: String): AppResult<Unit> {
         Timber.d("ProfileRepo › DELETE auth/$userId/profile-picture")
-        return try {
-            api.deleteProfilePicture(userId)?.close()
-            AppResult.Success(Unit)
-        } catch (e: HttpException) {
-            Timber.w("deleteProfilePicture: HTTP ${e.code()}")
-            if (e.code() == 401) AppResult.Failure(AppError.Unauthorized)
-            else AppResult.Failure(AppError.Api("HTTP_${e.code()}", e.message()))
-        } catch (e: IOException) {
-            Timber.w(e, "deleteProfilePicture: network error")
-            AppResult.Failure(AppError.Network)
-        } catch (e: Throwable) {
-            Timber.e(e, "deleteProfilePicture: unexpected error")
-            AppResult.Failure(AppError.Unknown(e))
-        }
+        return apiCall { api.deleteProfilePicture(userId) }
     }
 }

@@ -4,7 +4,6 @@ import com.flowfuel.app.feature.auth.data.remote.dto.UpdateProfileRequestDto
 import com.flowfuel.app.feature.auth.data.remote.dto.UploadResponseDto
 import com.flowfuel.app.feature.auth.data.remote.dto.UserResponseDto
 import okhttp3.MultipartBody
-import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -34,5 +33,5 @@ interface ProfileApi {
     @DELETE("auth/{userId}/profile-picture")
     suspend fun deleteProfilePicture(
         @Path("userId") userId: String,
-    ): ResponseBody?
+    )
 }
