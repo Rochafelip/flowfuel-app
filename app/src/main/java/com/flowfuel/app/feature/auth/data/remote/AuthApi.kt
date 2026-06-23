@@ -3,7 +3,6 @@ package com.flowfuel.app.feature.auth.data.remote
 import com.flowfuel.app.feature.auth.data.remote.dto.ChangePasswordRequestDto
 import com.flowfuel.app.feature.auth.data.remote.dto.UserResponseDto
 import kotlinx.serialization.Serializable
-import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.Headers
@@ -88,10 +87,10 @@ interface AuthApi {
     suspend fun changePassword(
         @Path("userId") userId: String,
         @Body body: ChangePasswordRequestDto,
-    ): ResponseBody?
+    )
 
     @DELETE("auth/{userId}")
     suspend fun deleteAccount(
         @Path("userId") userId: String,
-    ): ResponseBody?
+    )
 }

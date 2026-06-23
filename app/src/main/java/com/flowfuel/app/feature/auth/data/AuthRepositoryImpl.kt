@@ -15,8 +15,6 @@ import com.flowfuel.app.feature.auth.data.remote.ResetPasswordRequestDto
 import com.flowfuel.app.feature.auth.data.remote.dto.ChangePasswordRequestDto
 import com.flowfuel.app.feature.auth.domain.AuthRepository
 import kotlinx.coroutines.flow.firstOrNull
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -74,21 +72,11 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun changePassword(userId: String, current: String, new: String): AppResult<Unit> =
-        when (val r = apiCall { api.changePassword(userId, ChangePasswordRequestDto(current, new)) }) {
-            is AppResult.Success -> AppResult.Success(Unit)
-            is AppResult.Failure -> r
-        }
+        apiCall { api.changePassword(userId, ChangePasswordRequestDto(current, new)) }
 
     override suspend fun deleteAccount(): AppResult<Unit> {
         val userId = sessionStore.sessionFlow.firstOrNull()?.userId
             ?: return AppResult.Failure(AppError.Unknown())
-        return try {
-            api.deleteAccount(userId)?.close()
-            AppResult.Success(Unit)
-        } catch (e: HttpException) {
-            AppResult.Failure(AppError.Api("HTTP_${e.code()}", e.message()))
-        } catch (e: IOException) {
-            AppResult.Failure(AppError.Network)
-        }
+        return apiCall { api.deleteAccount(userId) }
     }
 }
