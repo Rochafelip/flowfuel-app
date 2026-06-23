@@ -103,6 +103,7 @@ class HistoryViewModel @Inject constructor(
     // ─── Infinite scroll ──────────────────────────────────────────────────────
 
     fun loadNextPage() {
+        if (_state.value.screenState !is HistoryScreenState.Success) return
         val pg = _state.value.paginationState
         if (pg.isLoadingMore || !pg.hasMore || _state.value.isRefreshing) return
         val nextPage = pg.currentPage + 1
@@ -243,7 +244,8 @@ class HistoryViewModel @Inject constructor(
                     val merged     = existing + refuelPage.items.filter { it.id !in existingIds }
                     _state.update {
                         it.copy(
-                            screenState     = HistoryScreenState.Success(merged),
+                            screenState     = if (merged.isEmpty()) HistoryScreenState.Empty
+                                              else HistoryScreenState.Success(merged),
                             paginationState = it.paginationState.copy(
                                 isLoadingMore = false,
                                 hasMore       = refuelPage.hasMore,
