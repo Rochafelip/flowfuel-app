@@ -1,5 +1,6 @@
 package com.flowfuel.app.navigation
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -37,13 +38,37 @@ import com.flowfuel.app.feature.vehicleevent.presentation.details.VehicleEventDe
 import com.flowfuel.app.feature.vehicleevent.presentation.edit.EditVehicleEventScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
-fun FlowFuelNavHost(onSplashReady: () -> Unit) {
+fun FlowFuelNavHost(
+    onSplashReady: () -> Unit,
+    deepLinkUri: Uri? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val splashVm: SplashViewModel = hiltViewModel()
     val start by splashVm.start.collectAsState()
+
+    // Trata deep links flowfuel://<rota> (ex.: flowfuel://vehicle/details/1).
+    // Só navega quando há sessão com veículo ativo (StartDestination.Home) — em
+    // outros estados (login/onboarding/picker) o link é descartado, já que não
+    // há contexto de navegação válido para essas rotas internas.
+    LaunchedEffect(deepLinkUri, start) {
+        val uri = deepLinkUri ?: return@LaunchedEffect
+        if (start != StartDestination.Home) return@LaunchedEffect
+        // Uri.path não inclui o host (ex.: flowfuel://vehicle/details/1 → host="vehicle",
+        // path="/details/1") — é preciso recombinar os dois para bater com as rotas internas.
+        val path = listOfNotNull(uri.host, uri.path?.removePrefix("/"))
+            .filter { it.isNotBlank() }
+            .joinToString("/")
+        if (path.isNotBlank()) {
+            navController.currentBackStackEntryFlow.first { it.destination.route == Destinations.MAIN_CONTAINER }
+            runCatching { navController.navigate(path) }
+        }
+        onDeepLinkConsumed()
+    }
 
     LaunchedEffect(start) {
         when (start) {
