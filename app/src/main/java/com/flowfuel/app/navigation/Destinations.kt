@@ -7,7 +7,7 @@ object Destinations {
     const val LOGIN            = "login"
     const val REGISTER         = "register"
     const val FORGOT           = "forgot"
-    const val CHECK_EMAIL      = "auth/check-email/{email}"
+    const val CHECK_EMAIL      = "auth/check-email/{email}?token={token}"
     const val RESET_PASSWORD   = "auth/reset-password/{email}"
     const val VEHICLE_PICKER   = "vehicle/picker"
     const val VEHICLE_ADD      = "vehicle/add"
@@ -26,8 +26,11 @@ object Destinations {
     const val VEHICLE_EVENT_DETAILS = "vehicle/events/details/{eventId}"
     const val VEHICLE_EVENT_EDIT    = "vehicle/events/edit/{eventId}"
 
-    fun checkEmail(email: String) =
-        "auth/check-email/${java.net.URLEncoder.encode(email, "UTF-8")}"
+    fun checkEmail(email: String, token: String? = null): String {
+        val base = "auth/check-email/${java.net.URLEncoder.encode(email, "UTF-8")}"
+        return if (token.isNullOrBlank()) base
+            else "$base?token=${java.net.URLEncoder.encode(token, "UTF-8")}"
+    }
     fun resetPassword(email: String) =
         "auth/reset-password/${java.net.URLEncoder.encode(email, "UTF-8")}"
 

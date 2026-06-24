@@ -52,11 +52,26 @@ fun FlowFuelNavHost(
     val start by splashVm.start.collectAsState()
 
     // Trata deep links flowfuel://<rota> (ex.: flowfuel://vehicle/details/1).
-    // Só navega quando há sessão com veículo ativo (StartDestination.Home) — em
-    // outros estados (login/onboarding/picker) o link é descartado, já que não
-    // há contexto de navegação válido para essas rotas internas.
+    // Caso especial: flowfuel://activate?token=... (magic link de ativação de
+    // conta) não exige sessão — pode chegar com o usuário deslogado, que é o
+    // caso normal logo após o registro. Os demais caminhos internos exigem
+    // sessão com veículo ativo (StartDestination.Home), pois não há contexto
+    // de navegação válido para eles em outros estados (login/onboarding/picker).
     LaunchedEffect(deepLinkUri, start) {
         val uri = deepLinkUri ?: return@LaunchedEffect
+        if (start == StartDestination.Loading) return@LaunchedEffect
+
+        if (uri.host == "activate") {
+            val token = uri.getQueryParameter("token")
+            if (!token.isNullOrBlank()) {
+                val email = uri.getQueryParameter("email") ?: ""
+                navController.currentBackStackEntryFlow.first { it.destination.route != Destinations.SPLASH }
+                runCatching { navController.navigate(Destinations.checkEmail(email, token)) }
+            }
+            onDeepLinkConsumed()
+            return@LaunchedEffect
+        }
+
         if (start != StartDestination.Home) return@LaunchedEffect
         // Uri.path não inclui o host (ex.: flowfuel://vehicle/details/1 → host="vehicle",
         // path="/details/1") — é preciso recombinar os dois para bater com as rotas internas.
@@ -170,13 +185,20 @@ fun FlowFuelNavHost(
         // ── Confirme seu e-mail (A5 / ADR-014) ────────────────────────────
         composable(
             route = Destinations.CHECK_EMAIL,
-            arguments = listOf(navArgument("email") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("email") { type = NavType.StringType },
+                navArgument("token") { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
         ) { entry ->
             val email = entry.arguments?.getString("email")
                 ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
                 ?: ""
+            val token = entry.arguments?.getString("token")
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                ?: ""
             CheckEmailScreen(
                 email = email,
+                initialToken = token,
                 onBack = { navController.popBackStack() },
                 onNavigateToLogin = {
                     navController.navigate(Destinations.LOGIN) {
