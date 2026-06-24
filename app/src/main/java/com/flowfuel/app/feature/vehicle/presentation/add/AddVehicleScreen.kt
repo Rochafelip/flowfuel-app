@@ -437,7 +437,7 @@ private fun Step3Content(
             label = stringResource(R.string.vehicle_odometer),
             kind = FFNumberKind.WholeNumber,
             leadingIcon = Icons.Outlined.Speed,
-            errorText = state.serverErrors?.firstOrNull { it.field == "odometerKm" }?.message,
+            errorText = state.serverErrors?.firstOrNull { it.field == "currentKm" }?.message,
             imeAction = ImeAction.Next,
             keyboardActions = KeyboardActions(onNext = {
                 if (state.showTankCapacity) focusTank.requestFocus()
@@ -461,6 +461,7 @@ private fun Step3Content(
                 label = stringResource(R.string.vehicle_tank_capacity),
                 kind = FFNumberKind.Decimal,
                 leadingIcon = Icons.Outlined.LocalGasStation,
+                errorText = state.serverErrors?.firstOrNull { it.field == "capacity" }?.message,
                 imeAction = if (state.showBatteryCapacity) ImeAction.Next else ImeAction.Done,
                 keyboardActions = KeyboardActions(
                     onNext = { focusBattery.requestFocus() },
@@ -484,6 +485,7 @@ private fun Step3Content(
                 label = stringResource(R.string.vehicle_battery_capacity),
                 kind = FFNumberKind.Decimal,
                 leadingIcon = Icons.Outlined.EvStation,
+                errorText = state.serverErrors?.firstOrNull { it.field == "capacity" }?.message,
                 imeAction = ImeAction.Done,
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 enabled = !state.isSubmitting,
