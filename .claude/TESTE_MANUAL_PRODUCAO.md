@@ -22,6 +22,18 @@
 | 12 | Campo "Valor" sem validação local — mostrava erro cru do backend em inglês ("must not be null") | Criar/Editar Evento | Reproduzido o erro cru, corrigido, confirmado rótulo `*` e validação em português |
 | 13 | Fluxo "Esqueci minha senha" sem etapa de conclusão (corrigido em sessão anterior) | Login → Recuperar senha | Testado de ponta a ponta agora: e-mail → token real do log → redefinir → login com senha nova funcionou |
 | 14 | Ativação de conta sem alternativa ao e-mail (corrigido em sessão anterior) | Cadastro → Confirme seu e-mail | Testado de ponta a ponta: cadastro → token real do log → ativação manual → login |
+| 15 | Avatar nunca aparecia (mapeava `profilePictureUrl`, que o backend nunca preenche, em vez de `profilePicture`) | Perfil — foto | Subi uma foto → avatar carregou corretamente após o fix |
+| 16 | Remoção de foto de perfil falhava no release (`ResponseBody?` em retorno 204 perde nulidade no R8) | Perfil — foto | Removi a foto → sem erro, fallback de iniciais voltou |
+| 17 | Botão "Excluir conta" inalcançável (Column sem `verticalScroll`, botão ficava fora da área tocável em tela real) | Perfil — Zona de Perigo | `verticalScroll` adicionado, botão confirmado alcançável e tocável na tela |
+| 18 | Trocar senha e excluir conta sempre mostravam "Algo deu errado" no release (mesmo bug de `ResponseBody?` 204 + R8 do #16) | Trocar senha / Excluir conta | Erro cru parou de aparecer após o fix |
+| 19 | Edição de abastecimento sempre falhava (`vehicleId` ausente no PUT, exigido pelo backend mesmo em update parcial) | Editar abastecimento | Editei 40,00L → 45,00L mantendo o valor total: salvou, recalculou o preço/litro corretamente, manteve o odômetro |
+| 20 | Mesmos rótulos errados de odômetro/preço do bug #6/#7, só que na tela de edição ("Trip (km)", "Valor por litro" pedindo total) | Editar abastecimento | Rótulos corrigidos, confirmado junto com a validação do #19 |
+| 21 | Histórico ficava em branco (sem empty-state) após excluir o único abastecimento | Histórico | Excluí o único abastecimento → empty-state correto exibido |
+| 22 | Edição de evento sempre falhava silenciosamente (backend exige `vehicleId` no PUT `/vehicle-events/{id}`) | Editar evento | Editei categoria/km do evento → salvou e refletiu corretamente |
+| 23 | Lista de Eventos não recarregava após editar um evento (só create/delete propagavam sinal de refresh) | Eventos de Veículo | Lista atualizada corretamente após editar |
+| 24 | `PUT /vehicles/{id}/odometer` sempre falhava — backend espera o valor como query param `currentKm`, não como corpo JSON | Atualizar odômetro | Atualizei odômetro do veículo → sucesso, snackbar correto |
+| 25 | Cadastrar veículo sem preencher capacidade do tanque/bateria ou odômetro falhava 100% silenciosamente (sem snackbar, sem erro inline) | Cadastrar Veículo | Campo de odômetro checava a chave de erro errada do backend (`odometerKm` em vez de `currentKm`); capacidade não tinha `errorText` nenhum. Corrigido — erro agora aparece inline em "Capacidade do tanque (L)" |
+| 26 | Deep links `flowfuel://` declarados no manifest sem nenhum tratamento de `Intent.data` no código | Navegação | Implementado tratamento básico em `MainActivity`/`FlowFuelNavHost`; validado com app fechado e em foreground, navegando para a tela correta |
 
 ## Funcionalidades testadas, sem bugs encontrados
 
@@ -33,30 +45,27 @@
 - Detalhes do veículo
 - Perfil: exibição de dados e estatísticas (contadores de veículos/abastecimentos/eventos corretos)
 - Histórico de abastecimentos (lista, agrupamento por mês)
+- Trocar senha (usuário já logado): login confirmado com a senha nova
+- Excluir conta: confirmado que a conta é removida no backend (login pós-exclusão retorna credenciais inválidas)
+- Edição e exclusão de abastecimento
+- Edição e exclusão de evento de veículo
+- Filtros de data/categoria no Histórico e em Eventos
+- Múltiplos veículos cadastrados (troca de veículo ativo, isolamento de dados por veículo, campos condicionais de energia Elétrico/Híbrido)
+- Modo offline: erros de rede tratados corretamente, recuperação automática ao reconectar, login offline não confunde falta de rede com credenciais inválidas
 
 ## Observação registrada, não corrigida (decisão de produto pendente)
 
 - **Inconsistência de consumo médio**: a Home diz "0.0 km/L — mínimo 2 abastecimentos para calcular", mas o Histórico mostra "7,5 km/L" para o mesmo (único) abastecimento. São métricas diferentes do próprio backend (consumo agregado vs. consumo por trecho desde o último abastecimento), mas a UI não deixa isso claro. Não é bug de código do app — é uma decisão de UX/produto sobre como apresentar.
+- **Mensagens de erro cruas em inglês** ainda aparecem para alguns campos sem tradução local (ex.: "must not be null" na capacidade do veículo) — mesmo padrão do bug #12, não corrigido de forma abrangente.
 
 ## Não testado nesta rodada
 
 **Telas/fluxos nunca abertos no emulador:**
 - Editar perfil
-- Trocar senha (usuário já logado)
-- Excluir conta
-- Upload/remoção de foto de perfil
-- Editar abastecimento existente (`EditRefuelScreen`) — só revisado por código, não exercitado na UI
-- Excluir abastecimento
-- Editar evento existente (`EditVehicleEventScreen`) — código corrigido (mesmo fix de #10/#11/#12), mas nunca aberto na UI para confirmar
-- Excluir evento
-- Tela "Atualizar odômetro" (`UpdateOdometerScreen`) — código corrigido (#4), mas a tela em si nunca foi aberta/usada no emulador
-- Filtros de data/categoria no Histórico e em Eventos (chips "30 dias", "3 meses", "Este ano", "Personalizado", filtro por categoria)
-- Troca de veículo ativo / múltiplos veículos cadastrados (só testado com 1 veículo)
 - Onboarding (carrossel inicial) — visto de relance, não testado a fundo
-- Deep link `flowfuel://` (declarado no `AndroidManifest.xml`, nunca acionado)
-- Comportamento offline / sem internet (só visto incidentalmente durante a instabilidade da API)
 - Instalação em dispositivo físico real (só testado em emulador)
 - Crash reporting do Sentry em produção real (DSN não configurado — `sentry.dsn` vazio em `local.properties`)
+- Veículo Híbrido (campos condicionais combinando tanque + bateria) — só Elétrico foi testado
 
 **Validações de código feitas, sem teste de UI:**
 - Tratamento de `RATE_LIMIT_EXCEEDED` (rate limiting está desligado em produção, não há como provocar esse erro agora)
