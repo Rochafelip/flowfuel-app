@@ -22,13 +22,18 @@ class FlowFuelApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize WorkManager with HiltWorkerFactory
-        WorkManager.initialize(
-            this,
-            Configuration.Builder()
-                .setWorkerFactory(workerFactory)
-                .build(),
-        )
+        // Initialize WorkManager with HiltWorkerFactory.
+        // Guarded because Robolectric reuses the WorkManagerImpl singleton across
+        // test methods in the same test class, re-running Application#onCreate()
+        // without tearing it down first.
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(
+                this,
+                Configuration.Builder()
+                    .setWorkerFactory(workerFactory)
+                    .build(),
+            )
+        }
 
         // Initialize Coil with the authenticated OkHttp client
         Coil.setImageLoader(imageLoader)
