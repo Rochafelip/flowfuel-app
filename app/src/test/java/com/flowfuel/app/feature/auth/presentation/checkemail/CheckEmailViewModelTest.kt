@@ -58,7 +58,10 @@ class CheckEmailViewModelTest {
         coEvery { activateAccount(any()) } returns AppResult.Failure(AppError.Unauthorized)
         viewModel.onActivationTokenChange("plain-token")
 
-        viewModel.activateWithToken()
+        viewModel.effects.test {
+            viewModel.activateWithToken()
+            expectNoEvents()
+        }
 
         assertEquals(AppError.Api("AUTH_ACTIVATION_INVALID"), viewModel.state.value.activationError)
     }
