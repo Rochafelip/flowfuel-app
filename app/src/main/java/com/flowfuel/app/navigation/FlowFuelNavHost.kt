@@ -205,6 +205,11 @@ fun FlowFuelNavHost(
                         popUpTo(Destinations.LOGIN) { inclusive = true }
                     }
                 },
+                onNavigateHome = {
+                    navController.navigate(Destinations.VEHICLE_PICKER) {
+                        popUpTo(Destinations.LOGIN) { inclusive = true }
+                    }
+                },
             )
         }
 

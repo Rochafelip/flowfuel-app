@@ -30,7 +30,7 @@ data class CheckEmailUiState(
 sealed interface CheckEmailEffect {
     data object NavigateToLogin : CheckEmailEffect
     data object ResendConfirmed : CheckEmailEffect
-    data object ActivationConfirmed : CheckEmailEffect
+    data object ActivatedAndLoggedIn : CheckEmailEffect
 }
 
 @HiltViewModel
@@ -67,7 +67,7 @@ class CheckEmailViewModel @Inject constructor(
             when (val result = activateAccount(token)) {
                 is AppResult.Success -> {
                     _state.update { it.copy(isActivating = false) }
-                    _effects.send(CheckEmailEffect.ActivationConfirmed)
+                    _effects.send(CheckEmailEffect.ActivatedAndLoggedIn)
                 }
                 is AppResult.Failure -> {
                     // 401 genérico de auth não distingue o motivo — neste contexto

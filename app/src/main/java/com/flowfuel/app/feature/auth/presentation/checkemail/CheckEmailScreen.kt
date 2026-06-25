@@ -47,6 +47,7 @@ fun CheckEmailScreen(
     email: String,
     onBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateHome: () -> Unit,
     initialToken: String = "",
     viewModel: CheckEmailViewModel = hiltViewModel(),
 ) {
@@ -69,11 +70,11 @@ fun CheckEmailScreen(
                     snackbarHostState.showSnackbar(
                         FFSnackbarVisuals(resendSentMessage, FFSnackbarKind.Info)
                     )
-                CheckEmailEffect.ActivationConfirmed -> {
+                CheckEmailEffect.ActivatedAndLoggedIn -> {
                     snackbarHostState.showSnackbar(
                         FFSnackbarVisuals(activationConfirmedMessage, FFSnackbarKind.Success)
                     )
-                    onNavigateToLogin()
+                    onNavigateHome()
                 }
             }
         }
