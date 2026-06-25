@@ -70,7 +70,7 @@ interface AuthApi {
 
     @Headers("No-Auth: true")
     @POST("auth/activate")
-    suspend fun activate(@Body body: ActivateAccountRequestDto)
+    suspend fun activate(@Body body: ActivateAccountRequestDto): AuthResponseDto
 
     @Headers("No-Auth: true")
     @POST("auth/resend-activation")

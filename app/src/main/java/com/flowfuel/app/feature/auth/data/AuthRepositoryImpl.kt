@@ -56,8 +56,25 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun resendActivation(email: String): AppResult<Unit> =
         apiCall { api.resendActivation(ResendActivationRequestDto(email)) }
 
-    override suspend fun activate(token: String): AppResult<Unit> =
-        apiCall { api.activate(ActivateAccountRequestDto(token)) }
+    override suspend fun activate(token: String): AppResult<Unit> {
+        val result = apiCall { api.activate(ActivateAccountRequestDto(token)) }
+        return when (result) {
+            is AppResult.Success -> {
+                val dto = result.value
+                val userId = dto.user?.id?.toString() ?: userIdFromJwt(dto.accessToken)
+                if (userId.isBlank()) return AppResult.Failure(AppError.Unknown())
+                sessionStore.save(
+                    accessToken  = dto.accessToken,
+                    refreshToken = dto.refreshToken,
+                    userId       = userId,
+                    userName     = dto.user?.name,
+                    userEmail    = dto.user?.email,
+                )
+                AppResult.Success(Unit)
+            }
+            is AppResult.Failure -> result
+        }
+    }
 
     override suspend fun forgotPassword(email: String): AppResult<Unit> =
         apiCall { api.forgotPassword(ForgotPasswordRequestDto(email)) }

@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.auth.data
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.feature.auth.data.remote.ActivateAccountRequestDto
 import com.flowfuel.app.feature.auth.data.remote.AuthApi
 import com.flowfuel.app.feature.auth.data.remote.AuthResponseDto
 import com.flowfuel.app.feature.auth.data.remote.UserDto
@@ -146,6 +147,69 @@ class AuthRepositoryImplTest {
         coEvery { api.login(any()) } returns dtoWithoutUser
 
         val result = repository.login("user@example.com", "Senha@123")
+
+        assertTrue(result is AppResult.Failure)
+        coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
+    }
+
+    // ── activate (autologin via deep link) ─────────────────────────────────────
+
+    @Test
+    fun `activate success saves session from response`() = runTest {
+        coEvery { api.activate(any()) } returns authResponse(42L)
+
+        val result = repository.activate("plain-token")
+
+        assertEquals(AppResult.Success(Unit), result)
+        coVerify { sessionStore.save("access_token", "refresh_token", "42", "Felipe", "user@example.com") }
+    }
+
+    @Test
+    fun `activate success saves tokens exactly once`() = runTest {
+        coEvery { api.activate(any()) } returns authResponse()
+
+        repository.activate("plain-token")
+
+        coVerify(exactly = 1) { sessionStore.save(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `activate sends trimmed token to api`() = runTest {
+        coEvery { api.activate(any()) } returns authResponse()
+
+        repository.activate("plain-token")
+
+        coVerify { api.activate(ActivateAccountRequestDto("plain-token")) }
+    }
+
+    @Test
+    fun `activate io exception returns network failure`() = runTest {
+        coEvery { api.activate(any()) } throws IOException("timeout")
+
+        val result = repository.activate("plain-token")
+
+        assertEquals(AppResult.Failure(AppError.Network), result)
+    }
+
+    @Test
+    fun `activate failure does not save session`() = runTest {
+        coEvery { api.activate(any()) } throws IOException("no connection")
+
+        repository.activate("plain-token")
+
+        coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `activate null user and blank jwt userId returns failure`() = runTest {
+        val dtoWithoutUser = AuthResponseDto(
+            user = null,
+            accessToken = "invalid.jwt.token",
+            refreshToken = "refresh",
+        )
+        coEvery { api.activate(any()) } returns dtoWithoutUser
+
+        val result = repository.activate("plain-token")
 
         assertTrue(result is AppResult.Failure)
         coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
