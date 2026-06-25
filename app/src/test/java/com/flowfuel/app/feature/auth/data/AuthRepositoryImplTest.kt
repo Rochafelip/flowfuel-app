@@ -174,7 +174,7 @@ class AuthRepositoryImplTest {
     }
 
     @Test
-    fun `activate sends trimmed token to api`() = runTest {
+    fun `activate sends token to api unmodified`() = runTest {
         coEvery { api.activate(any()) } returns authResponse()
 
         repository.activate("plain-token")

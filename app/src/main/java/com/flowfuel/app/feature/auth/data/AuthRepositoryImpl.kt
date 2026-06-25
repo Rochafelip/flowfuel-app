@@ -7,6 +7,7 @@ import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.network.apiCall
 import com.flowfuel.app.feature.auth.data.remote.ActivateAccountRequestDto
 import com.flowfuel.app.feature.auth.data.remote.AuthApi
+import com.flowfuel.app.feature.auth.data.remote.AuthResponseDto
 import com.flowfuel.app.feature.auth.data.remote.ForgotPasswordRequestDto
 import com.flowfuel.app.feature.auth.data.remote.LoginRequestDto
 import com.flowfuel.app.feature.auth.data.remote.RegisterRequestDto
@@ -24,22 +25,23 @@ class AuthRepositoryImpl @Inject constructor(
     private val sessionStore: SessionStore,
 ) : AuthRepository {
 
+    private suspend fun handleAuthSuccess(dto: AuthResponseDto): AppResult<Unit> {
+        val userId = dto.user?.id?.toString() ?: userIdFromJwt(dto.accessToken)
+        if (userId.isBlank()) return AppResult.Failure(AppError.Unknown())
+        sessionStore.save(
+            accessToken  = dto.accessToken,
+            refreshToken = dto.refreshToken,
+            userId       = userId,
+            userName     = dto.user?.name,
+            userEmail    = dto.user?.email,
+        )
+        return AppResult.Success(Unit)
+    }
+
     override suspend fun login(email: String, password: String): AppResult<Unit> {
         val result = apiCall { api.login(LoginRequestDto(email, password)) }
         return when (result) {
-            is AppResult.Success -> {
-                val dto = result.value
-                val userId = dto.user?.id?.toString() ?: userIdFromJwt(dto.accessToken)
-                if (userId.isBlank()) return AppResult.Failure(AppError.Unknown())
-                sessionStore.save(
-                    accessToken  = dto.accessToken,
-                    refreshToken = dto.refreshToken,
-                    userId       = userId,
-                    userName     = dto.user?.name,
-                    userEmail    = dto.user?.email,
-                )
-                AppResult.Success(Unit)
-            }
+            is AppResult.Success -> handleAuthSuccess(result.value)
             is AppResult.Failure -> result
         }
     }
@@ -59,19 +61,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun activate(token: String): AppResult<Unit> {
         val result = apiCall { api.activate(ActivateAccountRequestDto(token)) }
         return when (result) {
-            is AppResult.Success -> {
-                val dto = result.value
-                val userId = dto.user?.id?.toString() ?: userIdFromJwt(dto.accessToken)
-                if (userId.isBlank()) return AppResult.Failure(AppError.Unknown())
-                sessionStore.save(
-                    accessToken  = dto.accessToken,
-                    refreshToken = dto.refreshToken,
-                    userId       = userId,
-                    userName     = dto.user?.name,
-                    userEmail    = dto.user?.email,
-                )
-                AppResult.Success(Unit)
-            }
+            is AppResult.Success -> handleAuthSuccess(result.value)
             is AppResult.Failure -> result
         }
     }
