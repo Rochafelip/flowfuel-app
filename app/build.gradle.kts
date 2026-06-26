@@ -12,6 +12,7 @@ plugins {
 android {
     namespace = "com.flowfuel.app"
     compileSdk = 35
+    base.archivesName.set("flowfuel-app")
 
     defaultConfig {
         applicationId = "com.flowfuel.app"
