@@ -61,8 +61,8 @@ object FFColors {
     val OnSurfaceDark = Color(0xFFE1E3DF)
     val SurfaceVariantDark = Color(0xFF1E2622)
     val OnSurfaceVariantDark = Color(0xFFBFC9C2)
-    val OutlineDark = Color(0xFF2C342F)
-    val OutlineVariantDark = Color(0xFF222B26)
+    val OutlineDark = Color(0xFF6B7870)
+    val OutlineVariantDark = Color(0xFF3A4642)
 }
 
 object FFExtraColors {
