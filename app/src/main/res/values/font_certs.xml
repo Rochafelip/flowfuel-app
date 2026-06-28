@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Google Fonts provider certificate fingerprints.
+        TODO before release: replace the empty array below with the actual SHA-256 cert data.
+        The easiest way is to use Android Studio: File > New > Downloadable Font, pick "Inter",
+        and the Studio wizard will regenerate this file with the correct certs automatically.
+        Reference: https://developer.android.com/develop/ui/compose/text/fonts#downloadable-fonts
+        With an empty array the app compiles and runs; the font provider validation fails silently
+        and Inter falls back to Roboto — no crash.
+    -->
+    <array name="com_google_android_gms_fonts_certs"></array>
+</resources>
