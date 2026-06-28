@@ -49,7 +49,7 @@ val FFTypography: Typography = Typography(
     ),
     bodyLarge = TextStyle(
         fontFamily = InterFamily, fontWeight = FontWeight.Normal,
-        fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.5.sp
+        fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = InterFamily, fontWeight = FontWeight.Normal,
@@ -69,7 +69,7 @@ val FFTypography: Typography = Typography(
     ),
     labelSmall = TextStyle(
         fontFamily = InterFamily, fontWeight = FontWeight.Medium,
-        fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp
+        fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp
     ),
 )
 
