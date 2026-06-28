@@ -40,6 +40,8 @@ fun QuickRefuelBottomSheet(
     isSubmitting: Boolean,
     submitError: AppError?,
     energyType: String,
+    onOdometerInputModeChange: (OdometerInputMode) -> Unit,
+    onTripKmChange: (String) -> Unit,
     onOdometerChange: (String) -> Unit,
     onLitersChange: (String) -> Unit,
     onTotalPriceInput: (String) -> Unit,
@@ -73,16 +75,41 @@ fun QuickRefuelBottomSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
 
-            // ── Odômetro ──────────────────────────────────────────────────────
-            FFNumberField(
-                value = form.odometer,
-                onValueChange = onOdometerChange,
-                label = "Odômetro (km)",
-                kind = FFNumberKind.Odometer,
-                errorText = if (form.odometerError) "Informe a leitura do odômetro"
-                            else form.serverErrors?.firstOrNull { it.field == "odometer" }?.message,
-                imeAction = ImeAction.Next,
-            )
+            // ── Toggle Percurso / Odômetro ────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
+                FilterChip(
+                    selected = form.odometerInputMode == OdometerInputMode.TRIP,
+                    onClick  = { onOdometerInputModeChange(OdometerInputMode.TRIP) },
+                    label    = { Text("Percurso") },
+                )
+                FilterChip(
+                    selected = form.odometerInputMode == OdometerInputMode.ODOMETER,
+                    onClick  = { onOdometerInputModeChange(OdometerInputMode.ODOMETER) },
+                    label    = { Text("Odômetro") },
+                )
+            }
+
+            if (form.odometerInputMode == OdometerInputMode.TRIP) {
+                FFNumberField(
+                    value         = form.tripKm,
+                    onValueChange = onTripKmChange,
+                    label         = "Km percorridos",
+                    kind          = FFNumberKind.Decimal,
+                    errorText     = if (form.tripKmError) "Informe os km percorridos" else null,
+                    helper        = "Use vírgula ou ponto como separador decimal",
+                    imeAction     = ImeAction.Next,
+                )
+            } else {
+                FFNumberField(
+                    value         = form.odometer,
+                    onValueChange = onOdometerChange,
+                    label         = "Odômetro (km)",
+                    kind          = FFNumberKind.Odometer,
+                    errorText     = if (form.odometerError) "Informe a leitura do odômetro"
+                                    else form.serverErrors?.firstOrNull { it.field == "odometer" }?.message,
+                    imeAction     = ImeAction.Next,
+                )
+            }
 
             // ── Quantidade (litros ou kWh) ─────────────────────────────────────
             FFNumberField(

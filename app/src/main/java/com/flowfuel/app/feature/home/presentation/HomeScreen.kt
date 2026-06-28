@@ -177,11 +177,13 @@ fun HomeScreen(
         val energyType = (state.screenState as? HomeScreenState.Success)
             ?.vehicle?.energyType ?: ""
         QuickRefuelBottomSheet(
-            form = state.refuelForm,
-            isSubmitting = state.isSubmittingRefuel,
-            submitError = state.submitError,
-            energyType = energyType,
-            onOdometerChange = viewModel::onOdometerChange,
+            form                      = state.refuelForm,
+            isSubmitting              = state.isSubmittingRefuel,
+            submitError               = state.submitError,
+            energyType                = energyType,
+            onOdometerInputModeChange = viewModel::onOdometerInputModeChange,
+            onTripKmChange            = viewModel::onTripKmChange,
+            onOdometerChange          = viewModel::onOdometerChange,
             onLitersChange = viewModel::onLitersChange,
             onTotalPriceInput = viewModel::onTotalPriceInput,
             onFullTankToggle = viewModel::onFullTankToggle,
