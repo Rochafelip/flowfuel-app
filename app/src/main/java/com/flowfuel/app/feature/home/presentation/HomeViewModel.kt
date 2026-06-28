@@ -171,6 +171,25 @@ class HomeViewModel @Inject constructor(
         it.copy(refuelForm = it.refuelForm.copy(refuelType = type, refuelTypeError = false, serverErrors = null))
     }
 
+    fun onOdometerInputModeChange(mode: OdometerInputMode) = _state.update {
+        it.copy(refuelForm = it.refuelForm.copy(
+            odometerInputMode = mode,
+            odometer          = "",
+            tripKm            = "",
+            odometerError     = false,
+            tripKmError       = false,
+            serverErrors      = null,
+        ))
+    }
+
+    fun onTripKmChange(v: String) = _state.update {
+        it.copy(refuelForm = it.refuelForm.copy(
+            tripKm       = v.filter { c -> c.isDigit() || c == ',' || c == '.' },
+            tripKmError  = false,
+            serverErrors = null,
+        ))
+    }
+
     // ─── Submissão do formulário ──────────────────────────────────────────────
 
     fun submitRefuel() {
@@ -179,16 +198,23 @@ class HomeViewModel @Inject constructor(
         val vehicle = (s.screenState as? HomeScreenState.Success)?.vehicle ?: return
         val isHybrid = vehicle.energyType.equals("HYBRID", ignoreCase = true)
 
-        val odometerInvalid    = form.odometer.isBlank()
-        val litersInvalid      = form.liters.isBlank()
-            || form.liters.replace(',', '.').toDoubleOrNull() == null
-        val priceInvalid       = form.totalPriceCents == 0L
-        val refuelTypeInvalid  = isHybrid && form.refuelType == null
+        val isTripMode = form.odometerInputMode == OdometerInputMode.TRIP
 
-        if (odometerInvalid || litersInvalid || priceInvalid || refuelTypeInvalid) {
+        val odometerInvalid = !isTripMode && form.odometer.isBlank()
+        val tripInvalid = isTripMode && (
+            form.tripKm.isBlank() ||
+            form.tripKm.replace(',', '.').toDoubleOrNull()?.let { it <= 0.0 } != false
+        )
+        val litersInvalid = form.liters.isBlank()
+            || form.liters.replace(',', '.').toDoubleOrNull() == null
+        val priceInvalid      = form.totalPriceCents == 0L
+        val refuelTypeInvalid = isHybrid && form.refuelType == null
+
+        if (odometerInvalid || tripInvalid || litersInvalid || priceInvalid || refuelTypeInvalid) {
             _state.update {
                 it.copy(refuelForm = it.refuelForm.copy(
                     odometerError   = odometerInvalid,
+                    tripKmError     = tripInvalid,
                     litersError     = litersInvalid,
                     totalPriceError = priceInvalid,
                     refuelTypeError = refuelTypeInvalid,
@@ -197,19 +223,23 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        // Para combustão pura ou elétrico puro, infere o tipo automaticamente.
         val resolvedRefuelType = when {
             isHybrid -> form.refuelType
             vehicle.energyType.equals("ELECTRIC", ignoreCase = true) -> "ELECTRIC"
             else -> "FUEL"
         }
 
+        val odometer = if (isTripMode)
+            vehicle.currentKm.toDouble() + form.tripKm.replace(',', '.').toDouble()
+        else
+            form.odometerDouble
+
         _state.update { it.copy(isSubmittingRefuel = true, submitError = null) }
         viewModelScope.launch {
             val result = createRefuel(
                 CreateRefuelRequest(
                     vehicleId  = vehicle.id,
-                    odometer   = form.odometerDouble,
+                    odometer   = odometer,
                     liters     = form.liters.replace(',', '.').toDouble(),
                     totalPrice = form.totalPriceDouble,
                     fullTank   = form.fullTank,
@@ -221,22 +251,22 @@ class HomeViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isSubmittingRefuel = false,
-                            showRefuelSheet = false,
-                            refuelForm = RefuelFormState(),
+                            showRefuelSheet    = false,
+                            refuelForm         = RefuelFormState(),
                         )
                     }
                     _effects.send(HomeEffect.RefuelRegistered)
-                    load()  // recarrega dashboard com novos dados
+                    load()
                 }
                 is AppResult.Failure -> {
                     Timber.e("submitRefuel: ${result.error}")
-                    val apiErr = result.error as? AppError.Api
+                    val apiErr     = result.error as? AppError.Api
                     val fieldErrors = apiErr?.takeIf { it.code == "VALIDATION_FAILED" }?.fieldErrors
                     if (!fieldErrors.isNullOrEmpty()) {
                         _state.update {
                             it.copy(
                                 isSubmittingRefuel = false,
-                                refuelForm = it.refuelForm.copy(serverErrors = fieldErrors),
+                                refuelForm         = it.refuelForm.copy(serverErrors = fieldErrors),
                             )
                         }
                     } else {
