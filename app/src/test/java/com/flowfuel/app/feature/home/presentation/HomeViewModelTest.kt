@@ -172,7 +172,7 @@ class HomeViewModelTest {
         }
 
         viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onTripKmChange("310,6")
+        viewModel.onTripKmChange("310.6")
         viewModel.onLitersChange("21,29")
         viewModel.onTotalPriceInput("14842")
 
