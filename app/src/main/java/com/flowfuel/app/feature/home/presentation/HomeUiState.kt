@@ -33,6 +33,10 @@ sealed interface VehicleSwitcherState {
     data class Error(val error: AppError) : VehicleSwitcherState
 }
 
+// ─── Modo de entrada do odômetro ──────────────────────────────────────────────
+
+enum class OdometerInputMode { TRIP, ODOMETER }
+
 // ─── Formulário de abastecimento ─────────────────────────────────────────────
 
 /**
@@ -54,10 +58,13 @@ data class RefuelFormState(
     val totalPriceRaw: String = "",   // somente dígitos, representa centavos
     val fullTank: Boolean = true,
     val refuelType: String? = null,
+    val odometerInputMode: OdometerInputMode = OdometerInputMode.TRIP,
+    val tripKm: String = "",
     val odometerError: Boolean = false,
     val litersError: Boolean = false,
     val totalPriceError: Boolean = false,
     val refuelTypeError: Boolean = false,
+    val tripKmError: Boolean = false,
     val serverErrors: List<FieldError>? = null,
 ) {
     /** Odômetro em km como Double (décimos → km). Ex: "1000005" → 100000.5 */
@@ -69,11 +76,19 @@ data class RefuelFormState(
     /** Valor como Double para enviar à API. */
     val totalPriceDouble: Double get() = totalPriceCents / 100.0
 
-    fun canSubmit(isHybrid: Boolean): Boolean =
-        odometer.isNotBlank()
+    fun canSubmit(isHybrid: Boolean): Boolean {
+        val inputValid = when (odometerInputMode) {
+            OdometerInputMode.TRIP ->
+                tripKm.isNotBlank() &&
+                tripKm.replace(',', '.').toDoubleOrNull()?.let { it > 0.0 } == true
+            OdometerInputMode.ODOMETER ->
+                odometer.isNotBlank()
+        }
+        return inputValid
             && liters.isNotBlank()
             && totalPriceCents > 0
             && (!isHybrid || refuelType != null)
+    }
 }
 
 // ─── Estado global da tela ────────────────────────────────────────────────────
