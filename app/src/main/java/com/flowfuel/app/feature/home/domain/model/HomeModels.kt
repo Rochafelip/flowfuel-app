@@ -15,6 +15,14 @@ data class ActiveVehicleData(
     val currentKm: Int,
 )
 
+/** Consumo separado por modal para veículos HYBRID. */
+data class HybridConsumptionBreakdown(
+    val fuelConsumption: Double?,
+    val fuelConsumptionUnit: String?,
+    val electricConsumption: Double?,
+    val electricConsumptionUnit: String?,
+)
+
 /** Dados do painel de controle para um veículo. */
 data class DashboardData(
     val averageConsumption: Double?,
@@ -28,6 +36,8 @@ data class DashboardData(
     val lastRefuelAmount: Double?,
     /** Unidade do último abastecimento (ex: "L", "kWh"), inferida do refuelType/energyType. */
     val lastRefuelEnergyUnit: String?,
+    /** Detalhamento por combustão/elétrico; preenchido apenas para HYBRID. */
+    val hybridBreakdown: HybridConsumptionBreakdown? = null,
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }

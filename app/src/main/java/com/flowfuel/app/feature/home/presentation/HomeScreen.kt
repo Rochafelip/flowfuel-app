@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material3.Card
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,6 +57,7 @@ import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
+import com.flowfuel.app.feature.home.domain.model.HybridConsumptionBreakdown
 import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
 import java.util.Locale
@@ -238,13 +241,18 @@ private fun HomeContent(
     ) {
         // ── 1. Hero: boas-vindas (primeiro uso) ou consumo médio ──────────
         item {
-            if (isFirstUse) {
-                WelcomeHeroCard(
+            when {
+                isFirstUse -> WelcomeHeroCard(
                     vehicleName = "${vehicle.brand} ${vehicle.model}",
                     onRegisterRefuel = onRegisterRefuel,
                 )
-            } else {
-                ConsumptionHeroCard(
+                vehicle.energyType.equals("HYBRID", ignoreCase = true)
+                        && dashboard.hybridBreakdown != null -> HybridConsumptionHeroCard(
+                    breakdown = dashboard.hybridBreakdown,
+                    totalRefuels = dashboard.totalRefuels,
+                    fuelLabel = vehicle.fuelSubType ?: "Híbrido",
+                )
+                else -> ConsumptionHeroCard(
                     value = consumptionValue,
                     unit = consumptionUnit,
                     totalRefuels = dashboard.totalRefuels,
@@ -423,6 +431,131 @@ private fun ConsumptionHeroCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
             )
+        }
+    }
+}
+
+// ─── Card hero: consumo híbrido (combustão + elétrico separados) ─────────────
+
+@Composable
+private fun HybridConsumptionHeroCard(
+    breakdown: HybridConsumptionBreakdown,
+    totalRefuels: Int,
+    fuelLabel: String,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = FFTheme.extraShapes.card,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(FFTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
+        ) {
+            Text(
+                text = fuelLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.xs))
+
+            Text(
+                text = "Consumo médio",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.xs))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.md),
+            ) {
+                HybridMetricColumn(
+                    icon = Icons.Default.LocalGasStation,
+                    label = "Combustão",
+                    value = breakdown.fuelConsumption?.let { "%.1f".format(it) } ?: "—",
+                    unit = breakdown.fuelConsumptionUnit ?: "km/L",
+                    modifier = Modifier.weight(1f),
+                )
+                HybridMetricColumn(
+                    icon = Icons.Default.Bolt,
+                    label = "Elétrico",
+                    value = breakdown.electricConsumption?.let { "%.1f".format(it) } ?: "—",
+                    unit = breakdown.electricConsumptionUnit ?: "km/kWh",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(Modifier.height(FFTheme.spacing.xs))
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.subtle),
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.xs))
+
+            Text(
+                text = when {
+                    totalRefuels == 0 -> "Registre o primeiro abastecimento para calcular o consumo"
+                    totalRefuels == 1 -> "Baseado em 1 abastecimento • mínimo 2 para calcular"
+                    else -> "Baseado em $totalRefuels abastecimentos"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HybridMetricColumn(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = value,
+                style = FFTheme.numericTypography.numericMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            if (value != "—") {
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
+            }
         }
     }
 }

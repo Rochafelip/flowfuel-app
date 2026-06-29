@@ -13,6 +13,7 @@ import com.flowfuel.app.feature.home.domain.HomeRepository
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
+import com.flowfuel.app.feature.home.domain.model.HybridConsumptionBreakdown
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -58,6 +59,14 @@ class HomeRepositoryImpl @Inject constructor(
         lastRefuelEnergyAmount  = lastRefuel?.energyAmount,
         lastRefuelAmount        = lastRefuel?.totalAmount,
         lastRefuelEnergyUnit    = lastRefuelEnergyUnit(dto.energyType, lastRefuel?.refuelType),
+        hybridBreakdown         = dto.breakdown?.let { b ->
+            HybridConsumptionBreakdown(
+                fuelConsumption         = b.fuel?.averageConsumption,
+                fuelConsumptionUnit     = b.fuel?.consumptionUnit ?: "km/L",
+                electricConsumption     = b.electric?.averageConsumption,
+                electricConsumptionUnit = b.electric?.consumptionUnit ?: "km/kWh",
+            )
+        },
     )
 
     private fun lastRefuelEnergyUnit(vehicleEnergyType: String?, refuelType: String?): String? =
