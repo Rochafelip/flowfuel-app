@@ -18,8 +18,8 @@ android {
         applicationId = "com.flowfuel.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.3.0"
+        versionCode = 3
+        versionName = "0.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -148,6 +148,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.sentry.android)
     implementation(libs.car.app)
+    implementation(libs.car.app.projected)
     testImplementation(libs.car.app.testing)
     testImplementation(libs.androidx.test.core)
     debugImplementation(libs.chucker)
