@@ -87,16 +87,18 @@ class AutoDashboardScreen(
             "Sessão expirada. Abra o FlowFuel no celular para entrar novamente."
         else
             "Erro ao carregar dados. Verifique sua conexão."
-        return MessageTemplate.Builder(msg)
+        val builder = MessageTemplate.Builder(msg)
             .setTitle("FlowFuel")
             .setHeaderAction(Action.APP_ICON)
-            .addAction(
+        if (error != AppError.Unauthorized) {
+            builder.addAction(
                 Action.Builder()
                     .setTitle("Tentar novamente")
                     .setOnClickListener { loadData() }
                     .build()
             )
-            .build()
+        }
+        return builder.build()
     }
 
     private fun successTemplate(v: ActiveVehicleData, d: DashboardData): Template {
@@ -130,9 +132,7 @@ class AutoDashboardScreen(
                             screenManager.push(
                                 AutoRefuelStep1Screen(
                                     carContext,
-                                    vehicleId = v.id,
-                                    currentKm = v.currentKm,
-                                    energyType = v.energyType,
+                                    vehicle = v,
                                     createRefuel = createRefuel,
                                 )
                             )

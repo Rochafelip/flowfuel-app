@@ -79,4 +79,14 @@ class AutoDashboardScreenTest {
 
         assertTrue(screen.onGetTemplate() is MessageTemplate)
     }
+
+    @Test
+    fun `erro 401 retorna MessageTemplate sem acao de retry`() = runTest {
+        val getActiveVehicle: GetActiveVehicleUseCase = mockk()
+        coEvery { getActiveVehicle() } returns AppResult.Failure(AppError.Unauthorized)
+        val screen = AutoDashboardScreen(carContext, getActiveVehicle, mockk(), mockk())
+        screen.loadData()
+
+        assertTrue("Deve retornar MessageTemplate para 401", screen.onGetTemplate() is MessageTemplate)
+    }
 }

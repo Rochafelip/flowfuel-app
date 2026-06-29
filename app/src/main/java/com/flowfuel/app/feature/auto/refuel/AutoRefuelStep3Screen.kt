@@ -9,9 +9,11 @@ import androidx.car.app.model.Template
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 
-class AutoRefuelStep1Screen(
+class AutoRefuelStep3Screen(
     carContext: CarContext,
     private val vehicle: ActiveVehicleData,
+    private val tripKm: Double,
+    private val liters: Double,
     private val createRefuel: CreateRefuelUseCase,
 ) : Screen(carContext) {
 
@@ -19,23 +21,23 @@ class AutoRefuelStep1Screen(
         object : SearchTemplate.SearchCallback {
             override fun onSearchTextChanged(searchText: String) {}
             override fun onSearchSubmitted(searchText: String) {
-                val km = searchText.trim().replace(",", ".").toDoubleOrNull()
-                if (km == null || km <= 0) {
+                val price = searchText.trim().replace(",", ".").toDoubleOrNull()
+                if (price == null || price <= 0) {
                     CarToast.makeText(
                         carContext,
-                        "Informe km percorridos válidos (ex: 150)",
+                        "Informe o valor total válido (ex: 289,90)",
                         CarToast.LENGTH_SHORT,
                     ).show()
                 } else {
                     screenManager.push(
-                        AutoRefuelStep2Screen(carContext, vehicle, tripKm = km, createRefuel)
+                        AutoRefuelConfirmScreen(carContext, vehicle, tripKm, liters, price, createRefuel)
                     )
                 }
             }
         }
     )
         .setHeaderAction(Action.BACK)
-        .setSearchHint("Passo 1/3 — km percorridos (ex: 150)")
+        .setSearchHint("Passo 3/3 — valor total em R$ (ex: 289,90)")
         .setShowKeyboardByDefault(true)
         .build()
 }
