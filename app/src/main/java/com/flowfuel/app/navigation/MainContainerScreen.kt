@@ -205,6 +205,7 @@ fun MainContainerScreen(
                     onBack = null,
                     onNavigateToCreate = onNavigateToEventCreate,
                     onNavigateToDetails = onNavigateToEventDetails,
+                    onNavigateToRefuelDetails = onNavigateToRefuelDetails,
                     onNavigateToLogin = onNavigateToLogin,
                     eventCreated = tabEventCreated,
                     onEventCreatedConsumed = onTabEventCreatedConsumed,

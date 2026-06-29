@@ -446,6 +446,9 @@ fun FlowFuelNavHost(
                 onNavigateToDetails = { eventId ->
                     navController.navigate(Destinations.vehicleEventDetails(eventId))
                 },
+                onNavigateToRefuelDetails = { refuelId ->
+                    navController.navigate(Destinations.refuelDetails(refuelId))
+                },
                 onNavigateToLogin = {
                     navController.navigate(Destinations.LOGIN) {
                         popUpTo(0) { inclusive = true }

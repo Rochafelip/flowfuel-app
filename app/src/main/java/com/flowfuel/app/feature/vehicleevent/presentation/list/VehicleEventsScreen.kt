@@ -68,6 +68,7 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventCategoryChip
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventCategoryFilterRow
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventDateFilterRow
+import com.flowfuel.app.feature.vehicleevent.presentation.components.RefuelTimelineCard
 import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
 import java.time.Instant
@@ -81,6 +82,7 @@ fun VehicleEventsScreen(
     onBack: (() -> Unit)? = null,
     onNavigateToCreate: (vehicleId: Int) -> Unit,
     onNavigateToDetails: (eventId: Int) -> Unit,
+    onNavigateToRefuelDetails: (refuelId: Int) -> Unit,
     onNavigateToLogin: () -> Unit,
     eventCreated: Boolean = false,
     onEventCreatedConsumed: () -> Unit = {},
@@ -123,7 +125,7 @@ fun VehicleEventsScreen(
             when (effect) {
                 is VehicleEventsEffect.NavigateToCreate -> onNavigateToCreate(effect.vehicleId)
                 is VehicleEventsEffect.NavigateToDetails -> onNavigateToDetails(effect.eventId)
-                is VehicleEventsEffect.NavigateToRefuelDetails -> { /* TODO Task 4: navigate to refuel details */ }
+                is VehicleEventsEffect.NavigateToRefuelDetails -> onNavigateToRefuelDetails(effect.refuelId)
                 VehicleEventsEffect.NavigateToLogin -> onNavigateToLogin()
             }
         }
@@ -249,14 +251,24 @@ fun VehicleEventsScreen(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
                             ) {
-                                items(
-                                    s.items.filterIsInstance<VehicleTimelineItem.EventEntry>(),
-                                    key = { it.event.id },
-                                ) { entry ->
-                                    VehicleEventCard(
-                                        event = entry.event,
-                                        onClick = { viewModel.onEventClick(entry.event.id) },
-                                    )
+                                items(s.items, key = { item ->
+                                    when (item) {
+                                        is VehicleTimelineItem.EventEntry  -> "event-${item.event.id}"
+                                        is VehicleTimelineItem.RefuelEntry -> "refuel-${item.refuel.id}"
+                                    }
+                                }) { item ->
+                                    when (item) {
+                                        is VehicleTimelineItem.EventEntry ->
+                                            VehicleEventCard(
+                                                event = item.event,
+                                                onClick = { viewModel.onEventClick(item.event.id) },
+                                            )
+                                        is VehicleTimelineItem.RefuelEntry ->
+                                            RefuelTimelineCard(
+                                                refuel = item.refuel,
+                                                onClick = { viewModel.onRefuelClick(item.refuel.id) },
+                                            )
+                                    }
                                 }
 
                                 item {
