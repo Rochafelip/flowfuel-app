@@ -18,6 +18,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
@@ -56,6 +59,8 @@ import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
 import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
+import com.flowfuel.app.feature.export.presentation.ExportBottomSheet
+import com.flowfuel.app.feature.export.presentation.ExportTarget
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventDateFilter
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
@@ -86,6 +91,7 @@ fun VehicleEventsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showExportSheet by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -146,6 +152,14 @@ fun VehicleEventsScreen(
         }
     }
 
+    if (showExportSheet) {
+        ExportBottomSheet(
+            target = ExportTarget.EVENTS,
+            onDismiss = { showExportSheet = false },
+            snackbarHostState = snackbarHostState,
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
@@ -159,6 +173,11 @@ fun VehicleEventsScreen(
                 title = title,
                 variant = FFTopBarVariant.Small,
                 onBack = onBack,
+                actions = {
+                    IconButton(onClick = { showExportSheet = true }) {
+                        Icon(Icons.Outlined.FileDownload, contentDescription = "Exportar")
+                    }
+                },
             )
         },
         floatingActionButton = {

@@ -18,6 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material3.IconButton
 import com.flowfuel.app.core.designsystem.components.FFFab
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +61,8 @@ import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
+import com.flowfuel.app.feature.export.presentation.ExportBottomSheet
+import com.flowfuel.app.feature.export.presentation.ExportTarget
 import com.flowfuel.app.feature.history.domain.model.FilterPreset
 import com.flowfuel.app.feature.history.domain.model.HistoryFilter
 import com.flowfuel.app.feature.history.domain.model.RefuelItem
@@ -129,6 +133,8 @@ fun HistoryScreen(
         )
     }
 
+    var showExportSheet by remember { mutableStateOf(false) }
+
     // Estado do DateRangePicker para filtro personalizado
     val dateRangePickerState = rememberDateRangePickerState()
     var showDateRangePicker by remember { mutableStateOf(false) }
@@ -176,6 +182,14 @@ fun HistoryScreen(
         }
     }
 
+    if (showExportSheet) {
+        ExportBottomSheet(
+            target = ExportTarget.REFUELS,
+            onDismiss = { showExportSheet = false },
+            snackbarHostState = snackbarHostState,
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
@@ -183,6 +197,11 @@ fun HistoryScreen(
             FFTopBar(
                 title   = "Histórico",
                 variant = FFTopBarVariant.Small,
+                actions = {
+                    IconButton(onClick = { showExportSheet = true }) {
+                        Icon(Icons.Outlined.FileDownload, contentDescription = "Exportar")
+                    }
+                },
             )
         },
         floatingActionButton = {

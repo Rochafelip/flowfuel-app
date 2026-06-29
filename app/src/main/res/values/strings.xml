@@ -94,6 +94,8 @@
     <string name="error_validation_failed">Verifique os dados e tente novamente.</string>
     <string name="error_conflict">Operação em conflito.</string>
     <string name="error_rate_limited">Muitas tentativas. Tente novamente em alguns minutos.</string>
+    <string name="error_rate_limited_countdown">Muitas tentativas. Tente novamente em %1$ds.</string>
+    <string name="auth_submit_cooldown">Aguarde %ds</string>
     <string name="error_unknown">Algo deu errado. Tente novamente.</string>
 
     <!-- Change Password -->
@@ -107,6 +109,20 @@
     <string name="state_empty_title">Nada por aqui ainda</string>
     <string name="state_error_title">Tivemos um problema</string>
     <string name="state_loading">Carregando…</string>
+
+    <!-- Export -->
+    <string name="export_title">Exportar dados</string>
+    <string name="export_format_label">Formato</string>
+    <string name="export_period_label">Período (opcional)</string>
+    <string name="export_period_hint">Selecionar período</string>
+    <string name="export_period_selected">%1$s a %2$s</string>
+    <string name="export_period_clear">Limpar período</string>
+    <string name="export_event_type_label">Tipo de evento (opcional)</string>
+    <string name="export_event_type_all">Todos os tipos</string>
+    <string name="export_cta">Exportar</string>
+    <string name="export_loading">Gerando arquivo…</string>
+    <string name="export_error_io">Não foi possível salvar o arquivo. Tente novamente.</string>
+    <string name="export_button_label">Exportar</string>
 
     <!-- Vehicle — Seleção -->
     <string name="vehicle_picker_title">Meus veículos</string>
