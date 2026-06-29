@@ -63,6 +63,19 @@
                 android:resource="@xml/export_file_paths" />
         </provider>
 
+        <service
+            android:name=".feature.auto.AutoCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <!-- Sentry tem auto-init próprio via ContentProvider, independente do nosso
              SentryAndroid.init() em FlowFuelApplication. Desabilitado aqui para que o
              handler nativo de crash só seja anexado quando chamamos init() com uma DSN

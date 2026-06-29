@@ -147,6 +147,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.timber)
     implementation(libs.sentry.android)
+    implementation(libs.car.app)
+    testImplementation(libs.car.app.testing)
     debugImplementation(libs.chucker)
     releaseImplementation(libs.chucker.no.op)
 
