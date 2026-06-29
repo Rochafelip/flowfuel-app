@@ -80,6 +80,7 @@ class AutoDashboardScreen(
         MessageTemplate.Builder("Carregando…")
             .setTitle("FlowFuel")
             .setHeaderAction(Action.APP_ICON)
+            .setLoading(true)
             .build()
 
     private fun errorTemplate(error: AppError): Template {
@@ -113,7 +114,9 @@ class AutoDashboardScreen(
 
         val lastRefuelText = if (d.lastRefuelDate != null && d.lastRefuelEnergyAmount != null) {
             val raw = d.lastRefuelDate
-            val date = "${raw.substring(8, 10)}/${raw.substring(5, 7)}"
+            val date = raw.takeIf { it.length >= 10 }
+                ?.let { "${it.substring(8, 10)}/${it.substring(5, 7)}" }
+                ?: raw
             val unit = d.lastRefuelEnergyUnit ?: "L"
             "$date • ${String.format(brLocale, "%.1f", d.lastRefuelEnergyAmount)} $unit"
         } else {

@@ -12,10 +12,16 @@ import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -25,6 +31,11 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class AutoRefuelConfirmScreenTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before fun setUp() { Dispatchers.setMain(testDispatcher) }
+    @After fun tearDown() { Dispatchers.resetMain() }
 
     private val carContext = TestCarContext.createCarContext(
         ApplicationProvider.getApplicationContext()

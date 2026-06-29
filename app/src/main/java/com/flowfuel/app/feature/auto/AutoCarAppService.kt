@@ -22,6 +22,7 @@ interface AutoCarAppServiceEntryPoint {
 
 class AutoCarAppService : CarAppService() {
 
+    // FIXME: Replace with signed-host validator before Google Play submission
     override fun createHostValidator(): HostValidator =
         HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
 

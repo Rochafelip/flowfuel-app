@@ -103,6 +103,7 @@ class AutoRefuelConfirmScreen(
             )
             when (val result = createRefuel(request)) {
                 is AppResult.Success -> {
+                    screenManager.popToRoot()
                     screenManager.push(AutoRefuelSuccessScreen(carContext))
                 }
                 is AppResult.Failure -> {
