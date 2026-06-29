@@ -187,7 +187,7 @@ class VehicleEventsViewModelTest {
 
     private val savedStateHandle = SavedStateHandle(mapOf("vehicleId" to 1))
 
-    private val emptyEventsPage = PagedVehicleEvents(items = emptyList(), hasMore = false, currentPage = 0)
+    private val emptyEventsPage = PagedVehicleEvents(items = emptyList(), currentPage = 0, totalPages = 1, totalElements = 0)
     private val emptyRefuelPage = RefuelPage(items = emptyList(), hasMore = false, currentPage = 0)
 
     private fun makeRefuel(id: Int, date: String, refuelType: String? = null) = RefuelItem(
@@ -237,8 +237,8 @@ class VehicleEventsViewModelTest {
     fun `refuels included when category is null (Todas)`() = runTest {
         coEvery { getEventsPage(any(), any(), isNull(), any(), any()) } returns AppResult.Success(emptyEventsPage)
         coEvery { historyRepository.getRefuelHistory(any(), any(), any(), any(), any()) } returns AppResult.Success(emptyRefuelPage)
-        val vm = buildViewModel()
-        // null category = Todas → must have called historyRepository
+        buildViewModel()
+        // null category = Todas → deve ter chamado historyRepository
         io.mockk.coVerify(atLeast = 1) { historyRepository.getRefuelHistory(1, 0, 200, null, null) }
     }
 
@@ -273,7 +273,7 @@ class VehicleEventsViewModelTest {
         val event = makeEvent(1, "2026-06-15")
         val refuel = makeRefuel(10, "2026-06-20")
         coEvery { getEventsPage(any(), any(), isNull(), any(), any()) } returns AppResult.Success(
-            PagedVehicleEvents(items = listOf(event), hasMore = false, currentPage = 0)
+            PagedVehicleEvents(items = listOf(event), currentPage = 0, totalPages = 1, totalElements = 1)
         )
         coEvery { historyRepository.getRefuelHistory(any(), any(), any(), any(), any()) } returns AppResult.Success(
             RefuelPage(items = listOf(refuel), hasMore = false, currentPage = 0)
@@ -297,7 +297,7 @@ class VehicleEventsViewModelTest {
         val vm = buildViewModel()
 
         val effects = mutableListOf<VehicleEventsEffect>()
-        val job = kotlinx.coroutines.launch(testDispatcher) { vm.effects.collect { effects.add(it) } }
+        val job = launch(testDispatcher) { vm.effects.collect { effects.add(it) } }
 
         vm.onRefuelClick(42)
         job.cancel()
@@ -312,7 +312,7 @@ class VehicleEventsViewModelTest {
     fun `refuel load failure shows only events without error state`() = runTest {
         val event = makeEvent(1, "2026-06-15")
         coEvery { getEventsPage(any(), any(), isNull(), any(), any()) } returns AppResult.Success(
-            PagedVehicleEvents(items = listOf(event), hasMore = false, currentPage = 0)
+            PagedVehicleEvents(items = listOf(event), currentPage = 0, totalPages = 1, totalElements = 1)
         )
         coEvery { historyRepository.getRefuelHistory(any(), any(), any(), any(), any()) } returns
             AppResult.Failure(com.flowfuel.app.core.domain.AppError.Unknown)
