@@ -149,6 +149,7 @@ dependencies {
     implementation(libs.sentry.android)
     implementation(libs.car.app)
     testImplementation(libs.car.app.testing)
+    testImplementation(libs.androidx.test.core)
     debugImplementation(libs.chucker)
     releaseImplementation(libs.chucker.no.op)
 
