@@ -32,8 +32,8 @@ object FFColors {
     val OnSurfaceLight = Color(0xFF1A1C1B)
     val SurfaceVariantLight = Color(0xFFEFF2F0)
     val OnSurfaceVariantLight = Color(0xFF42493F)
-    val OutlineLight = Color(0xFFC7CDC9)
-    val OutlineVariantLight = Color(0xFFDCE5E0)
+    val OutlineLight = Color(0xFF6D7570)
+    val OutlineVariantLight = Color(0xFFBFC9C3)
 
     val PrimaryDark = Color(0xFF7EE0AC)
     val OnPrimaryDark = Color(0xFF003822)
@@ -57,9 +57,9 @@ object FFColors {
 
     val BackgroundDark = Color(0xFF0E1411)
     val OnBackgroundDark = Color(0xFFE1E3DF)
-    val SurfaceDark = Color(0xFF161D19)
+    val SurfaceDark = Color(0xFF1A2520)
     val OnSurfaceDark = Color(0xFFE1E3DF)
-    val SurfaceVariantDark = Color(0xFF1E2622)
+    val SurfaceVariantDark = Color(0xFF242E28)
     val OnSurfaceVariantDark = Color(0xFFBFC9C2)
     val OutlineDark = Color(0xFF6B7870)
     val OutlineVariantDark = Color(0xFF3A4642)
