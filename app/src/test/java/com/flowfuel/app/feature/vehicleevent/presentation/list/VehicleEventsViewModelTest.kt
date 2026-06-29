@@ -15,6 +15,7 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsPageUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -182,5 +183,29 @@ class VehicleEventsViewModelTest {
 
         assertEquals(1, state.items.size)
         assertTrue(state.items[0] is VehicleTimelineItem.EventEntry)
+    }
+
+    // ── Filtro de data client-side ────────────────────────────────────────────
+
+    @Test
+    fun `onDateFilterSelected prunes refuels outside date range`() = runTest {
+        val recentRefuel = makeRefuel(20, LocalDate.now().minusDays(5).toString())
+        val oldRefuel    = makeRefuel(21, LocalDate.now().minusDays(60).toString())
+
+        coEvery { getEventsPage(any(), any(), isNull(), any(), any()) } returns AppResult.Success(emptyEventsPage)
+        coEvery { historyRepository.getRefuelHistory(any(), any(), any(), any(), any()) } returns AppResult.Success(
+            RefuelPage(items = listOf(recentRefuel, oldRefuel), hasMore = false, currentPage = 0)
+        )
+
+        val vm = buildViewModel()
+
+        // trigger date filter change — events mock returns empty
+        coEvery { getEventsPage(any(), any(), isNull(), any(), any()) } returns AppResult.Success(emptyEventsPage)
+        vm.onDateFilterSelected(EventDateFilter.Last30Days)
+
+        val state = vm.state.value.screenState as VehicleEventsScreenState.Success
+        assertEquals(1, state.items.size)
+        val refuelEntry = state.items[0] as VehicleTimelineItem.RefuelEntry
+        assertEquals(20, refuelEntry.refuel.id)
     }
 }

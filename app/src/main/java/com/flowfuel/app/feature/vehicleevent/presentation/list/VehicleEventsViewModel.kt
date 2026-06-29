@@ -96,6 +96,7 @@ class VehicleEventsViewModel @Inject constructor(
             accumulatedRefuels = emptyList()
             return
         }
+        // TODO: paginar se volume de abastecimentos superar 200 por veículo
         when (val result = historyRepository.getRefuelHistory(vehicleId, page = 0, size = 200)) {
             is AppResult.Success -> accumulatedRefuels = result.value.items
             is AppResult.Failure -> accumulatedRefuels = emptyList()
@@ -218,6 +219,7 @@ class VehicleEventsViewModel @Inject constructor(
                 screenState = VehicleEventsScreenState.Loading,
             )
         }
+        // refuels não são resetados aqui — filtragem de data é client-side em buildTimeline()
         loadJob = viewModelScope.launch { fetchPage(0) }
     }
 
