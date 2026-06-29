@@ -8,6 +8,7 @@ sealed class AppError(open val message: String? = null) {
     ) : AppError(message)
     data object Network : AppError("network")
     data object Unauthorized : AppError("unauthorized")
+    data class RateLimited(val retryAfterSeconds: Int? = null) : AppError("rate_limited")
     data class Unknown(val throwable: Throwable? = null) : AppError(throwable?.message)
 }
 

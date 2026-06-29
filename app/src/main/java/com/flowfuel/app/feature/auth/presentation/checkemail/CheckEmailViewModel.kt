@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.domain.AppResult.Failure
+import com.flowfuel.app.core.domain.AppResult.Success
 import com.flowfuel.app.feature.auth.domain.usecase.ActivateAccountUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.ResendActivationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +22,7 @@ import javax.inject.Inject
 data class CheckEmailUiState(
     val isResending: Boolean = false,
     val cooldownSeconds: Int = 0,
+    val resendError: AppError? = null,
     val activationToken: String = "",
     val isActivating: Boolean = false,
     val activationError: AppError? = null,
@@ -47,12 +50,21 @@ class CheckEmailViewModel @Inject constructor(
 
     fun resend(email: String) {
         if (!_state.value.canResend) return
-        _state.update { it.copy(isResending = true) }
+        _state.update { it.copy(isResending = true, resendError = null) }
         viewModelScope.launch {
-            resendActivation(email)
-            _state.update { it.copy(isResending = false) }
-            _effects.send(CheckEmailEffect.ResendConfirmed)
-            startCooldown()
+            when (val result = resendActivation(email)) {
+                is Success -> {
+                    _state.update { it.copy(isResending = false) }
+                    _effects.send(CheckEmailEffect.ResendConfirmed)
+                    startCooldown()
+                }
+                is Failure -> {
+                    val err = result.error
+                    val cooldown = if (err is AppError.RateLimited) err.retryAfterSeconds ?: 3600 else 0
+                    _state.update { it.copy(isResending = false, resendError = err) }
+                    if (cooldown > 0) startCooldown(cooldown)
+                }
+            }
         }
     }
 
@@ -87,9 +99,9 @@ class CheckEmailViewModel @Inject constructor(
         viewModelScope.launch { _effects.send(CheckEmailEffect.NavigateToLogin) }
     }
 
-    private fun startCooldown() {
+    private fun startCooldown(seconds: Int = 30) {
         viewModelScope.launch {
-            for (remaining in 30 downTo 1) {
+            for (remaining in seconds downTo 1) {
                 _state.update { it.copy(cooldownSeconds = remaining) }
                 delay(1_000L)
             }

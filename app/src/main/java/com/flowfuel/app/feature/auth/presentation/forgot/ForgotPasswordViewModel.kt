@@ -7,6 +7,7 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.ForgotPasswordUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +21,7 @@ data class ForgotUiState(
     val isSubmitting: Boolean = false,
     val sent: Boolean = false,
     val error: AppError? = null,
+    val rateLimitCooldown: Int = 0,
 )
 
 @HiltViewModel
@@ -42,8 +44,23 @@ class ForgotPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = forgot(s.email)) {
                 is AppResult.Success -> _state.update { it.copy(isSubmitting = false, sent = true) }
-                is AppResult.Failure -> _state.update { it.copy(isSubmitting = false, error = result.error) }
+                is AppResult.Failure -> {
+                    val err = result.error
+                    _state.update { it.copy(isSubmitting = false, error = err) }
+                    if (err is AppError.RateLimited) startRateLimitCooldown(err.retryAfterSeconds)
+                }
             }
+        }
+    }
+
+    private fun startRateLimitCooldown(seconds: Int?) {
+        val duration = seconds ?: 3600
+        viewModelScope.launch {
+            for (remaining in duration downTo 1) {
+                _state.update { it.copy(rateLimitCooldown = remaining) }
+                delay(1_000L)
+            }
+            _state.update { it.copy(rateLimitCooldown = 0) }
         }
     }
 }

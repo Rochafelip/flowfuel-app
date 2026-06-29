@@ -9,6 +9,11 @@ import com.flowfuel.app.core.domain.AppError
 fun AppError.userMessage(): String = when (this) {
     AppError.Network -> stringResource(R.string.error_network)
     AppError.Unauthorized -> stringResource(R.string.error_unauthorized)
+    is AppError.RateLimited -> if (retryAfterSeconds != null) {
+        stringResource(R.string.error_rate_limited_countdown, retryAfterSeconds)
+    } else {
+        stringResource(R.string.error_rate_limited)
+    }
     is AppError.Api -> when (code) {
         "ACCOUNT_NOT_ACTIVATED" -> stringResource(R.string.error_account_not_activated)
         "INVALID_CREDENTIALS", "BAD_CREDENTIALS" -> stringResource(R.string.error_invalid_credentials)

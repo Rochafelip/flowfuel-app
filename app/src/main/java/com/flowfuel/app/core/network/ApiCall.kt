@@ -24,7 +24,11 @@ suspend fun <T> apiCall(block: suspend () -> T): AppResult<T> = try {
     val problem = problemDetailsOf(e)
     val code = problem?.code ?: "HTTP_${e.code()}"
     if (e.code() == 401) AppResult.Failure(AppError.Unauthorized)
-    else AppResult.Failure(AppError.Api(code, problem?.title ?: e.message(), problem?.errors))
+    else if (e.code() == 429) {
+        val retryAfter = e.response()?.headers()?.get("Retry-After")?.toIntOrNull()
+        AppResult.Failure(AppError.RateLimited(retryAfter))
+    }
+    else AppResult.Failure(AppError.Api(code, problem?.detail ?: problem?.title ?: e.message(), problem?.errors))
 } catch (e: IOException) {
     Timber.w(e, "network failure")
     AppResult.Failure(AppError.Network)

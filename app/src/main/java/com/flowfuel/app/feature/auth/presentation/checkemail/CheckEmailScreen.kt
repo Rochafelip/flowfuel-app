@@ -55,11 +55,17 @@ fun CheckEmailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val resendSentMessage = stringResource(R.string.check_email_resend_sent)
     val activationConfirmedMessage = stringResource(R.string.check_email_activation_confirmed)
+    val resendErrorMessage = state.resendError?.userMessage()
 
     // Token vindo do magic link de ativação (flowfuel://activate?token=...) já
     // chega pré-preenchido no campo manual, evitando copiar do e-mail/log.
     LaunchedEffect(initialToken) {
         if (initialToken.isNotBlank()) viewModel.onActivationTokenChange(initialToken)
+    }
+    LaunchedEffect(resendErrorMessage) {
+        if (resendErrorMessage != null) {
+            snackbarHostState.showSnackbar(FFSnackbarVisuals(resendErrorMessage, FFSnackbarKind.Error))
+        }
     }
 
     LaunchedEffect(viewModel) {

@@ -139,7 +139,10 @@ fun LoginScreen(
             )
 
             FFButton(
-                text = stringResource(R.string.auth_login_cta),
+                text = if (state.rateLimitCooldown > 0)
+                    stringResource(R.string.auth_submit_cooldown, state.rateLimitCooldown)
+                else
+                    stringResource(R.string.auth_login_cta),
                 onClick = viewModel::submit,
                 enabled = state.canSubmit,
                 loading = state.isSubmitting,

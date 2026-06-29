@@ -10,6 +10,7 @@ import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.feature.auth.domain.usecase.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,9 +27,10 @@ data class LoginUiState(
     val isSubmitting: Boolean = false,
     val error: AppError? = null,
     val serverErrors: List<FieldError>? = null,
+    val rateLimitCooldown: Int = 0,
 ) {
     val canSubmit: Boolean
-        get() = email.isNotBlank() && password.isNotBlank() && !isSubmitting
+        get() = email.isNotBlank() && password.isNotBlank() && !isSubmitting && rateLimitCooldown == 0
 }
 
 sealed interface LoginEffect {
@@ -60,6 +62,17 @@ class LoginViewModel @Inject constructor(
     fun onEmailChange(value: String) = _state.update { it.copy(email = value, emailError = false, error = null, serverErrors = null) }
     fun onPasswordChange(value: String) = _state.update { it.copy(password = value, passwordError = false, error = null, serverErrors = null) }
 
+    private fun startRateLimitCooldown(seconds: Int?) {
+        val duration = seconds ?: 60
+        viewModelScope.launch {
+            for (remaining in duration downTo 1) {
+                _state.update { it.copy(rateLimitCooldown = remaining) }
+                delay(1_000L)
+            }
+            _state.update { it.copy(rateLimitCooldown = 0) }
+        }
+    }
+
     fun submit() {
         val current = _state.value
         val emailInvalid = !Validators.isEmail(current.email)
@@ -76,7 +89,13 @@ class LoginViewModel @Inject constructor(
                     _effects.send(LoginEffect.NavigateHome)
                 }
                 is AppResult.Failure -> {
-                    val apiErr = result.error as? AppError.Api
+                    val err = result.error
+                    if (err is AppError.RateLimited) {
+                        _state.update { it.copy(isSubmitting = false, error = err) }
+                        startRateLimitCooldown(err.retryAfterSeconds)
+                        return@launch
+                    }
+                    val apiErr = err as? AppError.Api
                     if (apiErr?.code == "ACCOUNT_NOT_ACTIVATED") {
                         _state.update { it.copy(isSubmitting = false) }
                         _effects.send(LoginEffect.NavigateToCheckEmail(current.email))
@@ -91,10 +110,10 @@ class LoginViewModel @Inject constructor(
                         // code ser lido — sem isso a tela mostraria "sessão expirada"
                         // para uma simples senha errada. Mesmo padrão de reinterpretação
                         // local já usado em ChangePasswordViewModel.
-                        val error = if (result.error == AppError.Unauthorized) {
+                        val error = if (err == AppError.Unauthorized) {
                             AppError.Api("INVALID_CREDENTIALS")
                         } else {
-                            result.error
+                            err
                         }
                         _state.update { it.copy(isSubmitting = false, error = error) }
                     }

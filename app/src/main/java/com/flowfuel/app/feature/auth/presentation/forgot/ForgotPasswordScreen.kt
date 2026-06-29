@@ -127,9 +127,12 @@ private fun ForgotPasswordFormContent(
             enabled = !state.isSubmitting,
         )
         FFButton(
-            text = stringResource(R.string.auth_forgot_cta),
+            text = if (state.rateLimitCooldown > 0)
+                stringResource(R.string.auth_submit_cooldown, state.rateLimitCooldown)
+            else
+                stringResource(R.string.auth_forgot_cta),
             onClick = onSubmit,
-            enabled = state.email.isNotBlank() && !state.isSubmitting,
+            enabled = state.email.isNotBlank() && !state.isSubmitting && state.rateLimitCooldown == 0,
             loading = state.isSubmitting,
             modifier = Modifier.fillMaxWidth(),
         )

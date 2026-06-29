@@ -9,6 +9,7 @@ import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.feature.auth.domain.usecase.RegisterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,10 +32,12 @@ data class RegisterUiState(
     val isSubmitting: Boolean = false,
     val error: AppError? = null,
     val serverErrors: List<FieldError>? = null,
+    val rateLimitCooldown: Int = 0,
 ) {
     val canSubmit: Boolean
         get() = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() &&
-                confirmPassword.isNotBlank() && phone.isNotBlank() && !isSubmitting
+                confirmPassword.isNotBlank() && phone.isNotBlank() && !isSubmitting &&
+                rateLimitCooldown == 0
 }
 
 sealed interface RegisterEffect {
@@ -86,15 +89,32 @@ class RegisterViewModel @Inject constructor(
                     _effects.send(RegisterEffect.NavigateToCheckEmail(result.value))
                 }
                 is AppResult.Failure -> {
-                    val apiErr = result.error as? AppError.Api
+                    val err = result.error
+                    if (err is AppError.RateLimited) {
+                        _state.update { it.copy(isSubmitting = false, error = err) }
+                        startRateLimitCooldown(err.retryAfterSeconds)
+                        return@launch
+                    }
+                    val apiErr = err as? AppError.Api
                     val fieldErrors = apiErr?.takeIf { it.code == "VALIDATION_FAILED" }?.fieldErrors
                     if (!fieldErrors.isNullOrEmpty()) {
                         _state.update { it.copy(isSubmitting = false, serverErrors = fieldErrors) }
                     } else {
-                        _state.update { it.copy(isSubmitting = false, error = result.error) }
+                        _state.update { it.copy(isSubmitting = false, error = err) }
                     }
                 }
             }
+        }
+    }
+
+    private fun startRateLimitCooldown(seconds: Int?) {
+        val duration = seconds ?: 60
+        viewModelScope.launch {
+            for (remaining in duration downTo 1) {
+                _state.update { it.copy(rateLimitCooldown = remaining) }
+                delay(1_000L)
+            }
+            _state.update { it.copy(rateLimitCooldown = 0) }
         }
     }
 }

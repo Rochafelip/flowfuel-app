@@ -196,6 +196,7 @@ class ProfileViewModel @Inject constructor(
             }
             AppError.Network -> _state.update { ProfileUiState.Error("Sem conexão. Verifique sua internet.") }
             is AppError.Api -> _state.update { ProfileUiState.Error("Erro ao carregar perfil (${error.code}).") }
+            is AppError.RateLimited -> _state.update { ProfileUiState.Error("Muitas tentativas. Tente novamente mais tarde.") }
             is AppError.Unknown -> _state.update { ProfileUiState.Error("Erro inesperado. Tente novamente.") }
         }
     }
