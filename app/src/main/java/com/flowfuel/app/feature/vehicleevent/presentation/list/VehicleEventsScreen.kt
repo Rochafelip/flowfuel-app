@@ -64,6 +64,7 @@ import com.flowfuel.app.feature.export.presentation.ExportTarget
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventDateFilter
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
+import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventCategoryChip
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventCategoryFilterRow
 import com.flowfuel.app.feature.vehicleevent.presentation.components.EventDateFilterRow
@@ -122,6 +123,7 @@ fun VehicleEventsScreen(
             when (effect) {
                 is VehicleEventsEffect.NavigateToCreate -> onNavigateToCreate(effect.vehicleId)
                 is VehicleEventsEffect.NavigateToDetails -> onNavigateToDetails(effect.eventId)
+                is VehicleEventsEffect.NavigateToRefuelDetails -> { /* TODO Task 4: navigate to refuel details */ }
                 VehicleEventsEffect.NavigateToLogin -> onNavigateToLogin()
             }
         }
@@ -247,10 +249,13 @@ fun VehicleEventsScreen(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
                             ) {
-                                items(s.events, key = { it.id }) { event ->
+                                items(
+                                    s.items.filterIsInstance<VehicleTimelineItem.EventEntry>(),
+                                    key = { it.event.id },
+                                ) { entry ->
                                     VehicleEventCard(
-                                        event = event,
-                                        onClick = { viewModel.onEventClick(event.id) },
+                                        event = entry.event,
+                                        onClick = { viewModel.onEventClick(entry.event.id) },
                                     )
                                 }
 

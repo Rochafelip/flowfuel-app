@@ -7,11 +7,14 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.pagination.PaginationState
+import com.flowfuel.app.feature.history.domain.HistoryRepository
+import com.flowfuel.app.feature.history.domain.model.RefuelItem
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventDateFilter
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
+import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.domain.model.toDateRange
-import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsPageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,6 +36,7 @@ class VehicleEventsViewModel @Inject constructor(
     private val getEventsPage: GetVehicleEventsPageUseCase,
     private val getVehicleById: GetVehicleByIdUseCase,
     private val sessionStore: SessionStore,
+    private val historyRepository: HistoryRepository,
 ) : ViewModel() {
 
     private var vehicleId: Int = savedStateHandle["vehicleId"] ?: -1
@@ -43,6 +48,7 @@ class VehicleEventsViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
 
     private var accumulatedEvents: MutableList<VehicleEvent> = mutableListOf()
+    private var accumulatedRefuels: List<RefuelItem> = emptyList()
     private var loadJob: Job? = null
     private var isLoadingMore = false
 
@@ -80,9 +86,46 @@ class VehicleEventsViewModel @Inject constructor(
         }
     }
 
+    private fun shouldIncludeRefuels(): Boolean {
+        val cat = _state.value.selectedCategory
+        return cat == null || cat == EventCategory.FUEL
+    }
+
+    private suspend fun loadRefuels() {
+        if (!shouldIncludeRefuels()) {
+            accumulatedRefuels = emptyList()
+            return
+        }
+        when (val result = historyRepository.getRefuelHistory(vehicleId, page = 0, size = 200)) {
+            is AppResult.Success -> accumulatedRefuels = result.value.items
+            is AppResult.Failure -> accumulatedRefuels = emptyList()
+        }
+    }
+
+    private fun filterRefuelsByDate(filter: EventDateFilter): List<RefuelItem> {
+        val (fromStr, toStr) = filter.toDateRange()
+        if (fromStr == null) return accumulatedRefuels
+        val fromDate = LocalDate.parse(fromStr)
+        val toDate = toStr?.let { LocalDate.parse(it) }
+        return accumulatedRefuels.filter { item ->
+            runCatching {
+                val date = LocalDate.parse(item.date)
+                !date.isBefore(fromDate) && (toDate == null || !date.isAfter(toDate))
+            }.getOrDefault(true)
+        }
+    }
+
+    private fun buildTimeline(): List<VehicleTimelineItem> {
+        val events = accumulatedEvents.map { VehicleTimelineItem.EventEntry(it) }
+        val refuels = filterRefuelsByDate(_state.value.selectedDateFilter)
+            .map { VehicleTimelineItem.RefuelEntry(it) }
+        return (events + refuels).sortedByDescending { it.sortDate }
+    }
+
     fun load() {
         loadJob?.cancel()
         accumulatedEvents = mutableListOf()
+        accumulatedRefuels = emptyList()
         isLoadingMore = false
         _state.update {
             it.copy(
@@ -91,15 +134,22 @@ class VehicleEventsViewModel @Inject constructor(
                 pagination = PaginationState(),
             )
         }
-        loadJob = viewModelScope.launch { fetchPage(0) }
+        loadJob = viewModelScope.launch {
+            loadRefuels()
+            fetchPage(0)
+        }
     }
 
     fun refresh() {
         loadJob?.cancel()
         accumulatedEvents = mutableListOf()
+        accumulatedRefuels = emptyList()
         isLoadingMore = false
         _state.update { it.copy(isRefreshing = true, pagination = PaginationState()) }
-        loadJob = viewModelScope.launch { fetchPage(0, isRefresh = true) }
+        loadJob = viewModelScope.launch {
+            loadRefuels()
+            fetchPage(0, isRefresh = true)
+        }
     }
 
     fun loadNextPage() {
@@ -115,9 +165,10 @@ class VehicleEventsViewModel @Inject constructor(
                     val existingIds = accumulatedEvents.map { it.id }.toSet()
                     val deduped = result.value.items.filter { it.id !in existingIds }
                     accumulatedEvents.addAll(deduped)
+                    val timeline = buildTimeline()
                     _state.update { s ->
                         s.copy(
-                            screenState = VehicleEventsScreenState.Success(accumulatedEvents.toList()),
+                            screenState = VehicleEventsScreenState.Success(timeline),
                             pagination = s.pagination.copy(
                                 currentPage = nextPage,
                                 isLoadingMore = false,
@@ -140,6 +191,7 @@ class VehicleEventsViewModel @Inject constructor(
         if (_state.value.selectedCategory == category) return
         loadJob?.cancel()
         accumulatedEvents = mutableListOf()
+        accumulatedRefuels = emptyList()
         isLoadingMore = false
         _state.update {
             it.copy(
@@ -148,7 +200,10 @@ class VehicleEventsViewModel @Inject constructor(
                 screenState = VehicleEventsScreenState.Loading,
             )
         }
-        loadJob = viewModelScope.launch { fetchPage(0) }
+        loadJob = viewModelScope.launch {
+            loadRefuels()
+            fetchPage(0)
+        }
     }
 
     fun onDateFilterSelected(filter: EventDateFilter) {
@@ -170,6 +225,10 @@ class VehicleEventsViewModel @Inject constructor(
         viewModelScope.launch { _effects.send(VehicleEventsEffect.NavigateToDetails(eventId)) }
     }
 
+    fun onRefuelClick(refuelId: Int) {
+        viewModelScope.launch { _effects.send(VehicleEventsEffect.NavigateToRefuelDetails(refuelId)) }
+    }
+
     fun onCreateClick() {
         viewModelScope.launch { _effects.send(VehicleEventsEffect.NavigateToCreate(vehicleId)) }
     }
@@ -182,11 +241,11 @@ class VehicleEventsViewModel @Inject constructor(
 
     fun removeEvent(eventId: Int) {
         accumulatedEvents.removeIf { it.id == eventId }
-        val updated = accumulatedEvents.toList()
+        val timeline = buildTimeline()
         _state.update {
             it.copy(
-                screenState = if (updated.isEmpty()) VehicleEventsScreenState.Empty
-                              else VehicleEventsScreenState.Success(updated),
+                screenState = if (timeline.isEmpty()) VehicleEventsScreenState.Empty
+                              else VehicleEventsScreenState.Success(timeline),
             )
         }
     }
@@ -197,7 +256,9 @@ class VehicleEventsViewModel @Inject constructor(
         when (val result = getEventsPage(vehicleId, page, category, dateFrom, dateTo)) {
             is AppResult.Success -> {
                 val items = result.value.items
-                if (items.isEmpty() && page == 0) {
+                accumulatedEvents.addAll(items)
+                val timeline = buildTimeline()
+                if (timeline.isEmpty() && page == 0) {
                     _state.update {
                         it.copy(
                             screenState = VehicleEventsScreenState.Empty,
@@ -206,10 +267,9 @@ class VehicleEventsViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    accumulatedEvents.addAll(items)
                     _state.update {
                         it.copy(
-                            screenState = VehicleEventsScreenState.Success(accumulatedEvents.toList()),
+                            screenState = VehicleEventsScreenState.Success(timeline),
                             isRefreshing = false,
                             pagination = PaginationState(currentPage = page, hasMore = result.value.hasMore),
                         )
