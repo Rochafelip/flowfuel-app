@@ -25,7 +25,7 @@ class AutoRefuelConfirmScreen(
     private sealed interface State {
         data object Idle : State
         data object Submitting : State
-        data class Error(val message: String) : State
+        data class Error(val message: String, val isRetryable: Boolean) : State
     }
 
     private var state: State = State.Idle
@@ -63,7 +63,7 @@ class AutoRefuelConfirmScreen(
             .setTitle("Erro")
             .setHeaderAction(Action.BACK)
             .apply {
-                if (s.message != "Sessão expirada. Abra o FlowFuel no celular para entrar novamente.") {
+                if (s.isRetryable) {
                     addAction(
                         Action.Builder()
                             .setTitle("Tentar novamente")
@@ -106,12 +106,11 @@ class AutoRefuelConfirmScreen(
                     screenManager.push(AutoRefuelSuccessScreen(carContext))
                 }
                 is AppResult.Failure -> {
-                    state = State.Error(
-                        if (result.error == AppError.Unauthorized)
-                            "Sessão expirada. Abra o FlowFuel no celular para entrar novamente."
-                        else
-                            "Não foi possível registrar. Verifique sua conexão e tente novamente."
-                    )
+                    state = if (result.error == AppError.Unauthorized) {
+                        State.Error("Sessão expirada. Abra o FlowFuel no celular para entrar novamente.", isRetryable = false)
+                    } else {
+                        State.Error("Não foi possível registrar. Verifique sua conexão e tente novamente.", isRetryable = true)
+                    }
                     invalidate()
                 }
             }
