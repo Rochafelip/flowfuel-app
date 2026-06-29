@@ -35,6 +35,13 @@ object FFColors {
     val OutlineLight = Color(0xFF6D7570)
     val OutlineVariantLight = Color(0xFFBFC9C3)
 
+    // SurfaceContainer — light
+    val SurfaceContainerLowestLight  = Color(0xFFFFFFFF)
+    val SurfaceContainerLowLight     = Color(0xFFF4F7F4)
+    val SurfaceContainerLight        = Color(0xFFEEF2EE)
+    val SurfaceContainerHighLight    = Color(0xFFE8EDE9)
+    val SurfaceContainerHighestLight = Color(0xFFE2E8E3)
+
     val PrimaryDark = Color(0xFF7EE0AC)
     val OnPrimaryDark = Color(0xFF003822)
     val PrimaryContainerDark = Color(0xFF005334)
@@ -63,6 +70,13 @@ object FFColors {
     val OnSurfaceVariantDark = Color(0xFFBFC9C2)
     val OutlineDark = Color(0xFF6B7870)
     val OutlineVariantDark = Color(0xFF3A4642)
+
+    // SurfaceContainer — dark
+    val SurfaceContainerLowestDark   = Color(0xFF0B1210)
+    val SurfaceContainerLowDark      = Color(0xFF17201B)
+    val SurfaceContainerDark         = Color(0xFF1C261F)
+    val SurfaceContainerHighDark     = Color(0xFF232E27)
+    val SurfaceContainerHighestDark  = Color(0xFF283428)
 }
 
 object FFExtraColors {
@@ -75,6 +89,12 @@ object FFExtraColors {
     val OnSuccessDark = Color(0xFF003910)
     val WarningDark = Color(0xFFFFCE7E)
     val OnWarningDark = Color(0xFF452B00)
+
+    val InfoLight   = Color(0xFF0055CC)
+    val OnInfoLight = Color(0xFFFFFFFF)
+
+    val InfoDark    = Color(0xFF7BAAF7)
+    val OnInfoDark  = Color(0xFF002D6E)
 }
 
 data class FFSemanticColors(
@@ -82,6 +102,8 @@ data class FFSemanticColors(
     val onSuccess: Color,
     val warning: Color,
     val onWarning: Color,
+    val info: Color,
+    val onInfo: Color,
 )
 
 val LightSemanticColors = FFSemanticColors(
@@ -89,6 +111,8 @@ val LightSemanticColors = FFSemanticColors(
     onSuccess = FFExtraColors.OnSuccessLight,
     warning = FFExtraColors.WarningLight,
     onWarning = FFExtraColors.OnWarningLight,
+    info = FFExtraColors.InfoLight,
+    onInfo = FFExtraColors.OnInfoLight,
 )
 
 val DarkSemanticColors = FFSemanticColors(
@@ -96,7 +120,14 @@ val DarkSemanticColors = FFSemanticColors(
     onSuccess = FFExtraColors.OnSuccessDark,
     warning = FFExtraColors.WarningDark,
     onWarning = FFExtraColors.OnWarningDark,
+    info = FFExtraColors.InfoDark,
+    onInfo = FFExtraColors.OnInfoDark,
 )
+
+object FFAlpha {
+    const val medium = 0.74f
+    const val subtle = 0.12f
+}
 
 val FFLightColorScheme: ColorScheme = lightColorScheme(
     primary = FFColors.PrimaryLight,
@@ -123,6 +154,11 @@ val FFLightColorScheme: ColorScheme = lightColorScheme(
     onSurfaceVariant = FFColors.OnSurfaceVariantLight,
     outline = FFColors.OutlineLight,
     outlineVariant = FFColors.OutlineVariantLight,
+    surfaceContainerLowest = FFColors.SurfaceContainerLowestLight,
+    surfaceContainerLow = FFColors.SurfaceContainerLowLight,
+    surfaceContainer = FFColors.SurfaceContainerLight,
+    surfaceContainerHigh = FFColors.SurfaceContainerHighLight,
+    surfaceContainerHighest = FFColors.SurfaceContainerHighestLight,
 )
 
 val FFDarkColorScheme: ColorScheme = darkColorScheme(
@@ -150,4 +186,9 @@ val FFDarkColorScheme: ColorScheme = darkColorScheme(
     onSurfaceVariant = FFColors.OnSurfaceVariantDark,
     outline = FFColors.OutlineDark,
     outlineVariant = FFColors.OutlineVariantDark,
+    surfaceContainerLowest = FFColors.SurfaceContainerLowestDark,
+    surfaceContainerLow = FFColors.SurfaceContainerLowDark,
+    surfaceContainer = FFColors.SurfaceContainerDark,
+    surfaceContainerHigh = FFColors.SurfaceContainerHighDark,
+    surfaceContainerHighest = FFColors.SurfaceContainerHighestDark,
 )

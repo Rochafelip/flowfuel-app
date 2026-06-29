@@ -27,6 +27,7 @@ object FFTheme {
         @Composable @ReadOnlyComposable get() = LocalNumericTypography.current
     val semanticColors: FFSemanticColors
         @Composable @ReadOnlyComposable get() = LocalSemanticColors.current
+    val alpha: FFAlpha get() = FFAlpha
 }
 
 @Composable

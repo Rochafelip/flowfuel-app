@@ -50,6 +50,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFStatTile
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
+import com.flowfuel.app.core.designsystem.theme.FFAlpha
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
@@ -332,7 +333,7 @@ private fun WelcomeHeroCard(
             Text(
                 text = "Registre seu primeiro abastecimento para começar a acompanhar o consumo e os gastos do veículo.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
                 textAlign = TextAlign.Center,
             )
 
@@ -372,7 +373,7 @@ private fun ConsumptionHeroCard(
             Text(
                 text = fuelLabel,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
             )
 
             Spacer(Modifier.height(FFTheme.spacing.xs))
@@ -398,7 +399,7 @@ private fun ConsumptionHeroCard(
                     Text(
                         text = unit,
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                 }
@@ -407,7 +408,7 @@ private fun ConsumptionHeroCard(
             Spacer(Modifier.height(FFTheme.spacing.xs))
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.subtle),
             )
 
             Spacer(Modifier.height(FFTheme.spacing.xs))
@@ -420,7 +421,7 @@ private fun ConsumptionHeroCard(
                     else -> "Baseado em $totalRefuels abastecimentos"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
             )
         }
     }
