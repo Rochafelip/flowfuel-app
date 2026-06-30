@@ -79,7 +79,7 @@
             android:resource="@xml/automotive_app_desc" />
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
-            android:value="1" />
+            android:value="2" />
 
         <!-- Sentry tem auto-init próprio via ContentProvider, independente do nosso
              SentryAndroid.init() em FlowFuelApplication. Desabilitado aqui para que o
