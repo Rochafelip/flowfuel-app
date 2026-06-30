@@ -1,22 +1,27 @@
 package com.flowfuel.app.feature.home.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material3.Card
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -39,8 +44,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.flowfuel.app.core.designsystem.components.FFAutoSizeText
 import com.flowfuel.app.core.designsystem.components.FFButton
-import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.components.FFErrorState
@@ -52,7 +57,6 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFStatTile
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
-import com.flowfuel.app.core.designsystem.theme.FFAlpha
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
@@ -60,6 +64,7 @@ import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.HybridConsumptionBreakdown
 import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
+import java.util.Calendar
 import java.util.Locale
 
 // ─── Tela principal ────────────────────────────────────────────────────────────
@@ -239,6 +244,14 @@ private fun HomeContent(
         ),
         verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
     ) {
+        // ── 0. Saudação contextual ─────────────────────────────────────────
+        item {
+            GreetingBanner(
+                vehicle = vehicle,
+                lastRefuelDate = if (isFirstUse) null else dashboard.lastRefuelDate,
+            )
+        }
+
         // ── 1. Hero: boas-vindas (primeiro uso) ou consumo médio ──────────
         item {
             when {
@@ -308,51 +321,59 @@ private fun WelcomeHeroCard(
     vehicleName: String,
     onRegisterRefuel: () -> Unit,
 ) {
+    val brandGreen = FFTheme.semanticColors.brandGreen
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = FFTheme.extraShapes.card,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = FFTheme.elevation.level1),
     ) {
-        Column(
-            modifier = Modifier
-                .padding(FFTheme.spacing.lg)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocalGasStation,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary,
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(brandGreen),
             )
+            Column(
+                modifier = Modifier
+                    .padding(FFTheme.spacing.lg)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalGasStation,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = brandGreen,
+                )
 
-            Spacer(Modifier.height(FFTheme.spacing.xs))
+                Spacer(Modifier.height(FFTheme.spacing.xs))
 
-            Text(
-                text = "$vehicleName pronto para rodar!",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-            )
+                Text(
+                    text = "$vehicleName pronto para rodar!",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
 
-            Text(
-                text = "Registre seu primeiro abastecimento para começar a acompanhar o consumo e os gastos do veículo.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
-                textAlign = TextAlign.Center,
-            )
+                Text(
+                    text = "Registre seu primeiro abastecimento para começar a acompanhar o consumo e os gastos do veículo.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
 
-            Spacer(Modifier.height(FFTheme.spacing.xs))
+                Spacer(Modifier.height(FFTheme.spacing.xs))
 
-            FFButton(
-                text = "Registrar primeiro abastecimento",
-                onClick = onRegisterRefuel,
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = Icons.Default.LocalGasStation,
-            )
+                FFButton(
+                    text = "Registrar primeiro abastecimento",
+                    onClick = onRegisterRefuel,
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = Icons.Default.LocalGasStation,
+                )
+            }
         }
     }
 }
@@ -366,71 +387,73 @@ private fun ConsumptionHeroCard(
     totalRefuels: Int,
     fuelLabel: String,
 ) {
+    val brandGreen = FFTheme.semanticColors.brandGreen
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = FFTheme.extraShapes.card,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = FFTheme.elevation.level1),
     ) {
-        Column(
-            modifier = Modifier.padding(FFTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
-        ) {
-            // Subtítulo: tipo de combustível
-            Text(
-                text = fuelLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(brandGreen),
             )
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            // Rótulo
-            Text(
-                text = "Consumo médio",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-
-            // Valor principal
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+            Column(
+                modifier = Modifier.padding(FFTheme.spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
             ) {
                 Text(
-                    text = value,
-                    style = FFTheme.numericTypography.numericLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    text = fuelLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (value != "—") {
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
-                        modifier = Modifier.padding(bottom = 4.dp),
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                Text(
+                    text = "Consumo médio",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+                ) {
+                    FFAutoSizeText(
+                        text = value,
+                        style = FFTheme.numericTypography.numericLarge,
+                        color = brandGreen,
                     )
+                    if (value != "—") {
+                        Text(
+                            text = unit,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
                 }
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                Text(
+                    text = when {
+                        totalRefuels == 0 -> "Registre o primeiro abastecimento para calcular o consumo"
+                        totalRefuels == 1 -> "Baseado em 1 abastecimento • mínimo 2 para calcular"
+                        else -> "Baseado em $totalRefuels abastecimentos"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.subtle),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            // Legenda
-            Text(
-                text = when {
-                    totalRefuels == 0 -> "Registre o primeiro abastecimento para calcular o consumo"
-                    totalRefuels == 1 -> "Baseado em 1 abastecimento • mínimo 2 para calcular"
-                    else -> "Baseado em $totalRefuels abastecimentos"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
-            )
         }
     }
 }
@@ -443,70 +466,78 @@ private fun HybridConsumptionHeroCard(
     totalRefuels: Int,
     fuelLabel: String,
 ) {
+    val brandGreen = FFTheme.semanticColors.brandGreen
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = FFTheme.extraShapes.card,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = FFTheme.elevation.level1),
     ) {
-        Column(
-            modifier = Modifier.padding(FFTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
-        ) {
-            Text(
-                text = fuelLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(brandGreen),
             )
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            Text(
-                text = "Consumo médio",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.md),
+            Column(
+                modifier = Modifier.padding(FFTheme.spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
             ) {
-                HybridMetricColumn(
-                    icon = Icons.Default.LocalGasStation,
-                    label = "Combustão",
-                    value = breakdown.fuelConsumption?.let { "%.1f".format(it) } ?: "—",
-                    unit = breakdown.fuelConsumptionUnit ?: "km/L",
-                    modifier = Modifier.weight(1f),
+                Text(
+                    text = fuelLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                HybridMetricColumn(
-                    icon = Icons.Default.Bolt,
-                    label = "Elétrico",
-                    value = breakdown.electricConsumption?.let { "%.1f".format(it) } ?: "—",
-                    unit = breakdown.electricConsumptionUnit ?: "km/kWh",
-                    modifier = Modifier.weight(1f),
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                Text(
+                    text = "Consumo médio",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.md),
+                ) {
+                    HybridMetricColumn(
+                        icon = Icons.Default.LocalGasStation,
+                        label = "Combustão",
+                        value = breakdown.fuelConsumption?.let { "%.1f".format(it) } ?: "—",
+                        unit = breakdown.fuelConsumptionUnit ?: "km/L",
+                        accentColor = brandGreen,
+                        modifier = Modifier.weight(1f),
+                    )
+                    HybridMetricColumn(
+                        icon = Icons.Default.Bolt,
+                        label = "Elétrico",
+                        value = breakdown.electricConsumption?.let { "%.1f".format(it) } ?: "—",
+                        unit = breakdown.electricConsumptionUnit ?: "km/kWh",
+                        accentColor = brandGreen,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                Text(
+                    text = when {
+                        totalRefuels == 0 -> "Registre o primeiro abastecimento para calcular o consumo"
+                        totalRefuels == 1 -> "Baseado em 1 abastecimento • mínimo 2 para calcular"
+                        else -> "Baseado em $totalRefuels abastecimentos"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.subtle),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-
-            Text(
-                text = when {
-                    totalRefuels == 0 -> "Registre o primeiro abastecimento para calcular o consumo"
-                    totalRefuels == 1 -> "Baseado em 1 abastecimento • mínimo 2 para calcular"
-                    else -> "Baseado em $totalRefuels abastecimentos"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
-            )
         }
     }
 }
@@ -517,6 +548,7 @@ private fun HybridMetricColumn(
     label: String,
     value: String,
     unit: String,
+    accentColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -531,12 +563,12 @@ private fun HybridMetricColumn(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Row(
@@ -546,13 +578,13 @@ private fun HybridMetricColumn(
             Text(
                 text = value,
                 style = FFTheme.numericTypography.numericMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = accentColor,
             )
             if (value != "—") {
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = FFAlpha.medium),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 2.dp),
                 )
             }
@@ -637,6 +669,53 @@ private fun LastRefuelRow(
             else MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+// ─── Saudação contextual ─────────────────────────────────────────────────────
+
+@Composable
+private fun GreetingBanner(
+    vehicle: ActiveVehicleData,
+    lastRefuelDate: String?,
+) {
+    val greeting = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when {
+            hour < 12 -> "Bom dia"
+            hour < 18 -> "Boa tarde"
+            else -> "Boa noite"
+        }
+    }
+    val daysSince: Int? = remember(lastRefuelDate) {
+        lastRefuelDate ?: return@remember null
+        runCatching {
+            val datePart = lastRefuelDate.take(10)
+            val parts = datePart.split("-")
+            val refuel = Calendar.getInstance().apply {
+                set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt(), 0, 0, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val today = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }
+            ((today.timeInMillis - refuel.timeInMillis) / 86_400_000L).toInt()
+        }.getOrNull()
+    }
+    val vehicleName = "${vehicle.brand} ${vehicle.model}"
+    val message = when {
+        daysSince == null -> "$greeting! Seu $vehicleName está pronto para rodar."
+        daysSince == 0 -> "$greeting! Você abasteceu o $vehicleName hoje."
+        daysSince == 1 -> "$greeting! Último abastecimento foi ontem."
+        daysSince in 2..7 -> "$greeting! Último abastecimento há $daysSince dias."
+        else -> "$greeting! Seu $vehicleName está há $daysSince dias sem abastecer."
+    }
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 // ─── Skeleton de carregamento ─────────────────────────────────────────────────

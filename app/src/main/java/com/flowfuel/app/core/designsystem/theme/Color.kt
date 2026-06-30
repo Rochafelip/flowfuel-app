@@ -6,10 +6,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 object FFColors {
-    val PrimaryLight = Color(0xFF0B6E4F)
+    // primary → grafite (slate-700); verde migra para brandGreen em FFExtraColors
+    val PrimaryLight = Color(0xFF334155)
     val OnPrimaryLight = Color(0xFFFFFFFF)
-    val PrimaryContainerLight = Color(0xFFA7F0C8)
-    val OnPrimaryContainerLight = Color(0xFF002113)
+    val PrimaryContainerLight = Color(0xFFECFDF5)  // emerald-50 — hero card suave
+    val OnPrimaryContainerLight = Color(0xFF064E3B)  // emerald-900
 
     val SecondaryLight = Color(0xFF1E4D8C)
     val OnSecondaryLight = Color(0xFFFFFFFF)
@@ -26,26 +27,27 @@ object FFColors {
     val ErrorContainerLight = Color(0xFFF9DEDC)
     val OnErrorContainerLight = Color(0xFF410E0B)
 
-    val BackgroundLight = Color(0xFFFAFAFA)
-    val OnBackgroundLight = Color(0xFF1A1C1B)
+    val BackgroundLight = Color(0xFFF8FAFC)  // slate-50
+    val OnBackgroundLight = Color(0xFF0F172A)  // slate-900
     val SurfaceLight = Color(0xFFFFFFFF)
-    val OnSurfaceLight = Color(0xFF1A1C1B)
-    val SurfaceVariantLight = Color(0xFFEFF2F0)
-    val OnSurfaceVariantLight = Color(0xFF42493F)
-    val OutlineLight = Color(0xFF6D7570)
-    val OutlineVariantLight = Color(0xFFBFC9C3)
+    val OnSurfaceLight = Color(0xFF0F172A)
+    val SurfaceVariantLight = Color(0xFFF1F5F9)  // slate-100
+    val OnSurfaceVariantLight = Color(0xFF475569)  // slate-600
+    val OutlineLight = Color(0xFF64748B)  // slate-500
+    val OutlineVariantLight = Color(0xFFCBD5E1)  // slate-300
 
-    // SurfaceContainer — light
+    // SurfaceContainer — light (slate-tinted)
     val SurfaceContainerLowestLight  = Color(0xFFFFFFFF)
-    val SurfaceContainerLowLight     = Color(0xFFF4F7F4)
-    val SurfaceContainerLight        = Color(0xFFEEF2EE)
-    val SurfaceContainerHighLight    = Color(0xFFE8EDE9)
-    val SurfaceContainerHighestLight = Color(0xFFE2E8E3)
+    val SurfaceContainerLowLight     = Color(0xFFF4F6FA)
+    val SurfaceContainerLight        = Color(0xFFEEF0F5)
+    val SurfaceContainerHighLight    = Color(0xFFE8EBF0)
+    val SurfaceContainerHighestLight = Color(0xFFE2E5EC)
 
-    val PrimaryDark = Color(0xFF7EE0AC)
-    val OnPrimaryDark = Color(0xFF003822)
-    val PrimaryContainerDark = Color(0xFF005334)
-    val OnPrimaryContainerDark = Color(0xFFA7F0C8)
+    // primary → grafite claro (slate-400) no dark mode
+    val PrimaryDark = Color(0xFF94A3B8)
+    val OnPrimaryDark = Color(0xFF0F172A)
+    val PrimaryContainerDark = Color(0xFF065F46)  // emerald-800
+    val OnPrimaryContainerDark = Color(0xFFA7F3D0)  // emerald-200
 
     val SecondaryDark = Color(0xFFAAC7FF)
     val OnSecondaryDark = Color(0xFF002F69)
@@ -62,21 +64,21 @@ object FFColors {
     val ErrorContainerDark = Color(0xFF8C1D18)
     val OnErrorContainerDark = Color(0xFFF9DEDC)
 
-    val BackgroundDark = Color(0xFF0E1411)
-    val OnBackgroundDark = Color(0xFFE1E3DF)
-    val SurfaceDark = Color(0xFF1A2520)
-    val OnSurfaceDark = Color(0xFFE1E3DF)
-    val SurfaceVariantDark = Color(0xFF242E28)
-    val OnSurfaceVariantDark = Color(0xFFBFC9C2)
-    val OutlineDark = Color(0xFF6B7870)
-    val OutlineVariantDark = Color(0xFF3A4642)
+    val BackgroundDark = Color(0xFF0F172A)  // slate-900
+    val OnBackgroundDark = Color(0xFFE2E8F0)  // slate-200
+    val SurfaceDark = Color(0xFF1E293B)  // slate-800
+    val OnSurfaceDark = Color(0xFFE2E8F0)
+    val SurfaceVariantDark = Color(0xFF2D3D52)
+    val OnSurfaceVariantDark = Color(0xFF94A3B8)  // slate-400
+    val OutlineDark = Color(0xFF64748B)  // slate-500
+    val OutlineVariantDark = Color(0xFF475569)  // slate-600
 
-    // SurfaceContainer — dark
-    val SurfaceContainerLowestDark   = Color(0xFF0B1210)
-    val SurfaceContainerLowDark      = Color(0xFF17201B)
-    val SurfaceContainerDark         = Color(0xFF1C261F)
-    val SurfaceContainerHighDark     = Color(0xFF232E27)
-    val SurfaceContainerHighestDark  = Color(0xFF283428)
+    // SurfaceContainer — dark (slate-tinted)
+    val SurfaceContainerLowestDark   = Color(0xFF080E1A)
+    val SurfaceContainerLowDark      = Color(0xFF121B2B)
+    val SurfaceContainerDark         = Color(0xFF1A2538)
+    val SurfaceContainerHighDark     = Color(0xFF1F2D3E)
+    val SurfaceContainerHighestDark  = Color(0xFF253547)
 }
 
 object FFExtraColors {
@@ -95,6 +97,12 @@ object FFExtraColors {
 
     val InfoDark    = Color(0xFF7BAAF7)
     val OnInfoDark  = Color(0xFF002D6E)
+
+    // Verde de identidade da marca — mantido como acento em ambos os modos
+    val BrandGreenLight = Color(0xFF0B6E4F)
+    val BrandGreenContainerLight = Color(0xFFECFDF5)  // emerald-50
+    val BrandGreenDark = Color(0xFF34D399)  // emerald-400
+    val BrandGreenContainerDark = Color(0xFF064E3B)  // emerald-900
 }
 
 data class FFSemanticColors(
@@ -104,6 +112,8 @@ data class FFSemanticColors(
     val onWarning: Color,
     val info: Color,
     val onInfo: Color,
+    val brandGreen: Color,
+    val brandGreenContainer: Color,
 )
 
 val LightSemanticColors = FFSemanticColors(
@@ -113,6 +123,8 @@ val LightSemanticColors = FFSemanticColors(
     onWarning = FFExtraColors.OnWarningLight,
     info = FFExtraColors.InfoLight,
     onInfo = FFExtraColors.OnInfoLight,
+    brandGreen = FFExtraColors.BrandGreenLight,
+    brandGreenContainer = FFExtraColors.BrandGreenContainerLight,
 )
 
 val DarkSemanticColors = FFSemanticColors(
@@ -122,6 +134,8 @@ val DarkSemanticColors = FFSemanticColors(
     onWarning = FFExtraColors.OnWarningDark,
     info = FFExtraColors.InfoDark,
     onInfo = FFExtraColors.OnInfoDark,
+    brandGreen = FFExtraColors.BrandGreenDark,
+    brandGreenContainer = FFExtraColors.BrandGreenContainerDark,
 )
 
 object FFAlpha {
