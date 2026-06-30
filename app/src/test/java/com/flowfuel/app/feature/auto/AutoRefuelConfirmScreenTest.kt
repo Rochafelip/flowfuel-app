@@ -47,6 +47,7 @@ class AutoRefuelConfirmScreenTest {
         capacity = 47.0, licensePlate = "XYZ9876", energyType = "COMBUSTION", currentKm = 80000,
     )
     private val hybridVehicle = combustionVehicle.copy(id = 8, energyType = "HYBRID")
+    private val electricVehicle = combustionVehicle.copy(id = 9, energyType = "ELECTRIC")
 
     @Test
     fun `submit calcula odometro corretamente para veiculo combustao`() = runTest {
@@ -69,7 +70,7 @@ class AutoRefuelConfirmScreenTest {
                     liters = 45.5,
                     totalPrice = 289.90,
                     fullTank = false,
-                    refuelType = null,
+                    refuelType = "FUEL",
                 )
             )
         }
@@ -94,7 +95,25 @@ class AutoRefuelConfirmScreenTest {
     }
 
     @Test
-    fun `erro 401 durante submit exibe MessageTemplate de sessão expirada`() = runTest {
+    fun `submit usa refuelType ELECTRIC para veiculo eletrico`() = runTest {
+        coEvery { createRefuel(any()) } returns AppResult.Success(Unit)
+        val screen = AutoRefuelConfirmScreen(
+            carContext = carContext,
+            vehicle = electricVehicle,
+            tripKm = 80.0,
+            liters = 30.0,
+            totalPrice = 60.0,
+            createRefuel = createRefuel,
+        )
+        screen.testSubmit()
+        advanceUntilIdle()
+        coVerify {
+            createRefuel(match { it.refuelType == "ELECTRIC" })
+        }
+    }
+
+    @Test
+    fun `erro 401 durante submit exibe MessageTemplate de sessao expirada`() = runTest {
         coEvery { createRefuel(any()) } returns AppResult.Failure(AppError.Unauthorized)
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,

@@ -52,7 +52,10 @@ class AutoRefuelConfirmScreen(
                     addAction(
                         Action.Builder()
                             .setTitle("Corrigir")
-                            .setOnClickListener { screenManager.popToRoot() }
+                            .setOnClickListener {
+                                screenManager.popToRoot()
+                                screenManager.push(AutoRefuelStep1Screen(carContext, vehicle, createRefuel))
+                            }
                             .build()
                     )
                 }
@@ -92,7 +95,7 @@ class AutoRefuelConfirmScreen(
         invalidate()
         lifecycleScope.launch {
             val odometer = vehicle.currentKm.toDouble() + tripKm
-            val refuelType = if (vehicle.energyType == "HYBRID") "FUEL" else null
+            val refuelType = if (vehicle.energyType == "ELECTRIC") "ELECTRIC" else "FUEL"
             val request = CreateRefuelRequest(
                 vehicleId = vehicle.id,
                 odometer = odometer,
