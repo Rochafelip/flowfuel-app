@@ -121,6 +121,7 @@
     <string name="export_event_type_all">Todos os tipos</string>
     <string name="export_cta">Exportar</string>
     <string name="export_loading">Gerando arquivo…</string>
+    <string name="export_no_app">Arquivo salvo. Nenhum app encontrado para abri-lo.</string>
     <string name="export_error_io">Não foi possível salvar o arquivo. Tente novamente.</string>
     <string name="export_button_label">Exportar</string>
 

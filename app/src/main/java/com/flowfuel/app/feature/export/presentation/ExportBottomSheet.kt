@@ -40,7 +40,6 @@ import com.flowfuel.app.core.designsystem.components.FFChip
 import com.flowfuel.app.core.designsystem.components.FFChipKind
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
-import com.flowfuel.app.feature.export.domain.ExportFormat
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Instant
@@ -75,7 +74,13 @@ fun ExportBottomSheet(
     LaunchedEffect(viewModel) {
         viewModel.effects.collectLatest { effect ->
             when (effect) {
-                is ExportEffect.FileReady -> openFile(context, effect.uri)
+                is ExportEffect.FileReady -> {
+                    if (!openFile(context, effect.uri)) {
+                        snackbarHostState.showSnackbar(
+                            context.getString(R.string.export_no_app)
+                        )
+                    }
+                }
             }
         }
     }
@@ -116,25 +121,6 @@ fun ExportBottomSheet(
             text = stringResource(R.string.export_title),
             style = MaterialTheme.typography.titleLarge,
         )
-
-        Spacer(Modifier.height(FFTheme.spacing.md))
-
-        // Format selection
-        Text(
-            text = stringResource(R.string.export_format_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(FFTheme.spacing.xs))
-        Row(horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
-            ExportFormat.entries.forEach { format ->
-                FFChip(
-                    label = format.label,
-                    selected = state.selectedFormat == format,
-                    onClick = { viewModel.onFormatChange(format) },
-                )
-            }
-        }
 
         Spacer(Modifier.height(FFTheme.spacing.md))
 
@@ -221,11 +207,11 @@ fun ExportBottomSheet(
     }
 }
 
-private fun openFile(context: Context, uri: Uri) {
+private fun openFile(context: Context, uri: Uri): Boolean {
     val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(uri, context.contentResolver.getType(uri))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
-    runCatching { context.startActivity(intent) }
+    return runCatching { context.startActivity(intent) }.isSuccess
 }
