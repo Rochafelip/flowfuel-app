@@ -6,6 +6,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 
 enum class FFSnackbarKind { Info, Success, Error }
@@ -20,8 +21,8 @@ data class FFSnackbarVisuals(
 ) : SnackbarVisuals
 
 @Composable
-fun FFSnackbarHost(hostState: SnackbarHostState) {
-    SnackbarHost(hostState = hostState) { data: SnackbarData ->
+fun FFSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modifier) {
+    SnackbarHost(hostState = hostState, modifier = modifier) { data: SnackbarData ->
         val visuals = data.visuals
         val (container, content) = when (visuals) {
             is FFSnackbarVisuals -> when (visuals.kind) {

@@ -186,7 +186,6 @@ fun HistoryScreen(
         ExportBottomSheet(
             target = ExportTarget.REFUELS,
             onDismiss = { showExportSheet = false },
-            snackbarHostState = snackbarHostState,
         )
     }
 

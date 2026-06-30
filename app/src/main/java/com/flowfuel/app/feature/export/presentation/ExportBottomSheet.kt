@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,7 @@ import com.flowfuel.app.core.designsystem.components.FFBottomSheet
 import com.flowfuel.app.core.designsystem.components.FFButton
 import com.flowfuel.app.core.designsystem.components.FFChip
 import com.flowfuel.app.core.designsystem.components.FFChipKind
+import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
@@ -57,11 +59,11 @@ enum class ExportTarget { REFUELS, EVENTS }
 fun ExportBottomSheet(
     target: ExportTarget,
     onDismiss: () -> Unit,
-    snackbarHostState: SnackbarHostState,
     viewModel: ExportViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val errorMessage = state.error?.userMessage()
     LaunchedEffect(errorMessage) {
@@ -117,93 +119,102 @@ fun ExportBottomSheet(
     }
 
     FFBottomSheet(onDismiss = onDismiss) {
-        Text(
-            text = stringResource(R.string.export_title),
-            style = MaterialTheme.typography.titleLarge,
-        )
-
-        Spacer(Modifier.height(FFTheme.spacing.md))
-
-        // Date range
-        Text(
-            text = stringResource(R.string.export_period_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(FFTheme.spacing.xs))
-        if (state.hasDateRange) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
-            ) {
-                FFChip(
-                    label = stringResource(
-                        R.string.export_period_selected,
-                        state.startDate!!.format(displayFormatter),
-                        state.endDate!!.format(displayFormatter),
-                    ),
-                    kind = FFChipKind.Input,
-                    selected = true,
-                    onClick = { showDatePicker = true },
-                    onTrailingClick = { viewModel.onDateRangeChange(null, null) },
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column {
+                Text(
+                    text = stringResource(R.string.export_title),
+                    style = MaterialTheme.typography.titleLarge,
                 )
-            }
-        } else {
-            FFChip(
-                label = stringResource(R.string.export_period_hint),
-                kind = FFChipKind.Assist,
-                leadingIcon = Icons.Outlined.CalendarMonth,
-                onClick = { showDatePicker = true },
-            )
-        }
 
-        // Event type filter (only for events export)
-        if (target == ExportTarget.EVENTS) {
-            Spacer(Modifier.height(FFTheme.spacing.md))
-            Text(
-                text = stringResource(R.string.export_event_type_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
-            ) {
-                FFChip(
-                    label = stringResource(R.string.export_event_type_all),
-                    selected = state.selectedEventType == null,
-                    onClick = { viewModel.onEventTypeChange(null) },
+                Spacer(Modifier.height(FFTheme.spacing.md))
+
+                // Date range
+                Text(
+                    text = stringResource(R.string.export_period_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                EventCategory.entries.forEach { cat ->
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+                if (state.hasDateRange) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
+                    ) {
+                        FFChip(
+                            label = stringResource(
+                                R.string.export_period_selected,
+                                state.startDate!!.format(displayFormatter),
+                                state.endDate!!.format(displayFormatter),
+                            ),
+                            kind = FFChipKind.Input,
+                            selected = true,
+                            onClick = { showDatePicker = true },
+                            onTrailingClick = { viewModel.onDateRangeChange(null, null) },
+                        )
+                    }
+                } else {
                     FFChip(
-                        label = cat.label,
-                        selected = state.selectedEventType == cat.apiValue,
-                        onClick = { viewModel.onEventTypeChange(cat.apiValue) },
+                        label = stringResource(R.string.export_period_hint),
+                        kind = FFChipKind.Assist,
+                        leadingIcon = Icons.Outlined.CalendarMonth,
+                        onClick = { showDatePicker = true },
                     )
                 }
-            }
-        }
 
-        Spacer(Modifier.height(FFTheme.spacing.lg))
-
-        FFButton(
-            text = if (state.isLoading) stringResource(R.string.export_loading)
-                   else stringResource(R.string.export_cta),
-            onClick = {
-                when (target) {
-                    ExportTarget.REFUELS -> viewModel.exportRefuels()
-                    ExportTarget.EVENTS  -> viewModel.exportEvents()
+                // Event type filter (only for events export)
+                if (target == ExportTarget.EVENTS) {
+                    Spacer(Modifier.height(FFTheme.spacing.md))
+                    Text(
+                        text = stringResource(R.string.export_event_type_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(FFTheme.spacing.xs))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+                    ) {
+                        FFChip(
+                            label = stringResource(R.string.export_event_type_all),
+                            selected = state.selectedEventType == null,
+                            onClick = { viewModel.onEventTypeChange(null) },
+                        )
+                        EventCategory.entries.forEach { cat ->
+                            FFChip(
+                                label = cat.label,
+                                selected = state.selectedEventType == cat.apiValue,
+                                onClick = { viewModel.onEventTypeChange(cat.apiValue) },
+                            )
+                        }
+                    }
                 }
-            },
-            enabled = !state.isLoading,
-            loading = state.isLoading,
-            modifier = Modifier.fillMaxWidth(),
-        )
 
-        Spacer(Modifier.height(FFTheme.spacing.md))
+                Spacer(Modifier.height(FFTheme.spacing.lg))
+
+                FFButton(
+                    text = if (state.isLoading) stringResource(R.string.export_loading)
+                           else stringResource(R.string.export_cta),
+                    onClick = {
+                        when (target) {
+                            ExportTarget.REFUELS -> viewModel.exportRefuels()
+                            ExportTarget.EVENTS  -> viewModel.exportEvents()
+                        }
+                    },
+                    enabled = !state.isLoading,
+                    loading = state.isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(FFTheme.spacing.md))
+            }
+
+            FFSnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 

@@ -160,7 +160,6 @@ fun VehicleEventsScreen(
         ExportBottomSheet(
             target = ExportTarget.EVENTS,
             onDismiss = { showExportSheet = false },
-            snackbarHostState = snackbarHostState,
         )
     }
 
