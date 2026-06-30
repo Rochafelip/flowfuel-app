@@ -104,13 +104,19 @@ class AutoDashboardScreen(
 
     private fun successTemplate(v: ActiveVehicleData, d: DashboardData): Template {
         val brLocale = Locale("pt", "BR")
+        val currencyFmt = NumberFormat.getCurrencyInstance(brLocale)
         val title = "${v.brand} ${v.model}${v.licensePlate?.let { " ($it)" } ?: ""}"
 
         val consumptionText = if (d.averageConsumption != null && d.consumptionUnit != null)
             String.format(brLocale, "%.1f %s", d.averageConsumption, d.consumptionUnit)
         else "—"
 
-        val spentText = NumberFormat.getCurrencyInstance(brLocale).format(d.totalSpent)
+        val spentText = currencyFmt.format(d.totalSpent)
+
+        val totalRefuelsText = if (d.totalRefuels > 0)
+            "${d.totalRefuels} abastecimento${if (d.totalRefuels > 1) "s" else ""}"
+        else
+            "Nenhum ainda"
 
         val lastRefuelText = if (d.lastRefuelDate != null && d.lastRefuelEnergyAmount != null) {
             val raw = d.lastRefuelDate
@@ -118,7 +124,9 @@ class AutoDashboardScreen(
                 ?.let { "${it.substring(8, 10)}/${it.substring(5, 7)}" }
                 ?: raw
             val unit = d.lastRefuelEnergyUnit ?: "L"
-            "$date • ${String.format(brLocale, "%.1f", d.lastRefuelEnergyAmount)} $unit"
+            val energy = String.format(brLocale, "%.1f %s", d.lastRefuelEnergyAmount, unit)
+            val price = d.lastRefuelAmount?.let { " • ${currencyFmt.format(it)}" } ?: ""
+            "$date • $energy$price"
         } else {
             "Nenhum ainda"
         }
@@ -127,6 +135,7 @@ class AutoDashboardScreen(
             Pane.Builder()
                 .addRow(Row.Builder().setTitle("Consumo médio").addText(consumptionText).build())
                 .addRow(Row.Builder().setTitle("Gasto total").addText(spentText).build())
+                .addRow(Row.Builder().setTitle("Abastecimentos").addText(totalRefuelsText).build())
                 .addRow(Row.Builder().setTitle("Último abastecimento").addText(lastRefuelText).build())
                 .addAction(
                     Action.Builder()

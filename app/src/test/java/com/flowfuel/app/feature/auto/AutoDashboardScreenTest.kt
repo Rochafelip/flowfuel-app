@@ -89,4 +89,46 @@ class AutoDashboardScreenTest {
 
         assertTrue("Deve retornar MessageTemplate para 401", screen.onGetTemplate() is MessageTemplate)
     }
+
+    @Test
+    fun `dashboard exibe total de abastecimentos`() = runTest {
+        val getActiveVehicle: GetActiveVehicleUseCase = mockk()
+        val getDashboard: GetDashboardUseCase = mockk()
+        coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
+        coEvery { getDashboard(testVehicle.id) } returns AppResult.Success(
+            testDashboard.copy(totalRefuels = 12)
+        )
+        val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
+        screen.loadData()
+        val template = screen.onGetTemplate() as PaneTemplate
+        val rows = template.pane.rows
+        assertTrue("deve ter pelo menos 4 linhas", rows.size >= 4)
+        assertTrue(
+            "linha de abastecimentos deve conter '12'",
+            rows.any { row -> row.texts.any { it.toString().contains("12") } }
+        )
+    }
+
+    @Test
+    fun `dashboard exibe valor monetario do ultimo abastecimento`() = runTest {
+        val getActiveVehicle: GetActiveVehicleUseCase = mockk()
+        val getDashboard: GetDashboardUseCase = mockk()
+        coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
+        coEvery { getDashboard(testVehicle.id) } returns AppResult.Success(
+            testDashboard.copy(
+                lastRefuelDate = "2026-06-15",
+                lastRefuelEnergyAmount = 42.0,
+                lastRefuelEnergyUnit = "L",
+                lastRefuelAmount = 289.90,
+            )
+        )
+        val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
+        screen.loadData()
+        val template = screen.onGetTemplate() as PaneTemplate
+        val rows = template.pane.rows
+        assertTrue(
+            "linha do ultimo abastecimento deve conter o valor",
+            rows.any { row -> row.texts.any { it.toString().contains("289") } }
+        )
+    }
 }
