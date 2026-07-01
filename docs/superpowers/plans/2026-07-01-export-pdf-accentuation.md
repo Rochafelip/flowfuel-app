@@ -590,6 +590,28 @@ git commit -m "feat(export): gerar relatório PDF de abastecimentos e eventos co
 
 ### Task 5: ExportFormat.PDF + wiring no ExportRepositoryImpl
 
+> **Nota (2026-07-01):** durante a implementação, `saveFile()` (função
+> pré-existente, inalterada por esta task) foi exercitada pela primeira vez
+> sob Robolectric e revelou um bug conhecido do `androidx.core.content.FileProvider`:
+> `SimplePathStrategy.belongsToRoot` usa um separador `/` fixo ao checar se
+> um path canônico pertence a uma raiz configurada. Em dispositivo Android
+> real isso é inofensivo (`File.separator` é sempre `/`), mas ao rodar
+> testes Robolectric na JVM host **Windows**, `File.getCanonicalPath()`
+> retorna paths com `\`, e a checagem `path.startsWith(root + "/")` falha
+> sempre, lançando `IllegalArgumentException: Failed to find configured
+> root`. Isso não é um defeito do código desta task nem afeta o app real —
+> é uma limitação do ambiente de teste nesta máquina, e não há CI rodando
+> `./gradlew test` (o único workflow existente roda `assembleRelease`).
+> Por decisão do usuário: os dois testes que exercitam `saveFile()`
+> (`exportRefuels CSV does not fetch vehicle` e `exportRefuels PDF fetches
+> vehicle and calls pdf writer`) ganham um guard
+> `org.junit.Assume.assumeFalse(isWindows)` no início, com um comentário
+> explicando o motivo, para não ficarem permanentemente vermelhos nesta
+> máquina sem mascarar a lógica de roteamento (que já é validada pelas
+> asserções `coVerify` antes do guard entrar em jogo em outras plataformas).
+> O terceiro teste (`PDF propagates vehicle fetch failure`) nunca chega em
+> `saveFile()` e não precisa do guard.
+
 **Files:**
 - Modify: `app/src/main/java/com/flowfuel/app/feature/export/domain/ExportRepository.kt`
 - Modify: `app/src/main/java/com/flowfuel/app/feature/export/data/ExportRepositoryImpl.kt`
@@ -624,11 +646,19 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+// androidx.core.content.FileProvider.SimplePathStrategy.belongsToRoot usa um
+// separador "/" fixo; em JVM host Windows, File.getCanonicalPath() retorna
+// paths com "\", então a checagem falha sempre sob Robolectric nesta
+// plataforma (funciona normalmente em device real e em CI Linux). Guard
+// apenas para os testes que chegam em saveFile()/FileProvider.
+private val isWindows = System.getProperty("os.name")?.contains("Windows", ignoreCase = true) == true
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
@@ -665,6 +695,7 @@ class ExportRepositoryImplTest {
 
     @Test
     fun `exportRefuels CSV does not fetch vehicle`() = runTest {
+        assumeFalse("saveFile()/FileProvider Robolectric bug on Windows JVM host", isWindows)
         coEvery { historyRepository.getRefuelHistory(1, 0, 100, null, null) } returns
             AppResult.Success(RefuelPage(items = listOf(refuelItem()), hasMore = false, currentPage = 0))
 
@@ -676,6 +707,7 @@ class ExportRepositoryImplTest {
 
     @Test
     fun `exportRefuels PDF fetches vehicle and calls pdf writer`() = runTest {
+        assumeFalse("saveFile()/FileProvider Robolectric bug on Windows JVM host", isWindows)
         coEvery { historyRepository.getRefuelHistory(1, 0, 100, null, null) } returns
             AppResult.Success(RefuelPage(items = listOf(refuelItem()), hasMore = false, currentPage = 0))
         coEvery { vehicleRepository.getVehicleById(1) } returns AppResult.Success(vehicle())
