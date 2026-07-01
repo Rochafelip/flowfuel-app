@@ -429,9 +429,22 @@ git commit -m "feat(export): helpers de formatação de veículo, período e uni
 
 ### Task 4: PdfReportWriter — geração do PDF com PdfDocument
 
+> **Nota (2026-07-01):** o plano originalmente previa um teste Robolectric
+> smoke-test para esta classe. Durante a implementação, descobriu-se que a
+> versão de Robolectric fixada neste projeto (`gradle/libs.versions.toml`)
+> **não tem nenhum suporte a `android.graphics.pdf.PdfDocument`** — não
+> existe `ShadowPdfDocument`, e os métodos nativos (`nativeCreateDocument`
+> etc.) não são resolvidos, deixando o documento "fechado" desde a
+> construção (`IllegalStateException: document is closed!` em qualquer
+> `PdfDocument()` construído sob Robolectric, independente da implementação
+> do writer). Isso confirma, na prática, a ressalva já registrada no spec
+> aprovado: "Não é viável testar renderização visual do PDF em unit test".
+> Por decisão do usuário, esta task **não tem teste automatizado** — a
+> cobertura fica nos cálculos puros (Tasks 2 e 3, já testados) e na
+> verificação manual da Task 7.
+
 **Files:**
 - Create: `app/src/main/java/com/flowfuel/app/feature/export/data/pdf/PdfReportWriter.kt`
-- Test: `app/src/test/java/com/flowfuel/app/feature/export/data/pdf/PdfReportWriterTest.kt`
 
 **Interfaces:**
 - Consumes: `RefuelsSummary`, `EventsSummary` (Task 2, mesmo pacote `com.flowfuel.app.feature.export.data`).
@@ -441,86 +454,7 @@ git commit -m "feat(export): helpers de formatação de veículo, período e uni
   - `fun writeEventsReport(vehicleLabel: String, periodLabel: String, summary: EventsSummary, tableHeader: List<String>, tableRows: List<List<String>>): ByteArray`
   - Usado pelo `ExportRepositoryImpl` (Task 5).
 
-- [ ] **Step 1: Write the failing test**
-
-```kotlin
-package com.flowfuel.app.feature.export.data.pdf
-
-import com.flowfuel.app.feature.export.data.EventsSummary
-import com.flowfuel.app.feature.export.data.RefuelsSummary
-import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
-import org.junit.Assert.assertTrue
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
-class PdfReportWriterTest {
-
-    private val writer = PdfReportWriter()
-
-    private fun isValidPdf(bytes: ByteArray) =
-        bytes.size > 4 && String(bytes.copyOfRange(0, 4), Charsets.ISO_8859_1) == "%PDF"
-
-    @Test
-    fun `writeRefuelsReport produces valid pdf bytes`() {
-        val bytes = writer.writeRefuelsReport(
-            vehicleLabel = "Toyota Corolla — ABC1D23",
-            periodLabel = "01/01/2026 – 31/01/2026",
-            summary = RefuelsSummary(totalSpent = 450.0, totalEnergy = 120.0, averageConsumption = 12.5, count = 3),
-            energyUnit = "L",
-            consumptionUnit = "km/L",
-            tableHeader = listOf("Data", "Tipo", "Quantidade"),
-            tableRows = listOf(listOf("2026-01-05", "FUEL", "40,00")),
-        )
-
-        assertTrue(isValidPdf(bytes))
-    }
-
-    @Test
-    fun `writeRefuelsReport handles large row counts without throwing`() {
-        val manyRows = (1..80).map { listOf("2026-01-${"%02d".format((it % 28) + 1)}", "FUEL", "40,00") }
-
-        val bytes = writer.writeRefuelsReport(
-            vehicleLabel = "Toyota Corolla",
-            periodLabel = "Todo o histórico",
-            summary = RefuelsSummary(totalSpent = 1000.0, totalEnergy = 800.0, averageConsumption = 11.0, count = 80),
-            energyUnit = "L",
-            consumptionUnit = "km/L",
-            tableHeader = listOf("Data", "Tipo", "Quantidade"),
-            tableRows = manyRows,
-        )
-
-        assertTrue(isValidPdf(bytes))
-    }
-
-    @Test
-    fun `writeEventsReport produces valid pdf bytes`() {
-        val bytes = writer.writeEventsReport(
-            vehicleLabel = "Toyota Corolla",
-            periodLabel = "Todo o histórico",
-            summary = EventsSummary(
-                totalSpent = 300.0,
-                countByCategory = listOf(EventCategory.MAINTENANCE to 2, EventCategory.INSURANCE to 1),
-                count = 3,
-            ),
-            tableHeader = listOf("Data", "Categoria", "Título"),
-            tableRows = listOf(listOf("2026-01-05", "Manutenção", "Troca de correia")),
-        )
-
-        assertTrue(isValidPdf(bytes))
-    }
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `./gradlew testDebugUnitTest --tests "com.flowfuel.app.feature.export.data.pdf.PdfReportWriterTest"`
-Expected: FAIL — compilation error, `PdfReportWriter` unresolved.
-
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 1: Write the implementation**
 
 ```kotlin
 package com.flowfuel.app.feature.export.data.pdf
@@ -640,15 +574,15 @@ class PdfReportWriter @Inject constructor() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 2: Compile to verify it builds**
 
-Run: `./gradlew testDebugUnitTest --tests "com.flowfuel.app.feature.export.data.pdf.PdfReportWriterTest"`
-Expected: PASS (3 tests)
+Run: `./gradlew compileDebugKotlin`
+Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add app/src/main/java/com/flowfuel/app/feature/export/data/pdf/PdfReportWriter.kt app/src/test/java/com/flowfuel/app/feature/export/data/pdf/PdfReportWriterTest.kt
+git add app/src/main/java/com/flowfuel/app/feature/export/data/pdf/PdfReportWriter.kt
 git commit -m "feat(export): gerar relatório PDF de abastecimentos e eventos com PdfDocument"
 ```
 
