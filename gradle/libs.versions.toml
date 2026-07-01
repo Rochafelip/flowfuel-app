@@ -32,6 +32,7 @@ turbine = "1.2.0"
 mockwebserver = "4.12.0"
 robolectric = "4.14.1"
 androidxTestExt = "1.2.1"
+playServicesLocation = "21.3.0"
 androidxTestCore = "1.6.1"
 espresso = "3.6.1"
 
@@ -100,6 +101,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTestCore" }
 androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExt" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
