@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.export.data
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private val PERIOD_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -22,3 +23,12 @@ fun periodLabel(startDate: String?, endDate: String?): String {
 fun energyUnit(vehicle: Vehicle): String = if (vehicle.energyType == EnergyType.Electric) "kWh" else "L"
 
 fun consumptionUnit(vehicle: Vehicle): String = if (vehicle.energyType == EnergyType.Electric) "km/kWh" else "km/L"
+
+fun pdfDate(iso: String): String {
+    if (iso.isBlank()) return "-"
+    return runCatching {
+        LocalDateTime.parse(iso.take(19)).format(PERIOD_FORMATTER)
+    }.getOrElse {
+        runCatching { LocalDate.parse(iso.take(10)).format(PERIOD_FORMATTER) }.getOrDefault(iso.take(10))
+    }
+}

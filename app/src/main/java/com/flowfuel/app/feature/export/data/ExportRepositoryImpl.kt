@@ -68,7 +68,7 @@ class ExportRepositoryImpl @Inject constructor(
                         energyUnit = energyUnit(vehicle),
                         consumptionUnit = consumptionUnit(vehicle),
                         tableHeader = REFUELS_TABLE_HEADER,
-                        tableRows = items.map(::refuelsTableRow),
+                        tableRows = items.map(::refuelsTableRowPdf),
                     )
                     AppResult.Success(saveFile(bytes, "flowfuel-abastecimentos.pdf"))
                 }.getOrElse { e -> Timber.e(e, "export save failure"); AppResult.Failure(AppError.Unknown(e)) }
@@ -104,7 +104,7 @@ class ExportRepositoryImpl @Inject constructor(
                         periodLabel = periodLabel(startDate, endDate),
                         summary = buildEventsSummary(items),
                         tableHeader = EVENTS_TABLE_HEADER,
-                        tableRows = items.map(::eventsTableRow),
+                        tableRows = items.map(::eventsTableRowPdf),
                     )
                     AppResult.Success(saveFile(bytes, "flowfuel-eventos.pdf"))
                 }.getOrElse { e -> Timber.e(e, "export save failure"); AppResult.Failure(AppError.Unknown(e)) }
@@ -174,6 +174,12 @@ class ExportRepositoryImpl @Inject constructor(
         item.odometerKm?.toString() ?: "",
         item.notes ?: "",
     )
+
+    private fun refuelsTableRowPdf(item: RefuelItem): List<String> =
+        refuelsTableRow(item).toMutableList().also { it[0] = pdfDate(item.date) }
+
+    private fun eventsTableRowPdf(item: VehicleEvent): List<String> =
+        eventsTableRow(item).toMutableList().also { it[0] = pdfDate(item.eventDate) }
 
     private fun saveFile(bytes: ByteArray, filename: String): Uri {
         val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir

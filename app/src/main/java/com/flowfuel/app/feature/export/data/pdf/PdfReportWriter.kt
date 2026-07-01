@@ -8,10 +8,21 @@ import com.flowfuel.app.feature.export.data.RefuelsSummary
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
-private const val PAGE_WIDTH = 595
-private const val PAGE_HEIGHT = 842
+private const val PAGE_WIDTH = 842
+private const val PAGE_HEIGHT = 595
 private const val MARGIN = 40f
 private const val LINE_HEIGHT = 16f
+private const val CELL_PADDING = 6f
+private const val MIN_COL_WIDTH = 28f
+private const val MAX_DESIRED_COL_WIDTH = 160f
+
+internal fun distributeColumnWidths(desired: List<Float>, availableWidth: Float, minWidth: Float): List<Float> {
+    if (desired.isEmpty()) return desired
+    val total = desired.sum()
+    if (total <= availableWidth) return desired
+    val scale = availableWidth / total
+    return desired.map { maxOf(it * scale, minWidth) }
+}
 
 class PdfReportWriter @Inject constructor() {
 
@@ -64,7 +75,13 @@ class PdfReportWriter @Inject constructor() {
         val linePaint = Paint().apply { color = Color.LTGRAY; strokeWidth = 1f }
 
         val contentWidth = PAGE_WIDTH - 2 * MARGIN
-        val colWidth = contentWidth / tableHeader.size
+        val desiredColWidths = tableHeader.indices.map { i ->
+            val headerWidth = headerPaint.measureText(tableHeader[i])
+            val maxCellWidth = tableRows.maxOfOrNull { row -> cellPaint.measureText(row.getOrElse(i) { "" }) } ?: 0f
+            minOf(maxOf(headerWidth, maxCellWidth) + CELL_PADDING, MAX_DESIRED_COL_WIDTH)
+        }
+        val colWidths = distributeColumnWidths(desiredColWidths, contentWidth, MIN_COL_WIDTH)
+        val colOffsets = colWidths.runningFold(0f) { acc, w -> acc + w }
 
         var page = document.startPage(
             PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, document.pages.size + 1).create()
@@ -72,8 +89,15 @@ class PdfReportWriter @Inject constructor() {
         var canvas = page.canvas
         var y = MARGIN
 
+        fun drawRow(cells: List<String>, paint: Paint) {
+            cells.forEachIndexed { i, text ->
+                val maxWidth = colWidths[i] - CELL_PADDING
+                canvas.drawText(paint.ellipsize(text, maxWidth), MARGIN + colOffsets[i], y, paint)
+            }
+        }
+
         fun drawTableHeaderRow() {
-            tableHeader.forEachIndexed { i, text -> canvas.drawText(text, MARGIN + i * colWidth, y, headerPaint) }
+            drawRow(tableHeader, headerPaint)
             y += LINE_HEIGHT
             canvas.drawLine(MARGIN, y - 4f, MARGIN + contentWidth, y - 4f, linePaint)
         }
@@ -99,7 +123,7 @@ class PdfReportWriter @Inject constructor() {
                 newPage()
                 drawTableHeaderRow()
             }
-            row.forEachIndexed { i, text -> canvas.drawText(text, MARGIN + i * colWidth, y, cellPaint) }
+            drawRow(row, cellPaint)
             y += LINE_HEIGHT
         }
 
@@ -112,4 +136,13 @@ class PdfReportWriter @Inject constructor() {
     }
 
     private fun Double.formatDecimal() = "%.2f".format(this).replace('.', ',')
+
+    private fun Paint.ellipsize(text: String, maxWidth: Float): String {
+        if (measureText(text) <= maxWidth) return text
+        val ellipsis = "…"
+        val ellipsisWidth = measureText(ellipsis)
+        var end = text.length
+        while (end > 0 && measureText(text, 0, end) + ellipsisWidth > maxWidth) end--
+        return text.substring(0, end) + ellipsis
+    }
 }
