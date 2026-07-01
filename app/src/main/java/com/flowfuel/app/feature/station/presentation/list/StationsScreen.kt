@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flowfuel.app.core.designsystem.components.FFEmptyState
 import com.flowfuel.app.core.designsystem.components.FFErrorState
 import com.flowfuel.app.core.designsystem.components.FFSkeletonList
@@ -68,6 +72,20 @@ fun StationsScreen(
                     activity, Manifest.permission.ACCESS_FINE_LOCATION,
                 )
         }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                when (state) {
+                    StationsUiState.PermissionRequired, StationsUiState.LocationUnavailable -> viewModel.load()
+                    else -> Unit
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(viewModel) {
@@ -117,6 +135,8 @@ fun StationsScreen(
                 StationsUiState.Empty -> FFEmptyState(
                     title = "Nenhum posto encontrado por perto",
                     description = "Tente novamente em uma área com mais cobertura.",
+                    actionText = "Tentar novamente",
+                    onAction = viewModel::load,
                     modifier = Modifier.align(Alignment.Center),
                 )
 

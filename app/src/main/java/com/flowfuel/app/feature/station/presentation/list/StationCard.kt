@@ -46,7 +46,11 @@ fun StationCard(
                     } else {
                         Icons.Filled.LocalGasStation
                     },
-                    contentDescription = null,
+                    contentDescription = if (station.type == StationType.Electric) {
+                        "Estação de recarga elétrica"
+                    } else {
+                        "Posto de combustível"
+                    },
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
