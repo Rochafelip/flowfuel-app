@@ -113,6 +113,8 @@
     <!-- Export -->
     <string name="export_title">Exportar dados</string>
     <string name="export_format_label">Formato</string>
+    <string name="export_format_csv">CSV</string>
+    <string name="export_format_pdf">PDF</string>
     <string name="export_period_label">Período (opcional)</string>
     <string name="export_period_hint">Selecionar período</string>
     <string name="export_period_selected">%1$s a %2$s</string>

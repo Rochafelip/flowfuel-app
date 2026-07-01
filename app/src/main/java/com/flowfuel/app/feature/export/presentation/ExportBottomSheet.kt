@@ -42,6 +42,7 @@ import com.flowfuel.app.core.designsystem.components.FFChipKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
+import com.flowfuel.app.feature.export.domain.ExportFormat
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import kotlinx.coroutines.flow.collectLatest
 import java.time.Instant
@@ -126,6 +127,26 @@ fun ExportBottomSheet(
                     style = MaterialTheme.typography.titleLarge,
                 )
 
+                Spacer(Modifier.height(FFTheme.spacing.md))
+
+                Text(
+                    text = stringResource(R.string.export_format_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(FFTheme.spacing.xs))
+                Row(horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
+                    FFChip(
+                        label = stringResource(R.string.export_format_csv),
+                        selected = state.selectedFormat == ExportFormat.CSV,
+                        onClick = { viewModel.onFormatChange(ExportFormat.CSV) },
+                    )
+                    FFChip(
+                        label = stringResource(R.string.export_format_pdf),
+                        selected = state.selectedFormat == ExportFormat.PDF,
+                        onClick = { viewModel.onFormatChange(ExportFormat.PDF) },
+                    )
+                }
                 Spacer(Modifier.height(FFTheme.spacing.md))
 
                 // Date range
