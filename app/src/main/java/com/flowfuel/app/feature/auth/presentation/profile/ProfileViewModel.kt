@@ -47,6 +47,7 @@ sealed interface ProfileEffect {
     data object NavigateToLogin : ProfileEffect
     data object NavigateToEditProfile : ProfileEffect
     data object NavigateToChangePassword : ProfileEffect
+    data object NavigateToVehicles : ProfileEffect
     data object ShowUploadError : ProfileEffect
     data object ShowDeleteError : ProfileEffect
 }
@@ -121,6 +122,10 @@ class ProfileViewModel @Inject constructor(
 
     fun onChangePassword() {
         viewModelScope.launch { _effects.send(ProfileEffect.NavigateToChangePassword) }
+    }
+
+    fun onManageVehicles() {
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToVehicles) }
     }
 
     fun onPickImage(uri: Uri) {

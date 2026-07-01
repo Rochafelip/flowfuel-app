@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Scaffold
@@ -35,7 +35,7 @@ import com.flowfuel.app.core.designsystem.components.FFBottomItem
 import com.flowfuel.app.feature.auth.presentation.profile.ProfileScreen
 import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.home.presentation.HomeScreen
-import com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesScreen
+import com.flowfuel.app.feature.station.presentation.list.StationsScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
 
 /**
@@ -54,20 +54,16 @@ import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScre
 fun MainContainerScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
-    onNavigateToVehicleDetails: (vehicleId: Int) -> Unit = {},
-    onNavigateToEditVehicle: (vehicleId: Int) -> Unit = {},
-    onNavigateToVehicleEvents: (vehicleId: Int) -> Unit = {},
     onNavigateToEventCreate: (vehicleId: Int) -> Unit = {},
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
+    onNavigateToVehicles: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedConsumed: () -> Unit = {},
     profileUpdated: Boolean = false,
     onProfileUpdatedConsumed: () -> Unit = {},
-    vehicleUpdated: Boolean = false,
-    onVehicleUpdatedConsumed: () -> Unit = {},
     historyNeedsRefresh: Boolean = false,
     onHistoryRefreshConsumed: () -> Unit = {},
     tabEventCreated: Boolean = false,
@@ -98,10 +94,10 @@ fun MainContainerScreen(
                 selectedIcon = Icons.Filled.History,
             ),
             FFBottomItem(
-                route        = MainDestinations.VEHICLES,
-                label        = "Veículos",
-                icon         = Icons.Outlined.DirectionsCar,
-                selectedIcon = Icons.Filled.DirectionsCar,
+                route        = MainDestinations.STATIONS,
+                label        = "Postos",
+                icon         = Icons.Outlined.LocalGasStation,
+                selectedIcon = Icons.Filled.LocalGasStation,
             ),
             FFBottomItem(
                 route        = MainDestinations.EVENTS,
@@ -186,17 +182,9 @@ fun MainContainerScreen(
                 )
             }
 
-            // ── Veículos ──────────────────────────────────────────────────────
-            composable(MainDestinations.VEHICLES) {
-                VehiclesScreen(
-                    onNavigateToLogin           = onNavigateToLogin,
-                    onNavigateToAddVehicle      = onNavigateToAddVehicle,
-                    onNavigateToVehicleDetails  = onNavigateToVehicleDetails,
-                    onNavigateToEditVehicle     = onNavigateToEditVehicle,
-                    onNavigateToVehicleEvents   = onNavigateToVehicleEvents,
-                    vehicleUpdated              = vehicleUpdated,
-                    onVehicleUpdatedConsumed    = onVehicleUpdatedConsumed,
-                )
+            // ── Postos ────────────────────────────────────────────────────────
+            composable(MainDestinations.STATIONS) {
+                StationsScreen(onNavigateToLogin = onNavigateToLogin)
             }
 
             // ── Eventos ───────────────────────────────────────────────────────
@@ -222,6 +210,7 @@ fun MainContainerScreen(
                     onNavigateToLogin          = onNavigateToLogin,
                     onNavigateToEditProfile    = onNavigateToEditProfile,
                     onNavigateToChangePassword = onNavigateToChangePassword,
+                    onNavigateToVehicles       = onNavigateToVehicles,
                     passwordChanged            = passwordChanged,
                     onPasswordChangedConsumed  = onPasswordChangedConsumed,
                     profileUpdated             = profileUpdated,

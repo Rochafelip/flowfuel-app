@@ -14,6 +14,8 @@ object Destinations {
     const val VEHICLE_DETAILS   = "vehicle/details/{vehicleId}"
     const val VEHICLE_EDIT      = "vehicle/edit/{vehicleId}"
     const val VEHICLE_ODOMETER  = "vehicle/odometer/{vehicleId}/{currentKm}"
+    /** Gestão completa de veículos (lista/editar/detalhes), acessível a partir do Perfil. */
+    const val VEHICLE_MANAGE    = "vehicle/manage"
     /** Container com BottomBar; hospeda o NavHost das abas. */
     const val MAIN_CONTAINER   = "main"
     const val CHANGE_PASSWORD  = "auth/change-password"
@@ -49,7 +51,7 @@ object Destinations {
 object MainDestinations {
     const val HOME     = "main/home"
     const val HISTORY  = "main/history"
-    const val VEHICLES = "main/vehicles"
+    const val STATIONS = "main/stations"
     const val EVENTS   = "main/events"
     const val PROFILE  = "main/profile"
 }

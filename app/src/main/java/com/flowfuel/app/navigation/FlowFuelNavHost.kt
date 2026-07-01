@@ -32,6 +32,7 @@ import com.flowfuel.app.feature.vehicle.presentation.add.AddVehicleScreen
 import com.flowfuel.app.feature.vehicle.presentation.details.VehicleDetailsScreen
 import com.flowfuel.app.feature.vehicle.presentation.edit.EditVehicleScreen
 import com.flowfuel.app.feature.vehicle.presentation.list.VehiclePickerScreen
+import com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesScreen
 import com.flowfuel.app.feature.vehicle.presentation.odometer.UpdateOdometerScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.create.CreateVehicleEventScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.details.VehicleEventDetailsScreen
@@ -337,9 +338,9 @@ fun FlowFuelNavHost(
             EditVehicleScreen(
                 onBack = { navController.popBackStack() },
                 onSaved = {
-                    // Sinaliza a VehiclesScreen para recarregar a lista ao retornar
+                    // Sinaliza a tela de gestão de veículos para recarregar ao retornar
                     runCatching {
-                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                        navController.getBackStackEntry(Destinations.VEHICLE_MANAGE)
                             .savedStateHandle["vehicle_updated"] = true
                     }
                     navController.popBackStack()
@@ -349,6 +350,34 @@ fun FlowFuelNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+            )
+        }
+
+        // ── Gestão de veículos (acessível pelo Perfil) ─────────────────────
+        composable(Destinations.VEHICLE_MANAGE) { entry ->
+            val vehicleUpdated by entry.savedStateHandle
+                .getStateFlow("vehicle_updated", false)
+                .collectAsStateWithLifecycle()
+
+            VehiclesScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToLogin = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToAddVehicle = { navController.navigate(Destinations.VEHICLE_ADD) },
+                onNavigateToVehicleDetails = { vehicleId ->
+                    navController.navigate(Destinations.vehicleDetails(vehicleId))
+                },
+                onNavigateToEditVehicle = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEdit(vehicleId))
+                },
+                onNavigateToVehicleEvents = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEvents(vehicleId))
+                },
+                vehicleUpdated = vehicleUpdated,
+                onVehicleUpdatedConsumed = { entry.savedStateHandle["vehicle_updated"] = false },
             )
         }
 
@@ -569,9 +598,6 @@ fun FlowFuelNavHost(
             val passwordChanged by entry.savedStateHandle
                 .getStateFlow("password_changed", false)
                 .collectAsStateWithLifecycle()
-            val vehicleUpdated by entry.savedStateHandle
-                .getStateFlow("vehicle_updated", false)
-                .collectAsStateWithLifecycle()
             val historyNeedsRefresh by entry.savedStateHandle
                 .getStateFlow("history_needs_refresh", false)
                 .collectAsStateWithLifecycle()
@@ -597,15 +623,6 @@ fun FlowFuelNavHost(
                 onNavigateToAddVehicle = {
                     navController.navigate(Destinations.VEHICLE_ADD)
                 },
-                onNavigateToVehicleDetails = { vehicleId ->
-                    navController.navigate(Destinations.vehicleDetails(vehicleId))
-                },
-                onNavigateToEditVehicle = { vehicleId ->
-                    navController.navigate(Destinations.vehicleEdit(vehicleId))
-                },
-                onNavigateToVehicleEvents = { vehicleId ->
-                    navController.navigate(Destinations.vehicleEvents(vehicleId))
-                },
                 onNavigateToEventCreate = { vehicleId ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId))
                 },
@@ -614,6 +631,9 @@ fun FlowFuelNavHost(
                 },
                 onNavigateToRefuelDetails = { refuelId ->
                     navController.navigate(Destinations.refuelDetails(refuelId))
+                },
+                onNavigateToVehicles = {
+                    navController.navigate(Destinations.VEHICLE_MANAGE)
                 },
                 onNavigateToEditProfile = {
                     navController.navigate(Destinations.EDIT_PROFILE)
@@ -624,10 +644,6 @@ fun FlowFuelNavHost(
                 passwordChanged = passwordChanged,
                 onPasswordChangedConsumed = {
                     entry.savedStateHandle["password_changed"] = false
-                },
-                vehicleUpdated = vehicleUpdated,
-                onVehicleUpdatedConsumed = {
-                    entry.savedStateHandle["vehicle_updated"] = false
                 },
                 historyNeedsRefresh = historyNeedsRefresh,
                 onHistoryRefreshConsumed = {

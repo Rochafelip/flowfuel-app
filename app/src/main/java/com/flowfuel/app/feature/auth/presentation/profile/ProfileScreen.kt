@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Logout
@@ -77,6 +78,7 @@ fun ProfileScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
+    onNavigateToVehicles: () -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedConsumed: () -> Unit = {},
     profileUpdated: Boolean = false,
@@ -93,6 +95,7 @@ fun ProfileScreen(
                 ProfileEffect.NavigateToLogin          -> onNavigateToLogin()
                 ProfileEffect.NavigateToEditProfile    -> onNavigateToEditProfile()
                 ProfileEffect.NavigateToChangePassword -> onNavigateToChangePassword()
+                ProfileEffect.NavigateToVehicles       -> onNavigateToVehicles()
                 ProfileEffect.ShowUploadError          -> snackbarHostState.showSnackbar(
                     FFSnackbarVisuals("Não foi possível enviar a foto", FFSnackbarKind.Error)
                 )
@@ -158,6 +161,7 @@ fun ProfileScreen(
                     onDeletePicture       = viewModel::onDeletePicture,
                     onEditProfile         = viewModel::onEditProfile,
                     onChangePassword      = viewModel::onChangePassword,
+                    onManageVehicles      = viewModel::onManageVehicles,
                     onLogoutRequest       = { showLogoutDialog = true },
                     onDeleteAccountRequest = viewModel::onShowDeleteDialog,
                 )
@@ -198,6 +202,7 @@ private fun ProfileContent(
     onDeletePicture: () -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
+    onManageVehicles: () -> Unit,
     onLogoutRequest: () -> Unit,
     onDeleteAccountRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -283,6 +288,12 @@ private fun ProfileContent(
         Spacer(Modifier.height(FFTheme.spacing.xl))
 
         // ── Ações ─────────────────────────────────────────────────────────────
+        ProfileActionRow(
+            icon    = Icons.Outlined.DirectionsCar,
+            label   = "Meus veículos",
+            onClick = onManageVehicles,
+        )
+        HorizontalDivider()
         ProfileActionRow(
             icon    = Icons.Outlined.Edit,
             label   = "Editar perfil",

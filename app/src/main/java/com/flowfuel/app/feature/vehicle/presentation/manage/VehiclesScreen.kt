@@ -61,6 +61,7 @@ import java.util.Locale
 fun VehiclesScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onNavigateToVehicleDetails: (vehicleId: Int) -> Unit = {},
     onNavigateToEditVehicle: (vehicleId: Int) -> Unit = {},
     onNavigateToVehicleEvents: (vehicleId: Int) -> Unit = {},
@@ -118,6 +119,7 @@ fun VehiclesScreen(
             FFTopBar(
                 title   = "Veículos",
                 variant = FFTopBarVariant.Small,
+                onBack  = onBack,
             )
         },
         floatingActionButton = {
