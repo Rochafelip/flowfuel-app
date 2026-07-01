@@ -5,6 +5,7 @@ import com.flowfuel.app.core.domain.AppResult
 
 enum class ExportFormat(val value: String, val mimeType: String) {
     CSV("csv", "text/csv"),
+    PDF("pdf", "application/pdf"),
 }
 
 interface ExportRepository {
