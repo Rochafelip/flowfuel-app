@@ -18,10 +18,12 @@ traçar rota até o local.
 
 ### Dentro do MVP
 
-- Lista combinada (combustível + elétrico) via Google Places API, com ícone
+- Lista combinada (combustível + elétrico) via fontes de dados abertas e
+  gratuitas (OpenStreetMap Overpass API + Open Charge Map API), com ícone
   diferenciando o tipo (⛽ / 🔌)
 - Distância calculada a partir da localização atual do usuário
-- Nota (rating) do Google Places, exibida somente quando existir
+- Nota (rating), exibida somente quando a fonte de dados fornecer (raro em
+  OSM/Open Charge Map — campo opcional, não bloqueia o MVP)
 - Botão "Traçar rota" → dispara intent `google.navigation:q=lat,lng`, deixando
   o Android mostrar o seletor de apps de navegação instalados (Waze, Google
   Maps, etc.)
@@ -31,7 +33,8 @@ traçar rota até o local.
 
 ### Fora do escopo (iteração futura)
 
-- Preço de combustível (Google Places não fornece esse dado)
+- Preço de combustível (nenhuma das fontes de dados escolhidas fornece esse
+  dado)
 - "Ver detalhes" do posto (tela extra ou expansão do card)
 - Reportar preço manualmente / crowdsourcing de preços
 
@@ -63,16 +66,20 @@ Fluxo:
    dependência `play-services-location`, ainda não usada no projeto).
 2. `StationRepository.getNearbyStations(lat, lng)` chama um **novo endpoint
    no backend próprio do FlowFuel**: `GET /stations/nearby?lat=&lng=&radius=`.
-3. O **backend** (fora do escopo deste repo Android) chama o Google Places
-   Nearby Search duas vezes (tipo `gas_station` e tipo
-   `electric_vehicle_charging_station`), guardando a API key no servidor,
-   mescla os dois resultados e devolve ao app já ordenados por distância —
-   sem preço.
+3. O **backend** (fora do escopo deste repo Android) busca os dois tipos de
+   local em fontes de dados abertas e gratuitas, sem custo por chamada:
+   - Postos de combustível: **OpenStreetMap via Overpass API**
+     (`amenity=fuel` num raio/bounding box a partir de `lat/lng`).
+   - Estações de recarga elétrica: **Open Charge Map API**.
+   O backend mescla os dois resultados, calcula distância e devolve ao app
+   já ordenado por distância — sem preço (nenhuma das duas fontes fornece).
 4. O app mapeia a resposta para o domain model `Station`: `id/placeId`,
    `name`, `type` (Fuel/Electric), `distanceMeters`, `rating: Double?`, `lat`,
-   `lng`.
+   `lng`. `rating` normalmente vem `null` (nem OSM nem Open Charge Map têm
+   nota confiável equivalente à do Google) — a UI já trata isso como campo
+   opcional.
 5. `lat`/`lng` são usados para montar a URI do intent de rota, sem o app
-   precisar acessar a Places API diretamente.
+   precisar acessar Overpass/Open Charge Map diretamente.
 
 DI: `StationModule` com `@Binds StationRepository`, seguindo o padrão Hilt já
 usado em `VehicleModule`/`VehicleEventModule`.
@@ -81,11 +88,28 @@ usado em `VehicleModule`/`VehicleEventModule`.
 (`GET /stations/nearby`), que não faz parte deste repositório e precisa ser
 implementado separadamente.
 
-## Segurança
+**Por que não Google Places:** decisão tomada em 2026-07-01 para evitar custo
+recorrente (Places cobra por chamada de Nearby Search após uma cota gratuita
+mensal por SKU, e o fluxo faz 2 chamadas por busca) e a necessidade de
+cadastrar billing/cartão de crédito no Google Cloud só para um MVP. Overpass
+e Open Charge Map são gratuitas e não exigem conta de billing. Trade-off
+aceito: cobertura/qualidade de dados menor que a base comercial do Google
+(sem nota confiável, possíveis buracos de cobertura em cidades menores) — ok
+para o escopo do MVP, que já não usa preço nem "ver detalhes".
 
-A API key do Google Places fica exclusivamente no backend (proxy). O app
-Android nunca faz chamada direta ao Google Places, evitando exposição da key
-no APK.
+## Segurança e confiabilidade
+
+- Nenhuma chamada a serviço externo é feita diretamente pelo app Android —
+  tudo passa pelo endpoint próprio `GET /stations/nearby`, mesmo as fontes
+  sendo públicas e sem key obrigatória, para manter o app desacoplado da
+  fonte de dados (troca futura de provider não exige alterar o app).
+- Open Charge Map tem key opcional (aumenta rate limit); se usada, essa key
+  fica no backend, nunca no app.
+- Overpass: os servidores públicos (`overpass-api.de` e espelhos) têm
+  política de uso justo e podem throttlar sob alto volume — para produção,
+  considerar rodar uma instância própria do Overpass (imagem Docker oficial)
+  em vez de depender só do servidor público. Isso é uma decisão de
+  infraestrutura do backend, não afeta o contrato com o app.
 
 ## Tela e componentes de UI
 
