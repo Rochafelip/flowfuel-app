@@ -16,7 +16,7 @@ class CsvBuilderTest {
     }
 
     @Test
-    fun `buildCsvBytes joins header and rows with semicolon preserving accents`() {
+    fun `buildCsvBytes joins header and rows with comma, quoting every field`() {
         val bytes = buildCsvBytes(
             header = listOf("Data", "Preço/unidade", "Tanque cheio"),
             rows = listOf(listOf("2026-01-05", "5,50", "Sim")),
@@ -24,15 +24,18 @@ class CsvBuilderTest {
 
         val text = String(bytes.copyOfRange(3, bytes.size), Charsets.UTF_8)
 
-        assertEquals("Data;Preço/unidade;Tanque cheio\n2026-01-05;5,50;Sim\n", text)
+        assertEquals(
+            "\"Data\",\"Preço/unidade\",\"Tanque cheio\"\n\"2026-01-05\",\"5,50\",\"Sim\"\n",
+            text,
+        )
     }
 
     @Test
-    fun `buildCsvBytes escapes fields containing semicolon, quotes or newline`() {
+    fun `buildCsvBytes doubles internal quotes while keeping the field quoted`() {
         val bytes = buildCsvBytes(
             header = listOf("Título"),
             rows = listOf(
-                listOf("Troca de óleo; revisão"),
+                listOf("Troca de óleo, revisão"),
                 listOf("Nota com \"aspas\""),
             ),
         )
@@ -40,7 +43,7 @@ class CsvBuilderTest {
         val text = String(bytes.copyOfRange(3, bytes.size), Charsets.UTF_8)
 
         assertEquals(
-            "Título\n\"Troca de óleo; revisão\"\n\"Nota com \"\"aspas\"\"\"\n",
+            "\"Título\"\n\"Troca de óleo, revisão\"\n\"Nota com \"\"aspas\"\"\"\n",
             text,
         )
     }
