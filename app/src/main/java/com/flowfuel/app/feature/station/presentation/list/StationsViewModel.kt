@@ -101,7 +101,7 @@ class StationsViewModel @Inject constructor(
     }
 
     fun onRouteClick(station: Station) {
-        val uri = "google.navigation:q=${station.latitude},${station.longitude}"
+        val uri = "geo:${station.latitude},${station.longitude}?q=${station.latitude},${station.longitude}"
         viewModelScope.launch { _effects.send(StationsEffect.OpenNavigation(uri)) }
     }
 

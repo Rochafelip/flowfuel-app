@@ -132,7 +132,7 @@ class StationsViewModelTest {
     }
 
     @Test
-    fun `onRouteClick emits OpenNavigation with lat,lng uri`() = runTest {
+    fun `onRouteClick emits OpenNavigation with a generic geo uri`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
         coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
         val vm = buildViewModel()
@@ -141,7 +141,7 @@ class StationsViewModelTest {
             vm.onRouteClick(station("a", 100))
             val effect = awaitItem()
             assertTrue(effect is StationsEffect.OpenNavigation)
-            assertEquals("google.navigation:q=-8.05,-34.9", (effect as StationsEffect.OpenNavigation).uri)
+            assertEquals("geo:-8.05,-34.9?q=-8.05,-34.9", (effect as StationsEffect.OpenNavigation).uri)
         }
     }
 

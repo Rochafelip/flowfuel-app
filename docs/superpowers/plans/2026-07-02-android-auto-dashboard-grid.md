@@ -30,7 +30,7 @@
 
 ---
 
-- [ ] **Step 1: Atualizar os testes que hoje esperam PaneTemplate**
+- [x] **Step 1: Atualizar os testes que hoje esperam PaneTemplate**
 
 Substituir todo o conteúdo de `app/src/test/java/com/flowfuel/app/feature/auto/AutoDashboardScreenTest.kt`:
 
@@ -194,7 +194,7 @@ class AutoDashboardScreenTest {
 }
 ```
 
-- [ ] **Step 2: Rodar os testes e confirmar que falham**
+- [x] **Step 2: Rodar os testes e confirmar que falham**
 
 ```
 ./gradlew :app:testDebugUnitTest --tests "com.flowfuel.app.feature.auto.AutoDashboardScreenTest"
@@ -202,7 +202,7 @@ class AutoDashboardScreenTest {
 
 Esperado: falha de compilação — `Unresolved reference: GridTemplate`/`GridItem` (ainda não importados em `AutoDashboardScreen.kt`) ou, se compilar, os testes que fazem cast pra `GridTemplate` falham porque `onGetTemplate()` ainda retorna `PaneTemplate`.
 
-- [ ] **Step 3: Criar os 5 ícones vetoriais em res/drawable**
+- [x] **Step 3: Criar os 5 ícones vetoriais em res/drawable**
 
 `GridItem` exige uma imagem em todo item fora do estado de loading — sem
 isso, `GridItem.Builder.build()` lança `IllegalStateException`. Criar 5
@@ -274,7 +274,7 @@ arquivos novos em `app/src/main/res/drawable/` (Material Icons clássico,
 </vector>
 ```
 
-- [ ] **Step 4: Substituir successTemplate() por GridTemplate**
+- [x] **Step 4: Substituir successTemplate() por GridTemplate**
 
 Em `app/src/main/java/com/flowfuel/app/feature/auto/dashboard/AutoDashboardScreen.kt`, trocar os imports do topo do arquivo:
 
@@ -347,7 +347,7 @@ Note que `icon()` é um novo método privado da classe, fechando a chave de
 `totalRefuelsText`, `lastRefuelText`) fica exatamente como está — não
 muda.
 
-- [ ] **Step 5: Rodar os testes e confirmar que passam**
+- [x] **Step 5: Rodar os testes e confirmar que passam**
 
 ```
 ./gradlew :app:testDebugUnitTest --tests "com.flowfuel.app.feature.auto.AutoDashboardScreenTest"
@@ -355,7 +355,7 @@ muda.
 
 Esperado: `BUILD SUCCESSFUL`, todos os 7 testes passam.
 
-- [ ] **Step 6: Rodar toda a suíte de testes do módulo Auto para confirmar que não há regressão**
+- [x] **Step 6: Rodar toda a suíte de testes do módulo Auto para confirmar que não há regressão**
 
 ```
 ./gradlew :app:testDebugUnitTest --tests "com.flowfuel.app.feature.auto.*"
@@ -363,7 +363,7 @@ Esperado: `BUILD SUCCESSFUL`, todos os 7 testes passam.
 
 Esperado: `BUILD SUCCESSFUL` — nenhuma regressão em `AutoRefuelStepScreensTest`, `AutoRefuelConfirmScreenTest`, `AutoSessionTest`.
 
-- [ ] **Step 7: Verificação visual manual via DHU**
+- [x] **Step 7: Verificação visual manual via DHU**
 
 Usar o playbook `.claude/android-auto-debug-playbook.md` (DHU + celular conectado) pra instalar o app, abrir o Dashboard do FlowFuel no Android Auto e confirmar visualmente:
 - Os 5 blocos (4 informações + "Registrar abastecimento") aparecem todos na tela sem precisar rolar.
@@ -371,7 +371,7 @@ Usar o playbook `.claude/android-auto-debug-playbook.md` (DHU + celular conectad
 - Tocar no bloco "Registrar abastecimento" navega pro Passo 1 do fluxo de abastecimento, igual ao botão antigo.
 - Os valores de cada bloco (consumo, gasto, abastecimentos, último abastecimento) continuam corretos.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/auto/dashboard/AutoDashboardScreen.kt
