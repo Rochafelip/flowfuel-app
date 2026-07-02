@@ -2,6 +2,7 @@ package com.flowfuel.app.feature.station.presentation.list
 
 import com.flowfuel.app.feature.station.domain.model.StationType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class StationCardTest {
@@ -39,5 +40,30 @@ class StationCardTest {
         assertEquals("4,8", formatRating(4.8))
         assertEquals("5,0", formatRating(5.0))
         assertEquals("3,7", formatRating(3.7))
+    }
+
+    @Test
+    fun `formatAddress combines street and house number with a comma`() {
+        assertEquals("Avenida Alfredo Lisboa, 173", formatAddress("Avenida Alfredo Lisboa", "173"))
+    }
+
+    @Test
+    fun `formatAddress returns only the street when house number is null`() {
+        assertEquals("Avenida Conde da Boa Vista", formatAddress("Avenida Conde da Boa Vista", null))
+    }
+
+    @Test
+    fun `formatAddress returns null when street is null even if house number is present`() {
+        assertNull(formatAddress(null, "173"))
+    }
+
+    @Test
+    fun `formatAddress returns null when both street and house number are null`() {
+        assertNull(formatAddress(null, null))
+    }
+
+    @Test
+    fun `formatAddress treats a blank street as absent`() {
+        assertNull(formatAddress("", "173"))
     }
 }

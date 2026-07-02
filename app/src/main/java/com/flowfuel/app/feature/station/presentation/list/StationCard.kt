@@ -119,3 +119,9 @@ internal fun formatDistance(meters: Int): String = if (meters < 1000) {
 
 internal fun formatRating(rating: Double): String =
     String.format(Locale("pt", "BR"), "%.1f", rating)
+
+internal fun formatAddress(street: String?, houseNumber: String?): String? = when {
+    street.isNullOrBlank() -> null
+    houseNumber.isNullOrBlank() -> street
+    else -> "$street, $houseNumber"
+}
