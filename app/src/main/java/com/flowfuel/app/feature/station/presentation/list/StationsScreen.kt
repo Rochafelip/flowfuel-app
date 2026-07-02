@@ -49,6 +49,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
+import com.flowfuel.app.feature.station.domain.model.StationType
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +60,7 @@ fun StationsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val radiusMeters by viewModel.radiusMeters.collectAsState()
+    val selectedType by viewModel.selectedType.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -117,6 +119,11 @@ fun StationsScreen(
                 .padding(innerPadding),
         ) {
             if (state != StationsUiState.PermissionRequired) {
+                StationTypeFilterRow(
+                    selectedType = selectedType,
+                    onSelect = viewModel::onTypeSelected,
+                    modifier = Modifier.padding(top = FFTheme.spacing.sm),
+                )
                 StationDistanceFilterRow(
                     selectedRadiusMeters = radiusMeters,
                     onSelect = viewModel::onRadiusSelected,
@@ -131,18 +138,36 @@ fun StationsScreen(
                 when (val s = state) {
                     StationsUiState.Loading -> FFSkeletonList(modifier = Modifier.fillMaxSize(), itemCount = 4)
 
-                    is StationsUiState.Success -> PullToRefreshBox(
-                        isRefreshing = false,
-                        onRefresh = viewModel::load,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(FFTheme.spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
-                        ) {
-                            items(s.stations, key = { it.placeId }) { station ->
-                                StationCard(station = station, onRouteClick = { viewModel.onRouteClick(station) })
+                    is StationsUiState.Success -> {
+                        val filteredStations = remember(s.stations, selectedType) {
+                            s.stations.filter { it.type == selectedType }
+                        }
+                        if (filteredStations.isEmpty()) {
+                            FFEmptyState(
+                                title = when (selectedType) {
+                                    StationType.Fuel -> "Nenhum posto de combustível encontrado por perto"
+                                    StationType.Electric -> "Nenhum posto elétrico encontrado por perto"
+                                },
+                                description = "Tente aumentar o raio de busca ou trocar o filtro de tipo.",
+                                actionText = "Tentar novamente",
+                                onAction = viewModel::load,
+                                modifier = Modifier.align(Alignment.Center),
+                            )
+                        } else {
+                            PullToRefreshBox(
+                                isRefreshing = false,
+                                onRefresh = viewModel::load,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(FFTheme.spacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+                                ) {
+                                    items(filteredStations, key = { it.placeId }) { station ->
+                                        StationCard(station = station, onRouteClick = { viewModel.onRouteClick(station) })
+                                    }
+                                }
                             }
                         }
                     }
