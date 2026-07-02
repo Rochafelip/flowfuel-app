@@ -63,6 +63,17 @@ fun StationCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        val address = formatAddress(station.street, station.houseNumber)
+        if (address != null) {
+            Spacer(Modifier.height(FFTheme.spacing.xs))
+            Text(
+                text = address,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Spacer(Modifier.height(FFTheme.spacing.xs))
         Row(
             modifier = Modifier.fillMaxWidth(),
