@@ -4,6 +4,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.LocationProvider
+import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
@@ -60,7 +61,7 @@ class StationsViewModelTest {
     @Test
     fun `Success state when stations are found`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
 
         val vm = buildViewModel()
 
@@ -72,7 +73,7 @@ class StationsViewModelTest {
     @Test
     fun `Empty state when repository returns no stations`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location) } returns AppResult.Success(emptyList())
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(emptyList())
 
         val vm = buildViewModel()
 
@@ -82,7 +83,7 @@ class StationsViewModelTest {
     @Test
     fun `Error state when repository fails`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location) } returns AppResult.Failure(AppError.Network)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Failure(AppError.Network)
 
         val vm = buildViewModel()
 
@@ -96,7 +97,7 @@ class StationsViewModelTest {
         val vm = buildViewModel()
 
         assertEquals(StationsUiState.PermissionRequired, vm.state.value)
-        coVerify(inverse = true) { getNearbyStations(any()) }
+        coVerify(inverse = true) { getNearbyStations(any(), any()) }
     }
 
     @Test
@@ -111,7 +112,7 @@ class StationsViewModelTest {
     @Test
     fun `onRouteClick emits OpenNavigation with lat,lng uri`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
         val vm = buildViewModel()
 
         vm.effects.test {
@@ -120,5 +121,31 @@ class StationsViewModelTest {
             assertTrue(effect is StationsEffect.OpenNavigation)
             assertEquals("google.navigation:q=-8.05,-34.9", (effect as StationsEffect.OpenNavigation).uri)
         }
+    }
+
+    @Test
+    fun `radiusMeters starts at the default preset`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+
+        val vm = buildViewModel()
+
+        assertEquals(DEFAULT_STATION_RADIUS_METERS, vm.radiusMeters.value)
+    }
+
+    @Test
+    fun `onRadiusSelected updates radiusMeters and reloads stations with the new radius`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, 10_000) } returns AppResult.Success(listOf(station("a", 100), station("b", 9000)))
+        val vm = buildViewModel()
+
+        vm.onRadiusSelected(10_000)
+
+        assertEquals(10_000, vm.radiusMeters.value)
+        val state = vm.state.value
+        assertTrue(state is StationsUiState.Success)
+        assertEquals(2, (state as StationsUiState.Success).stations.size)
+        coVerify { getNearbyStations(location, 10_000) }
     }
 }

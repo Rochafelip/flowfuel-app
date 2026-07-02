@@ -6,6 +6,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.LocationProvider
+import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
@@ -28,6 +29,9 @@ class StationsViewModel @Inject constructor(
     private val _state = MutableStateFlow<StationsUiState>(StationsUiState.Loading)
     val state: StateFlow<StationsUiState> = _state.asStateFlow()
 
+    private val _radiusMeters = MutableStateFlow(DEFAULT_STATION_RADIUS_METERS)
+    val radiusMeters: StateFlow<Int> = _radiusMeters.asStateFlow()
+
     private val _effects = Channel<StationsEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
@@ -42,7 +46,7 @@ class StationsViewModel @Inject constructor(
                 LocationResult.PermissionDenied -> _state.value = StationsUiState.PermissionRequired
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
-                    when (val result = getNearbyStations(locationResult.location)) {
+                    when (val result = getNearbyStations(locationResult.location, _radiusMeters.value)) {
                         is AppResult.Success -> _state.value = if (result.value.isEmpty()) {
                             StationsUiState.Empty
                         } else {
@@ -53,6 +57,11 @@ class StationsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun onRadiusSelected(radiusMeters: Int) {
+        _radiusMeters.value = radiusMeters
+        load()
     }
 
     fun onRouteClick(station: Station) {
