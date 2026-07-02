@@ -7,6 +7,7 @@ import com.flowfuel.app.feature.station.data.remote.StationResponseDto
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
 import com.flowfuel.app.feature.station.domain.model.StationType
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
@@ -42,7 +43,7 @@ class StationRepositoryImplTest {
             ),
         )
 
-        val result = repository.getNearbyStations(location)
+        val result = repository.getNearbyStations(location, radiusMeters = 5000)
 
         assertTrue(result is AppResult.Success)
         val stations = (result as AppResult.Success).value
@@ -55,7 +56,7 @@ class StationRepositoryImplTest {
     fun `returns empty list when backend has no nearby stations`() = runTest {
         coEvery { api.getNearbyStations(any(), any(), any()) } returns emptyList()
 
-        val result = repository.getNearbyStations(location)
+        val result = repository.getNearbyStations(location, radiusMeters = 5000)
 
         assertTrue(result is AppResult.Success)
         assertEquals(emptyList<Any>(), (result as AppResult.Success).value)
@@ -65,9 +66,18 @@ class StationRepositoryImplTest {
     fun `maps network failure to AppError-Network`() = runTest {
         coEvery { api.getNearbyStations(any(), any(), any()) } throws IOException("no network")
 
-        val result = repository.getNearbyStations(location)
+        val result = repository.getNearbyStations(location, radiusMeters = 5000)
 
         assertTrue(result is AppResult.Failure)
         assertEquals(AppError.Network, (result as AppResult.Failure).error)
+    }
+
+    @Test
+    fun `forwards radiusMeters to the API unchanged`() = runTest {
+        coEvery { api.getNearbyStations(any(), any(), any()) } returns emptyList()
+
+        repository.getNearbyStations(location, radiusMeters = 3000)
+
+        coVerify { api.getNearbyStations(lat = location.latitude, lng = location.longitude, radiusMeters = 3000) }
     }
 }

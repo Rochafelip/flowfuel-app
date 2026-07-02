@@ -12,19 +12,17 @@ import com.flowfuel.app.feature.station.domain.model.StationType
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val DEFAULT_RADIUS_METERS = 5000
-
 @Singleton
 class StationRepositoryImpl @Inject constructor(
     private val api: StationApi,
 ) : StationRepository {
 
-    override suspend fun getNearbyStations(location: GeoLocation): AppResult<List<Station>> =
+    override suspend fun getNearbyStations(location: GeoLocation, radiusMeters: Int): AppResult<List<Station>> =
         apiCall {
             api.getNearbyStations(
                 lat = location.latitude,
                 lng = location.longitude,
-                radiusMeters = DEFAULT_RADIUS_METERS,
+                radiusMeters = radiusMeters,
             )
         }.map { list -> list.map { it.toDomain() }.sortedBy { it.distanceMeters } }
 
