@@ -6,6 +6,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.LocationProvider
+import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
@@ -29,6 +30,7 @@ class StationsViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val sessionStore: SessionStore,
     private val getVehicleById: GetVehicleByIdUseCase,
+    private val stationsPrefetcher: NearbyStationsPrefetcher,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<StationsUiState>(StationsUiState.Loading)
@@ -54,7 +56,12 @@ class StationsViewModel @Inject constructor(
                     }
                 }
             }
-            load()
+            val cached = stationsPrefetcher.freshCachedStations()
+            if (cached != null) {
+                _state.value = if (cached.isEmpty()) StationsUiState.Empty else StationsUiState.Success(cached)
+            } else {
+                load()
+            }
         }
     }
 
@@ -66,10 +73,15 @@ class StationsViewModel @Inject constructor(
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
                     when (val result = getNearbyStations(locationResult.location, _radiusMeters.value)) {
-                        is AppResult.Success -> _state.value = if (result.value.isEmpty()) {
-                            StationsUiState.Empty
-                        } else {
-                            StationsUiState.Success(result.value)
+                        is AppResult.Success -> {
+                            _state.value = if (result.value.isEmpty()) {
+                                StationsUiState.Empty
+                            } else {
+                                StationsUiState.Success(result.value)
+                            }
+                            if (_radiusMeters.value == DEFAULT_STATION_RADIUS_METERS) {
+                                stationsPrefetcher.updateCache(result.value)
+                            }
                         }
                         is AppResult.Failure -> handleFailure(result.error)
                     }

@@ -4,6 +4,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.LocationProvider
+import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
 import com.flowfuel.app.feature.station.domain.model.LocationResult
@@ -15,10 +16,13 @@ import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
 import app.cash.turbine.test
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -45,6 +49,7 @@ class StationsViewModelTest {
     private val locationProvider: LocationProvider = mockk()
     private val sessionStore: SessionStore = mockk(relaxed = true)
     private val getVehicleById: GetVehicleByIdUseCase = mockk()
+    private val stationsPrefetcher: NearbyStationsPrefetcher = mockk()
 
     private val location = GeoLocation(latitude = -8.05, longitude = -34.90)
 
@@ -59,12 +64,15 @@ class StationsViewModelTest {
         fuelType = null, odometerKm = 1000, tankCapacityL = null, batteryCapacityKwh = null, isActive = true,
     )
 
-    private fun buildViewModel() = StationsViewModel(getNearbyStations, locationProvider, sessionStore, getVehicleById)
+    private fun buildViewModel() =
+        StationsViewModel(getNearbyStations, locationProvider, sessionStore, getVehicleById, stationsPrefetcher)
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { sessionStore.activeVehicleIdFlow } returns flowOf(null)
+        every { stationsPrefetcher.freshCachedStations() } returns null
+        every { stationsPrefetcher.updateCache(any()) } just Runs
     }
 
     @After
@@ -231,5 +239,61 @@ class StationsViewModelTest {
 
         assertEquals(StationType.Fuel, vm.selectedType.value)
         assertTrue(vm.state.value is StationsUiState.Success)
+    }
+
+    @Test
+    fun `init populates Success directly from a fresh prefetch cache, without calling locationProvider or getNearbyStations`() = runTest {
+        every { stationsPrefetcher.freshCachedStations() } returns listOf(station("a", 100))
+
+        val vm = buildViewModel()
+
+        val state = vm.state.value
+        assertTrue(state is StationsUiState.Success)
+        assertEquals(1, (state as StationsUiState.Success).stations.size)
+        coVerify(inverse = true) { locationProvider.getCurrentLocation() }
+        coVerify(inverse = true) { getNearbyStations(any(), any()) }
+    }
+
+    @Test
+    fun `init populates Empty when the fresh prefetch cache is an empty list`() = runTest {
+        every { stationsPrefetcher.freshCachedStations() } returns emptyList()
+
+        val vm = buildViewModel()
+
+        assertEquals(StationsUiState.Empty, vm.state.value)
+        coVerify(inverse = true) { locationProvider.getCurrentLocation() }
+    }
+
+    @Test
+    fun `init falls back to load() when there is no prefetch cache`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+
+        val vm = buildViewModel()
+
+        assertTrue(vm.state.value is StationsUiState.Success)
+        coVerify { locationProvider.getCurrentLocation() }
+    }
+
+    @Test
+    fun `load() at the default radius updates the prefetch cache on success`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+
+        buildViewModel()
+
+        verify { stationsPrefetcher.updateCache(listOf(station("a", 100))) }
+    }
+
+    @Test
+    fun `load() at a non-default radius does not update the prefetch cache again`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, 10_000) } returns AppResult.Success(listOf(station("a", 100), station("b", 9000)))
+        val vm = buildViewModel()
+
+        vm.onRadiusSelected(10_000)
+
+        verify(exactly = 1) { stationsPrefetcher.updateCache(any()) }
     }
 }
