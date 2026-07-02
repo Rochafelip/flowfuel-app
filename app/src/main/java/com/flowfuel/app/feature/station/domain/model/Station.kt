@@ -10,4 +10,6 @@ data class Station(
     val rating: Double?,
     val latitude: Double,
     val longitude: Double,
+    val street: String? = null,
+    val houseNumber: String? = null,
 )

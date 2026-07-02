@@ -34,5 +34,7 @@ class StationRepositoryImpl @Inject constructor(
         rating = rating,
         latitude = latitude,
         longitude = longitude,
+        street = street,
+        houseNumber = houseNumber,
     )
 }

@@ -11,6 +11,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -79,5 +80,40 @@ class StationRepositoryImplTest {
         repository.getNearbyStations(location, radiusMeters = 3000)
 
         coVerify { api.getNearbyStations(lat = location.latitude, lng = location.longitude, radiusMeters = 3000) }
+    }
+
+    @Test
+    fun `propagates street and houseNumber from dto to domain unchanged`() = runTest {
+        coEvery { api.getNearbyStations(any(), any(), any()) } returns listOf(
+            StationResponseDto(
+                placeId = "a", name = "Shell Boa Viagem", type = "FUEL",
+                distanceMeters = 420, rating = 4.6, latitude = -8.05, longitude = -34.91,
+                street = "Avenida Alfredo Lisboa", houseNumber = "173",
+            ),
+        )
+
+        val result = repository.getNearbyStations(location, radiusMeters = 5000)
+
+        assertTrue(result is AppResult.Success)
+        val station = (result as AppResult.Success).value.single()
+        assertEquals("Avenida Alfredo Lisboa", station.street)
+        assertEquals("173", station.houseNumber)
+    }
+
+    @Test
+    fun `defaults street and houseNumber to null when the dto omits them`() = runTest {
+        coEvery { api.getNearbyStations(any(), any(), any()) } returns listOf(
+            StationResponseDto(
+                placeId = "b", name = "Ipiranga", type = "FUEL",
+                distanceMeters = 650, rating = null, latitude = -8.05, longitude = -34.90,
+            ),
+        )
+
+        val result = repository.getNearbyStations(location, radiusMeters = 5000)
+
+        assertTrue(result is AppResult.Success)
+        val station = (result as AppResult.Success).value.single()
+        assertNull(station.street)
+        assertNull(station.houseNumber)
     }
 }

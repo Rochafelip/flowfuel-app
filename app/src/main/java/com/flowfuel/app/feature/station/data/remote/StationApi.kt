@@ -14,6 +14,8 @@ data class StationResponseDto(
     val rating: Double? = null,
     val latitude: Double,
     val longitude: Double,
+    val street: String? = null,
+    val houseNumber: String? = null,
 )
 
 interface StationApi {
