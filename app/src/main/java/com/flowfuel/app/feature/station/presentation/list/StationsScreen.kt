@@ -10,9 +10,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,6 +58,7 @@ fun StationsScreen(
     viewModel: StationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val radiusMeters by viewModel.radiusMeters.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -108,70 +111,83 @@ fun StationsScreen(
         topBar = { FFTopBar(title = "Postos próximos") },
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            when (val s = state) {
-                StationsUiState.Loading -> FFSkeletonList(modifier = Modifier.fillMaxSize(), itemCount = 4)
+            if (state != StationsUiState.PermissionRequired) {
+                StationDistanceFilterRow(
+                    selectedRadiusMeters = radiusMeters,
+                    onSelect = viewModel::onRadiusSelected,
+                    modifier = Modifier.padding(vertical = FFTheme.spacing.sm),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                when (val s = state) {
+                    StationsUiState.Loading -> FFSkeletonList(modifier = Modifier.fillMaxSize(), itemCount = 4)
 
-                is StationsUiState.Success -> PullToRefreshBox(
-                    isRefreshing = false,
-                    onRefresh = viewModel::load,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    LazyColumn(
+                    is StationsUiState.Success -> PullToRefreshBox(
+                        isRefreshing = false,
+                        onRefresh = viewModel::load,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(FFTheme.spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
                     ) {
-                        items(s.stations, key = { it.placeId }) { station ->
-                            StationCard(station = station, onRouteClick = { viewModel.onRouteClick(station) })
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(FFTheme.spacing.md),
+                            verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+                        ) {
+                            items(s.stations, key = { it.placeId }) { station ->
+                                StationCard(station = station, onRouteClick = { viewModel.onRouteClick(station) })
+                            }
                         }
                     }
-                }
 
-                StationsUiState.Empty -> FFEmptyState(
-                    title = "Nenhum posto encontrado por perto",
-                    description = "Tente novamente em uma área com mais cobertura.",
-                    actionText = "Tentar novamente",
-                    onAction = viewModel::load,
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                    StationsUiState.Empty -> FFEmptyState(
+                        title = "Nenhum posto encontrado por perto",
+                        description = "Tente novamente em uma área com mais cobertura.",
+                        actionText = "Tentar novamente",
+                        onAction = viewModel::load,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
 
-                is StationsUiState.Error -> FFErrorState(
-                    message = s.error.userMessage(),
-                    onRetry = viewModel::load,
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                    is StationsUiState.Error -> FFErrorState(
+                        message = s.error.userMessage(),
+                        onRetry = viewModel::load,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
 
-                StationsUiState.LocationUnavailable -> FFErrorState(
-                    title = "Localização indisponível",
-                    message = "Não foi possível obter sua localização. Verifique se o GPS está ativado.",
-                    onRetry = viewModel::load,
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                    StationsUiState.LocationUnavailable -> FFErrorState(
+                        title = "Localização indisponível",
+                        message = "Não foi possível obter sua localização. Verifique se o GPS está ativado.",
+                        onRetry = viewModel::load,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
 
-                StationsUiState.PermissionRequired -> FFEmptyState(
-                    title = "Precisamos da sua localização",
-                    description = "Para mostrar postos e estações próximos, permita o acesso à localização.",
-                    icon = Icons.Outlined.LocationOn,
-                    actionText = if (hasPermanentlyDeniedPermission) "Abrir configurações" else "Permitir acesso à localização",
-                    onAction = {
-                        if (hasPermanentlyDeniedPermission) {
-                            context.startActivity(
-                                Intent(
-                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                    Uri.fromParts("package", context.packageName, null),
+                    StationsUiState.PermissionRequired -> FFEmptyState(
+                        title = "Precisamos da sua localização",
+                        description = "Para mostrar postos e estações próximos, permita o acesso à localização.",
+                        icon = Icons.Outlined.LocationOn,
+                        actionText = if (hasPermanentlyDeniedPermission) "Abrir configurações" else "Permitir acesso à localização",
+                        onAction = {
+                            if (hasPermanentlyDeniedPermission) {
+                                context.startActivity(
+                                    Intent(
+                                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        Uri.fromParts("package", context.packageName, null),
+                                    )
                                 )
-                            )
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.Center),
-                )
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
             }
         }
     }
