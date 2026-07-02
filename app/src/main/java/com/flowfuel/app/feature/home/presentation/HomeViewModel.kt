@@ -10,6 +10,7 @@ import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
+import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +35,7 @@ class HomeViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val getVehicles: GetVehiclesUseCase,
     private val setActiveVehicle: SetActiveVehicleUseCase,
+    private val stationsPrefetcher: NearbyStationsPrefetcher,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -47,6 +49,7 @@ class HomeViewModel @Inject constructor(
     // ─── Carregamento ─────────────────────────────────────────────────────────
 
     fun load() {
+        stationsPrefetcher.prefetch()
         _state.update { it.copy(screenState = HomeScreenState.Loading, submitError = null) }
         viewModelScope.launch {
             // Busca veículo ativo e ID local em paralelo com o veículo
@@ -324,6 +327,7 @@ class HomeViewModel @Inject constructor(
         _state.update { it.copy(showVehicleSwitcher = false, vehicleSwitcherState = VehicleSwitcherState.Idle) }
         viewModelScope.launch {
             setActiveVehicle(vehicleId)
+            stationsPrefetcher.prefetch()
             load()
         }
     }

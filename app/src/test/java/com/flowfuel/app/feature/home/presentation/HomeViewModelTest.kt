@@ -9,12 +9,14 @@ import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
+import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -46,6 +48,7 @@ class HomeViewModelTest {
     private val sessionStore: SessionStore = mockk(relaxed = true)
     private val getVehicles: GetVehiclesUseCase = mockk(relaxed = true)
     private val setActiveVehicle: SetActiveVehicleUseCase = mockk(relaxed = true)
+    private val stationsPrefetcher: NearbyStationsPrefetcher = mockk(relaxed = true)
 
     private val testVehicle = ActiveVehicleData(
         id = 1,
@@ -78,7 +81,7 @@ class HomeViewModelTest {
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard)
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, createRefuel, logout,
-            sessionStore, getVehicles, setActiveVehicle,
+            sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher,
         )
     }
 
@@ -222,5 +225,24 @@ class HomeViewModelTest {
         viewModel.submitRefuel()
 
         assertEquals(67580.0, capturedRequest!!.odometer, 0.001)
+    }
+
+    // ── Estações (prefetch) ────────────────────────────────────────────────────
+
+    @Test
+    fun `load() triggers a stations prefetch`() {
+        viewModel.load()
+
+        // 1 call from init's load() in setUp(), +1 from this explicit call
+        verify(exactly = 2) { stationsPrefetcher.prefetch() }
+    }
+
+    @Test
+    fun `onVehicleSwitch() triggers a stations prefetch, both directly and via the load() it triggers`() {
+        viewModel.onVehicleSwitch(2)
+
+        // 1 call from init's load() in setUp(), +1 explicit call in onVehicleSwitch(),
+        // +1 from the load() that onVehicleSwitch() calls internally
+        verify(exactly = 3) { stationsPrefetcher.prefetch() }
     }
 }
