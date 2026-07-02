@@ -67,19 +67,20 @@ class StationsViewModel @Inject constructor(
 
     fun load() {
         _state.value = StationsUiState.Loading
+        val requestRadius = _radiusMeters.value
         viewModelScope.launch {
             when (val locationResult = locationProvider.getCurrentLocation()) {
                 LocationResult.PermissionDenied -> _state.value = StationsUiState.PermissionRequired
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
-                    when (val result = getNearbyStations(locationResult.location, _radiusMeters.value)) {
+                    when (val result = getNearbyStations(locationResult.location, requestRadius)) {
                         is AppResult.Success -> {
                             _state.value = if (result.value.isEmpty()) {
                                 StationsUiState.Empty
                             } else {
                                 StationsUiState.Success(result.value)
                             }
-                            if (_radiusMeters.value == DEFAULT_STATION_RADIUS_METERS) {
+                            if (requestRadius == DEFAULT_STATION_RADIUS_METERS) {
                                 stationsPrefetcher.updateCache(result.value)
                             }
                         }
