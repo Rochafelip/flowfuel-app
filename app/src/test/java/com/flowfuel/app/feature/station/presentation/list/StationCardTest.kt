@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.station.presentation.list
 
+import com.flowfuel.app.feature.station.domain.model.StationType
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -17,5 +18,19 @@ class StationCardTest {
         assertEquals("1,0 km", formatDistance(1000))
         assertEquals("1,2 km", formatDistance(1200))
         assertEquals("12,0 km", formatDistance(12000))
+    }
+
+    @Test
+    fun `fuel type badge shows Combustivel label and preserves the existing content description`() {
+        val content = StationType.Fuel.badgeContent()
+        assertEquals("Combustível", content.label)
+        assertEquals("Posto de combustível", content.contentDescription)
+    }
+
+    @Test
+    fun `electric type badge shows Eletrico label and preserves the existing content description`() {
+        val content = StationType.Electric.badgeContent()
+        assertEquals("Elétrico", content.label)
+        assertEquals("Estação de recarga elétrica", content.contentDescription)
     }
 }
