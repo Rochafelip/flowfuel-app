@@ -5,23 +5,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flowfuel.app.core.designsystem.components.FFButton
-import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.station.domain.model.Station
@@ -34,13 +33,30 @@ fun StationCard(
     onRouteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val content = station.type.badgeContent()
+    val iconTint = when (station.type) {
+        StationType.Fuel -> FFTheme.semanticColors.warning
+        StationType.Electric -> FFTheme.semanticColors.info
+    }
     FFCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StationTypeBadge(station.type)
+            Icon(
+                imageVector = content.icon,
+                contentDescription = content.contentDescription,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = station.name,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
             Text(
                 text = formatDistance(station.distanceMeters),
                 style = MaterialTheme.typography.labelMedium,
@@ -48,41 +64,30 @@ fun StationCard(
             )
         }
         Spacer(Modifier.height(FFTheme.spacing.xs))
-        Text(station.name, style = MaterialTheme.typography.titleSmall)
-        Spacer(Modifier.height(FFTheme.spacing.sm))
-        FFButton(
-            text = "Traçar rota",
-            onClick = onRouteClick,
-            variant = FFButtonVariant.Primary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun StationTypeBadge(type: StationType, modifier: Modifier = Modifier) {
-    val content = type.badgeContent()
-    val (containerColor, contentColor) = when (type) {
-        StationType.Fuel -> FFTheme.semanticColors.warning to FFTheme.semanticColors.onWarning
-        StationType.Electric -> FFTheme.semanticColors.info to FFTheme.semanticColors.onInfo
-    }
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(FFTheme.spacing.xs),
-        color = containerColor,
-        contentColor = contentColor,
-    ) {
         Row(
-            modifier = Modifier.padding(horizontal = FFTheme.spacing.sm, vertical = FFTheme.spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = content.icon,
-                contentDescription = content.contentDescription,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(content.label, style = MaterialTheme.typography.labelMedium)
+            if (station.rating != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = FFTheme.semanticColors.warning,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(formatRating(station.rating), style = MaterialTheme.typography.labelMedium)
+                }
+            } else {
+                Spacer(Modifier)
+            }
+            IconButton(onClick = onRouteClick) {
+                Icon(imageVector = Icons.Filled.Navigation, contentDescription = "Traçar rota")
+            }
         }
     }
 }
@@ -111,3 +116,6 @@ internal fun formatDistance(meters: Int): String = if (meters < 1000) {
 } else {
     String.format(Locale("pt", "BR"), "%.1f km", meters / 1000.0)
 }
+
+internal fun formatRating(rating: Double): String =
+    String.format(Locale("pt", "BR"), "%.1f", rating)

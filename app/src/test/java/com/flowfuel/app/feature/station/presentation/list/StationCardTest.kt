@@ -33,4 +33,11 @@ class StationCardTest {
         assertEquals("Elétrico", content.label)
         assertEquals("Estação de recarga elétrica", content.contentDescription)
     }
+
+    @Test
+    fun `formats rating with one decimal using pt-BR comma separator`() {
+        assertEquals("4,8", formatRating(4.8))
+        assertEquals("5,0", formatRating(5.0))
+        assertEquals("3,7", formatRating(3.7))
+    }
 }
