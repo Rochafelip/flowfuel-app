@@ -11,11 +11,14 @@ import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
+import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +28,7 @@ class StationsViewModel @Inject constructor(
     private val getNearbyStations: GetNearbyStationsUseCase,
     private val locationProvider: LocationProvider,
     private val sessionStore: SessionStore,
+    private val getVehicleById: GetVehicleByIdUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<StationsUiState>(StationsUiState.Loading)
@@ -40,7 +44,18 @@ class StationsViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
 
     init {
-        load()
+        viewModelScope.launch {
+            sessionStore.activeVehicleIdFlow.firstOrNull()?.let { vehicleId ->
+                val result = getVehicleById(vehicleId)
+                if (result is AppResult.Success) {
+                    _selectedType.value = when (result.value.energyType) {
+                        EnergyType.Electric -> StationType.Electric
+                        EnergyType.Combustion, EnergyType.Hybrid -> StationType.Fuel
+                    }
+                }
+            }
+            load()
+        }
     }
 
     fun load() {
