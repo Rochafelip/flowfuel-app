@@ -17,7 +17,7 @@ data class StationResponseDto(
 )
 
 interface StationApi {
-    /** Backend próprio, que proxeia o Google Places (gas_station + electric_vehicle_charging_station). */
+    /** Backend próprio, que proxeia OSM Overpass (postos de combustível) e Open Charge Map (recarga elétrica). */
     @GET("stations/nearby")
     suspend fun getNearbyStations(
         @Query("lat") lat: Double,

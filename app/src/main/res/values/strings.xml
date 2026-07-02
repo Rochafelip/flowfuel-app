@@ -95,6 +95,7 @@
     <string name="error_conflict">Operação em conflito.</string>
     <string name="error_rate_limited">Muitas tentativas. Tente novamente em alguns minutos.</string>
     <string name="error_rate_limited_countdown">Muitas tentativas. Tente novamente em %1$ds.</string>
+    <string name="error_service_unavailable">Serviço de mapas indisponível no momento. Tente novamente.</string>
     <string name="auth_submit_cooldown">Aguarde %ds</string>
     <string name="error_unknown">Algo deu errado. Tente novamente.</string>
 

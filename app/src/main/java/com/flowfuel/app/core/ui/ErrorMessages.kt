@@ -30,6 +30,7 @@ fun AppError.userMessage(): String = when (this) {
         "VALIDATION_FAILED" -> message ?: stringResource(R.string.error_validation_failed)
         "CONFLICT" -> message ?: stringResource(R.string.error_conflict)
         "RATE_LIMIT_EXCEEDED" -> stringResource(R.string.error_rate_limited)
+        "EXTERNAL_SERVICE_UNAVAILABLE", "HTTP_503" -> stringResource(R.string.error_service_unavailable)
         else -> stringResource(R.string.error_unknown)
     }
     is AppError.Unknown -> stringResource(R.string.error_unknown)
