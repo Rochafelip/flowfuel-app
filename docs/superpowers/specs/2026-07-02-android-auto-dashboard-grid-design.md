@@ -21,9 +21,19 @@ Investigação técnica que motivou a escolha da abordagem (ver conversa):
   porque o FAB nesse template é **só ícone, sem texto** — perderia o
   rótulo explícito "Registrar abastecimento".
 - A alternativa escolhida usa um 5º `GridItem` clicável no lugar do botão,
-  já que `GridItem` aceita `title` + `onClick` sem exigir imagem (campo
-  `mImage` é opcional, confirmado inspecionando `GridItem.class` do
-  `.aar`).
+  já que `GridItem` aceita `title` + `onClick` sem exigir badge.
+
+**Correção pós-implementação (2026-07-02):** a suposição inicial de que
+`GridItem` aceita imagem opcional estava errada. Rodando os testes contra
+a implementação real, `GridItem.Builder.build()` lança
+`IllegalStateException: When a grid item is loading, the image must not
+be set and vice versa` pra qualquer item que não esteja em `isLoading` e
+não tenha `setImage()` chamado — confirmado decompilando o bytecode de
+`GridItem.Builder.build()` (`GridItem.java:451` no `.aar`). Ou seja,
+**imagem é obrigatória** em todo `GridItem` fora do estado de loading,
+não "opcional mas recomendada" como a documentação de design sugeria.
+Isso muda o escopo: os 5 blocos precisam de ícone. Ver seção "Ícones"
+abaixo.
 
 ## Objetivo
 
@@ -40,13 +50,20 @@ calculados hoje.
   `GridItem` em `AutoDashboardScreen.successTemplate()`.
 - 5 `GridItem`s, nesta ordem: Consumo médio, Gasto total, Abastecimentos,
   Último abastecimento, Registrar abastecimento (ação).
-- Os 4 itens informativos usam `title` (rótulo) + `text` (valor), sem
-  `onClick`, sem imagem — mesmo texto já calculado hoje
-  (`consumptionText`, `spentText`, `totalRefuelsText`, `lastRefuelText`,
-  sem alteração de formatação/regra).
-- O 5º item ("Registrar abastecimento") usa só `title`, com `onClick`
-  navegando para `AutoRefuelStep1Screen` — mesmo destino/parâmetros do
-  botão atual.
+- Os 4 itens informativos usam `title` (rótulo) + `text` (valor) + um
+  ícone obrigatório (`GridItem.setImage`), sem `onClick` — mesmo texto já
+  calculado hoje (`consumptionText`, `spentText`, `totalRefuelsText`,
+  `lastRefuelText`, sem alteração de formatação/regra).
+- O 5º item ("Registrar abastecimento") usa `title` + ícone, com
+  `onClick` navegando para `AutoRefuelStep1Screen` — mesmo
+  destino/parâmetros do botão atual.
+- 5 novos recursos `drawable` vetoriais (`res/drawable/ic_auto_*.xml`),
+  um por bloco: `ic_auto_fuel`, `ic_auto_money`, `ic_auto_calendar`,
+  `ic_auto_history`, `ic_auto_add`. Ícones do Material Icons clássico
+  (24dp, path único, sem tint fixo) — não reaproveitam os ícones do
+  Compose Material Icons Extended já usados no resto do app, porque
+  `CarIcon`/`IconCompat` exige um recurso `drawable` real, não um
+  `ImageVector` do Compose.
 - Atualizar `AutoDashboardScreenTest` para verificar `GridTemplate` e os
   itens da `ItemList` (substituindo as asserções de `PaneTemplate`/
   `pane.rows`), mantendo a mesma cobertura de casos já testados
@@ -58,8 +75,6 @@ calculados hoje.
 - Loading (`loadingTemplate`) e erro (`errorTemplate`) continuam em
   `MessageTemplate`, sem alteração — só a tela de sucesso muda de
   template.
-- Ícones nos blocos — decisão explícita de manter só texto (sem
-  `GridItem.setImage`).
 - Mudar os dados exibidos, a formatação de valores, ou a lógica de
   `loadData()`/`State` — só a camada de apresentação (template) muda.
 - `minCarApiLevel` — `GridTemplate` já está disponível desde API level 1,
@@ -98,13 +113,14 @@ return PaneTemplate.Builder(
 return GridTemplate.Builder()
     .setSingleList(
         ItemList.Builder()
-            .addItem(GridItem.Builder().setTitle("Consumo médio").setText(consumptionText).build())
-            .addItem(GridItem.Builder().setTitle("Gasto total").setText(spentText).build())
-            .addItem(GridItem.Builder().setTitle("Abastecimentos").setText(totalRefuelsText).build())
-            .addItem(GridItem.Builder().setTitle("Último abastecimento").setText(lastRefuelText).build())
+            .addItem(GridItem.Builder().setTitle("Consumo médio").setText(consumptionText).setImage(icon(R.drawable.ic_auto_fuel)).build())
+            .addItem(GridItem.Builder().setTitle("Gasto total").setText(spentText).setImage(icon(R.drawable.ic_auto_money)).build())
+            .addItem(GridItem.Builder().setTitle("Abastecimentos").setText(totalRefuelsText).setImage(icon(R.drawable.ic_auto_calendar)).build())
+            .addItem(GridItem.Builder().setTitle("Último abastecimento").setText(lastRefuelText).setImage(icon(R.drawable.ic_auto_history)).build())
             .addItem(
                 GridItem.Builder()
                     .setTitle("Registrar abastecimento")
+                    .setImage(icon(R.drawable.ic_auto_add))
                     .setOnClickListener {
                         screenManager.push(AutoRefuelStep1Screen(carContext, vehicle = v, createRefuel = createRefuel))
                     }
@@ -115,12 +131,22 @@ return GridTemplate.Builder()
     .setTitle(title)
     .setHeaderAction(Action.APP_ICON)
     .build()
+
+private fun icon(resId: Int): CarIcon =
+    CarIcon.Builder(IconCompat.createWithResource(carContext, resId)).build()
 ```
+
+`icon()` é um helper privado no `AutoDashboardScreen` que embrulha um
+recurso `drawable` em `CarIcon` via `IconCompat.createWithResource()` —
+única forma de satisfazer a exigência de imagem do `GridItem` sem
+duplicar a construção em cada chamada.
 
 Novos imports necessários em `AutoDashboardScreen.kt`:
 `androidx.car.app.model.GridTemplate`, `androidx.car.app.model.GridItem`,
-`androidx.car.app.model.ItemList`. Os imports de `Pane`, `PaneTemplate`,
-`Row` deixam de ser usados nesse arquivo e são removidos.
+`androidx.car.app.model.ItemList`, `androidx.car.app.model.CarIcon`,
+`androidx.core.graphics.drawable.IconCompat`, `com.flowfuel.app.R`. Os
+imports de `Pane`, `PaneTemplate`, `Row` deixam de ser usados nesse
+arquivo e são removidos.
 
 `consumptionText`, `spentText`, `totalRefuelsText`, `lastRefuelText`
 continuam calculados exatamente como hoje — só o container muda.

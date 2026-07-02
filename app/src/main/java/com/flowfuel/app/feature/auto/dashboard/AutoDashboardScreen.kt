@@ -3,14 +3,17 @@ package com.flowfuel.app.feature.auto.dashboard
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarIcon
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
+import androidx.car.app.model.ItemList
 import androidx.car.app.model.MessageTemplate
-import androidx.car.app.model.Pane
-import androidx.car.app.model.PaneTemplate
-import androidx.car.app.model.Row
 import androidx.car.app.model.Template
+import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
+import com.flowfuel.app.R
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auto.refuel.AutoRefuelStep1Screen
@@ -131,30 +134,47 @@ class AutoDashboardScreen(
             "Nenhum ainda"
         }
 
-        return PaneTemplate.Builder(
-            Pane.Builder()
-                .addRow(Row.Builder().setTitle("Consumo médio").addText(consumptionText).build())
-                .addRow(Row.Builder().setTitle("Gasto total").addText(spentText).build())
-                .addRow(Row.Builder().setTitle("Abastecimentos").addText(totalRefuelsText).build())
-                .addRow(Row.Builder().setTitle("Último abastecimento").addText(lastRefuelText).build())
-                .addAction(
-                    Action.Builder()
-                        .setTitle("Registrar abastecimento")
-                        .setOnClickListener {
-                            screenManager.push(
-                                AutoRefuelStep1Screen(
-                                    carContext,
-                                    vehicle = v,
-                                    createRefuel = createRefuel,
+        return GridTemplate.Builder()
+            .setSingleList(
+                ItemList.Builder()
+                    .addItem(
+                        GridItem.Builder().setTitle("Consumo médio").setText(consumptionText)
+                            .setImage(icon(R.drawable.ic_auto_fuel)).build()
+                    )
+                    .addItem(
+                        GridItem.Builder().setTitle("Gasto total").setText(spentText)
+                            .setImage(icon(R.drawable.ic_auto_money)).build()
+                    )
+                    .addItem(
+                        GridItem.Builder().setTitle("Abastecimentos").setText(totalRefuelsText)
+                            .setImage(icon(R.drawable.ic_auto_calendar)).build()
+                    )
+                    .addItem(
+                        GridItem.Builder().setTitle("Último abastecimento").setText(lastRefuelText)
+                            .setImage(icon(R.drawable.ic_auto_history)).build()
+                    )
+                    .addItem(
+                        GridItem.Builder()
+                            .setTitle("Registrar abastecimento")
+                            .setImage(icon(R.drawable.ic_auto_add))
+                            .setOnClickListener {
+                                screenManager.push(
+                                    AutoRefuelStep1Screen(
+                                        carContext,
+                                        vehicle = v,
+                                        createRefuel = createRefuel,
+                                    )
                                 )
-                            )
-                        }
-                        .build()
-                )
-                .build()
-        )
+                            }
+                            .build()
+                    )
+                    .build()
+            )
             .setTitle(title)
             .setHeaderAction(Action.APP_ICON)
             .build()
     }
+
+    private fun icon(resId: Int): CarIcon =
+        CarIcon.Builder(IconCompat.createWithResource(carContext, resId)).build()
 }

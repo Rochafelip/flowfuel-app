@@ -1,7 +1,8 @@
 package com.flowfuel.app.feature.auto
 
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.MessageTemplate
-import androidx.car.app.model.PaneTemplate
 import androidx.car.app.testing.TestCarContext
 import androidx.test.core.app.ApplicationProvider
 import com.flowfuel.app.core.domain.AppError
@@ -20,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -57,7 +59,7 @@ class AutoDashboardScreenTest {
     }
 
     @Test
-    fun `apos loadData com sucesso retorna PaneTemplate`() = runTest {
+    fun `apos loadData com sucesso retorna GridTemplate`() = runTest {
         val getActiveVehicle: GetActiveVehicleUseCase = mockk()
         val getDashboard: GetDashboardUseCase = mockk()
         coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
@@ -66,7 +68,7 @@ class AutoDashboardScreenTest {
         val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
         screen.loadData()
 
-        assertTrue(screen.onGetTemplate() is PaneTemplate)
+        assertTrue(screen.onGetTemplate() is GridTemplate)
     }
 
     @Test
@@ -91,6 +93,28 @@ class AutoDashboardScreenTest {
     }
 
     @Test
+    fun `dashboard exibe 5 blocos sem precisar rolar, incluindo o de acao`() = runTest {
+        val getActiveVehicle: GetActiveVehicleUseCase = mockk()
+        val getDashboard: GetDashboardUseCase = mockk()
+        coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
+        coEvery { getDashboard(testVehicle.id) } returns AppResult.Success(testDashboard)
+        val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
+        screen.loadData()
+        val template = screen.onGetTemplate() as GridTemplate
+        val items = template.singleList!!.items
+        assertTrue("deve ter os 4 blocos de info + 1 de acao", items.size == 5)
+        val actionItem = items.last() as GridItem
+        assertTrue(
+            "ultimo bloco deve ser o de registrar abastecimento",
+            actionItem.title.toString().contains("Registrar abastecimento")
+        )
+        assertNotNull(
+            "bloco de acao deve ter onClick pra navegar pro Step1",
+            actionItem.onClickDelegate
+        )
+    }
+
+    @Test
     fun `dashboard exibe total de abastecimentos`() = runTest {
         val getActiveVehicle: GetActiveVehicleUseCase = mockk()
         val getDashboard: GetDashboardUseCase = mockk()
@@ -100,12 +124,11 @@ class AutoDashboardScreenTest {
         )
         val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
         screen.loadData()
-        val template = screen.onGetTemplate() as PaneTemplate
-        val rows = template.pane.rows
-        assertTrue("deve ter pelo menos 4 linhas", rows.size >= 4)
+        val template = screen.onGetTemplate() as GridTemplate
+        val items = template.singleList!!.items
         assertTrue(
-            "linha de abastecimentos deve conter '12'",
-            rows.any { row -> row.texts.any { it.toString().contains("12") } }
+            "bloco de abastecimentos deve conter '12'",
+            items.any { item -> (item as GridItem).text?.toString()?.contains("12") == true }
         )
     }
 
@@ -124,11 +147,11 @@ class AutoDashboardScreenTest {
         )
         val screen = AutoDashboardScreen(carContext, getActiveVehicle, getDashboard, mockk())
         screen.loadData()
-        val template = screen.onGetTemplate() as PaneTemplate
-        val rows = template.pane.rows
+        val template = screen.onGetTemplate() as GridTemplate
+        val items = template.singleList!!.items
         assertTrue(
-            "linha do ultimo abastecimento deve conter o valor",
-            rows.any { row -> row.texts.any { it.toString().contains("289") } }
+            "bloco do ultimo abastecimento deve conter o valor",
+            items.any { item -> (item as GridItem).text?.toString()?.contains("289") == true }
         )
     }
 }
