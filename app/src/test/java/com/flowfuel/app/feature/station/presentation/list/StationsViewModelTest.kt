@@ -148,4 +148,26 @@ class StationsViewModelTest {
         assertEquals(2, (state as StationsUiState.Success).stations.size)
         coVerify { getNearbyStations(location, 10_000) }
     }
+
+    @Test
+    fun `selectedType starts at Fuel by default`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+
+        val vm = buildViewModel()
+
+        assertEquals(StationType.Fuel, vm.selectedType.value)
+    }
+
+    @Test
+    fun `onTypeSelected updates selectedType without triggering a new load`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        val vm = buildViewModel()
+
+        vm.onTypeSelected(StationType.Electric)
+
+        assertEquals(StationType.Electric, vm.selectedType.value)
+        coVerify(exactly = 1) { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) }
+    }
 }

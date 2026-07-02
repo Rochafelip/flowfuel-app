@@ -9,6 +9,7 @@ import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
+import com.flowfuel.app.feature.station.domain.model.StationType
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +32,9 @@ class StationsViewModel @Inject constructor(
 
     private val _radiusMeters = MutableStateFlow(DEFAULT_STATION_RADIUS_METERS)
     val radiusMeters: StateFlow<Int> = _radiusMeters.asStateFlow()
+
+    private val _selectedType = MutableStateFlow(StationType.Fuel)
+    val selectedType: StateFlow<StationType> = _selectedType.asStateFlow()
 
     private val _effects = Channel<StationsEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -62,6 +66,10 @@ class StationsViewModel @Inject constructor(
     fun onRadiusSelected(radiusMeters: Int) {
         _radiusMeters.value = radiusMeters
         load()
+    }
+
+    fun onTypeSelected(type: StationType) {
+        _selectedType.value = type
     }
 
     fun onRouteClick(station: Station) {
