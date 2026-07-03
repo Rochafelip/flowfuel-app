@@ -55,6 +55,7 @@ import com.flowfuel.app.core.designsystem.components.FFSkeletonLine
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
 import com.flowfuel.app.core.designsystem.components.FFFab
+import com.flowfuel.app.core.designsystem.components.VehiclePhotoAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.ui.userMessage
@@ -325,27 +326,11 @@ private fun VehicleHeader(vehicle: Vehicle) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.md),
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Icon(
-                    imageVector = if (vehicle.type == VehicleType.Motorcycle) Icons.Default.TwoWheeler
-                                  else Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        }
+        VehiclePhotoAvatar(
+            photoUrl = vehicle.photoUrl,
+            vehicleType = vehicle.type,
+            size = 64.dp,
+        )
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
