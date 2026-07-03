@@ -6,6 +6,7 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
+import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -34,9 +35,11 @@ class NearbyStationsPrefetcher @Inject constructor(
         activeJob = scope.launch {
             when (val locationResult = locationProvider.getCurrentLocation()) {
                 is LocationResult.Available -> {
-                    val result = getNearbyStations(locationResult.location, DEFAULT_STATION_RADIUS_METERS)
+                    val band = stationDistanceBand(DEFAULT_STATION_RADIUS_METERS)
+                    val result = getNearbyStations(locationResult.location, band.maxMeters)
                     if (result is AppResult.Success) {
-                        cache.value = CachedStations(result.value, clock.nowMillis())
+                        val stations = result.value.filter { it.distanceMeters >= band.minMeters }
+                        cache.value = CachedStations(stations, clock.nowMillis())
                     }
                     // Failure: no-op, mantém cache anterior.
                 }

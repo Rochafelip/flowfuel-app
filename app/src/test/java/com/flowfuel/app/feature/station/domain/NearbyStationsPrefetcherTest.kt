@@ -8,6 +8,7 @@ import com.flowfuel.app.feature.station.domain.model.GeoLocation
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
+import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -29,9 +30,13 @@ class NearbyStationsPrefetcherTest {
     private val clock = FakeClock()
     private val location = GeoLocation(latitude = -8.05, longitude = -34.90)
 
-    private fun station(id: String) = Station(
+    // Prefetch busca sempre a faixa do preset padrão — o raio enviado à API é o teto da
+    // faixa (próximo preset - 1), não o valor do preset em si.
+    private val defaultBandMaxMeters = stationDistanceBand(DEFAULT_STATION_RADIUS_METERS).maxMeters
+
+    private fun station(id: String, distanceMeters: Int = DEFAULT_STATION_RADIUS_METERS + 500) = Station(
         placeId = id, name = "Posto $id", type = StationType.Fuel,
-        distanceMeters = 100, rating = null, latitude = -8.05, longitude = -34.90,
+        distanceMeters = distanceMeters, rating = null, latitude = -8.05, longitude = -34.90,
     )
 
     private fun buildPrefetcher() =
@@ -40,7 +45,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `prefetch on success stores the result with the clock's timestamp`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         clock.millis = 1_000L
         val prefetcher = buildPrefetcher()
 
@@ -50,9 +55,22 @@ class NearbyStationsPrefetcherTest {
     }
 
     @Test
+    fun `prefetch filters out stations below the default band's lower bound`() {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(
+            listOf(station("a", distanceMeters = DEFAULT_STATION_RADIUS_METERS - 1), station("b"))
+        )
+        val prefetcher = buildPrefetcher()
+
+        prefetcher.prefetch()
+
+        assertEquals(listOf(station("b")), prefetcher.freshCachedStations())
+    }
+
+    @Test
     fun `prefetch with PermissionDenied does not touch an existing cache`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location) andThen LocationResult.PermissionDenied
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         val prefetcher = buildPrefetcher()
         prefetcher.prefetch()
 
@@ -64,7 +82,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `prefetch with Unavailable does not touch an existing cache`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location) andThen LocationResult.Unavailable
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         val prefetcher = buildPrefetcher()
         prefetcher.prefetch()
 
@@ -76,7 +94,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `prefetch with an API failure does not touch an existing cache`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a"))) andThen AppResult.Failure(AppError.Network)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a"))) andThen AppResult.Failure(AppError.Network)
         val prefetcher = buildPrefetcher()
         prefetcher.prefetch()
 
@@ -88,7 +106,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `freshCachedStations returns the list when within the TTL`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         clock.millis = 0L
         val prefetcher = buildPrefetcher()
         prefetcher.prefetch()
@@ -101,7 +119,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `freshCachedStations returns null once the clock passes the TTL`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         clock.millis = 0L
         val prefetcher = buildPrefetcher()
         prefetcher.prefetch()
@@ -114,7 +132,7 @@ class NearbyStationsPrefetcherTest {
     @Test
     fun `two sequential prefetch calls overwrite the cache with the second result`() {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a"))) andThen AppResult.Success(listOf(station("b")))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a"))) andThen AppResult.Success(listOf(station("b")))
         val prefetcher = buildPrefetcher()
 
         prefetcher.prefetch()

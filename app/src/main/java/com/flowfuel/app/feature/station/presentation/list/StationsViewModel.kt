@@ -11,6 +11,7 @@ import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METE
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
+import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
@@ -68,20 +69,22 @@ class StationsViewModel @Inject constructor(
     fun load() {
         _state.value = StationsUiState.Loading
         val requestRadius = _radiusMeters.value
+        val band = stationDistanceBand(requestRadius)
         viewModelScope.launch {
             when (val locationResult = locationProvider.getCurrentLocation()) {
                 LocationResult.PermissionDenied -> _state.value = StationsUiState.PermissionRequired
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
-                    when (val result = getNearbyStations(locationResult.location, requestRadius)) {
+                    when (val result = getNearbyStations(locationResult.location, band.maxMeters)) {
                         is AppResult.Success -> {
-                            _state.value = if (result.value.isEmpty()) {
+                            val stations = result.value.filter { it.distanceMeters >= band.minMeters }
+                            _state.value = if (stations.isEmpty()) {
                                 StationsUiState.Empty
                             } else {
-                                StationsUiState.Success(result.value)
+                                StationsUiState.Success(stations)
                             }
                             if (requestRadius == DEFAULT_STATION_RADIUS_METERS) {
-                                stationsPrefetcher.updateCache(result.value)
+                                stationsPrefetcher.updateCache(stations)
                             }
                         }
                         is AppResult.Failure -> handleFailure(result.error)

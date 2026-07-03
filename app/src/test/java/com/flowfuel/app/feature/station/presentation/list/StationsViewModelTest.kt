@@ -10,6 +10,7 @@ import com.flowfuel.app.feature.station.domain.model.GeoLocation
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
+import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
@@ -53,7 +54,13 @@ class StationsViewModelTest {
 
     private val location = GeoLocation(latitude = -8.05, longitude = -34.90)
 
-    private fun station(id: String, distance: Int) = Station(
+    // Cada preset é uma faixa exclusiva de distância — a API é sempre chamada com o teto da
+    // faixa (próximo preset - 1), não com o valor do preset em si.
+    private val defaultBandMaxMeters = stationDistanceBand(DEFAULT_STATION_RADIUS_METERS).maxMeters
+    private val farthestBandMaxMeters = stationDistanceBand(10_000).maxMeters
+    private val defaultBandDistance = DEFAULT_STATION_RADIUS_METERS + 500
+
+    private fun station(id: String, distance: Int = defaultBandDistance) = Station(
         placeId = id, name = "Posto $id", type = StationType.Fuel,
         distanceMeters = distance, rating = null, latitude = -8.05, longitude = -34.90,
     )
@@ -83,7 +90,7 @@ class StationsViewModelTest {
     @Test
     fun `Success state when stations are found`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -95,7 +102,7 @@ class StationsViewModelTest {
     @Test
     fun `Empty state when repository returns no stations`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(emptyList())
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(emptyList())
 
         val vm = buildViewModel()
 
@@ -105,7 +112,7 @@ class StationsViewModelTest {
     @Test
     fun `Error state when repository fails`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Failure(AppError.Network)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Failure(AppError.Network)
 
         val vm = buildViewModel()
 
@@ -134,11 +141,11 @@ class StationsViewModelTest {
     @Test
     fun `onRouteClick emits OpenNavigation with a generic geo uri`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         val vm = buildViewModel()
 
         vm.effects.test {
-            vm.onRouteClick(station("a", 100))
+            vm.onRouteClick(station("a"))
             val effect = awaitItem()
             assertTrue(effect is StationsEffect.OpenNavigation)
             assertEquals("geo:-8.05,-34.9?q=-8.05,-34.9", (effect as StationsEffect.OpenNavigation).uri)
@@ -148,7 +155,7 @@ class StationsViewModelTest {
     @Test
     fun `radiusMeters starts at the default preset`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -156,10 +163,12 @@ class StationsViewModelTest {
     }
 
     @Test
-    fun `onRadiusSelected updates radiusMeters and reloads stations with the new radius`() = runTest {
+    fun `onRadiusSelected updates radiusMeters and reloads stations with the new band's query radius`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
-        coEvery { getNearbyStations(location, 10_000) } returns AppResult.Success(listOf(station("a", 100), station("b", 9000)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, farthestBandMaxMeters) } returns AppResult.Success(
+            listOf(station("a", 11_000), station("b", 19_000))
+        )
         val vm = buildViewModel()
 
         vm.onRadiusSelected(10_000)
@@ -168,13 +177,43 @@ class StationsViewModelTest {
         val state = vm.state.value
         assertTrue(state is StationsUiState.Success)
         assertEquals(2, (state as StationsUiState.Success).stations.size)
-        coVerify { getNearbyStations(location, 10_000) }
+        coVerify { getNearbyStations(location, farthestBandMaxMeters) }
+    }
+
+    @Test
+    fun `load() excludes stations below the selected band's lower bound`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(
+            listOf(station("below", DEFAULT_STATION_RADIUS_METERS - 1), station("inBand", defaultBandDistance))
+        )
+
+        val vm = buildViewModel()
+
+        val state = vm.state.value
+        assertTrue(state is StationsUiState.Success)
+        assertEquals(listOf(station("inBand", defaultBandDistance)), (state as StationsUiState.Success).stations)
+    }
+
+    @Test
+    fun `load() at the farthest preset shows only stations at or beyond its lower bound`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, farthestBandMaxMeters) } returns AppResult.Success(
+            listOf(station("tooClose", 9_999), station("farEnough", 15_000))
+        )
+        val vm = buildViewModel()
+
+        vm.onRadiusSelected(10_000)
+
+        val state = vm.state.value
+        assertTrue(state is StationsUiState.Success)
+        assertEquals(listOf(station("farEnough", 15_000)), (state as StationsUiState.Success).stations)
     }
 
     @Test
     fun `selectedType starts at Fuel by default`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -184,19 +223,19 @@ class StationsViewModelTest {
     @Test
     fun `onTypeSelected updates selectedType without triggering a new load`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
         val vm = buildViewModel()
 
         vm.onTypeSelected(StationType.Electric)
 
         assertEquals(StationType.Electric, vm.selectedType.value)
-        coVerify(exactly = 1) { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) }
+        coVerify(exactly = 1) { getNearbyStations(location, defaultBandMaxMeters) }
     }
 
     @Test
     fun `selectedType defaults to Fuel when there is no active vehicle`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -209,7 +248,7 @@ class StationsViewModelTest {
         every { sessionStore.activeVehicleIdFlow } returns flowOf(7)
         coEvery { getVehicleById(7) } returns AppResult.Success(vehicle(EnergyType.Electric))
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -221,7 +260,7 @@ class StationsViewModelTest {
         every { sessionStore.activeVehicleIdFlow } returns flowOf(7)
         coEvery { getVehicleById(7) } returns AppResult.Success(vehicle(EnergyType.Hybrid))
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -233,7 +272,7 @@ class StationsViewModelTest {
         every { sessionStore.activeVehicleIdFlow } returns flowOf(7)
         coEvery { getVehicleById(7) } returns AppResult.Failure(AppError.Network)
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -243,7 +282,7 @@ class StationsViewModelTest {
 
     @Test
     fun `init populates Success directly from a fresh prefetch cache, without calling locationProvider or getNearbyStations`() = runTest {
-        every { stationsPrefetcher.freshCachedStations() } returns listOf(station("a", 100))
+        every { stationsPrefetcher.freshCachedStations() } returns listOf(station("a"))
 
         val vm = buildViewModel()
 
@@ -267,7 +306,7 @@ class StationsViewModelTest {
     @Test
     fun `init falls back to load() when there is no prefetch cache`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         val vm = buildViewModel()
 
@@ -278,18 +317,20 @@ class StationsViewModelTest {
     @Test
     fun `load() at the default radius updates the prefetch cache on success`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
 
         buildViewModel()
 
-        verify { stationsPrefetcher.updateCache(listOf(station("a", 100))) }
+        verify { stationsPrefetcher.updateCache(listOf(station("a"))) }
     }
 
     @Test
     fun `load() at a non-default radius does not update the prefetch cache again`() = runTest {
         coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
-        coEvery { getNearbyStations(location, DEFAULT_STATION_RADIUS_METERS) } returns AppResult.Success(listOf(station("a", 100)))
-        coEvery { getNearbyStations(location, 10_000) } returns AppResult.Success(listOf(station("a", 100), station("b", 9000)))
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        coEvery { getNearbyStations(location, farthestBandMaxMeters) } returns AppResult.Success(
+            listOf(station("a", 11_000), station("b", 19_000))
+        )
         val vm = buildViewModel()
 
         vm.onRadiusSelected(10_000)
