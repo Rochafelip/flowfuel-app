@@ -34,4 +34,6 @@ data class Vehicle(
     val tankCapacityL: Double?,
     val batteryCapacityKwh: Double?,
     val isActive: Boolean,
+    /** URL interna autenticada da foto do veículo, ou null se não houver foto. */
+    val photoUrl: String? = null,
 )

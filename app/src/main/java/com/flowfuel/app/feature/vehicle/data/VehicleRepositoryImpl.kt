@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.vehicle.data
 
 import android.net.Uri
+import com.flowfuel.app.BuildConfig
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
@@ -191,6 +192,7 @@ class VehicleRepositoryImpl @Inject constructor(
                 resolvedEnergyType == EnergyType.Electric || resolvedEnergyType == EnergyType.Hybrid
             },
             isActive = isActive,
+            photoUrl = photo?.let { BuildConfig.API_BASE_URL.trimEnd('/') + it },
         )
     }
 }
