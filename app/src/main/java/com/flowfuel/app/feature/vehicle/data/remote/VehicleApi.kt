@@ -145,4 +145,12 @@ interface VehicleApi {
         @Path("id") id: Int,
         @Part file: MultipartBody.Part,
     ): VehiclePhotoResponseDto
+
+    /**
+     * Remove a foto do veículo.
+     * Usa [ResponseBody]? (mesmo padrão de [deleteVehicle]) pois 204 sem corpo
+     * não passa pelo conversor JSON.
+     */
+    @DELETE("vehicles/{id}/photo")
+    suspend fun deleteVehiclePhoto(@Path("id") id: Int): ResponseBody?
 }

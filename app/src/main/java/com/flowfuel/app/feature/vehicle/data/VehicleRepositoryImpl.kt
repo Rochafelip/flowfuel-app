@@ -169,6 +169,25 @@ class VehicleRepositoryImpl @Inject constructor(
         AppResult.Failure(AppError.Unknown(e))
     }
 
+    /**
+     * Chama DELETE /vehicles/{id}/photo.
+     * Mesmo padrão try-catch manual de [deleteVehicle]/[setActiveVehicle].
+     */
+    override suspend fun deletePhoto(vehicleId: Int): AppResult<Unit> = try {
+        api.deleteVehiclePhoto(vehicleId)?.close()
+        AppResult.Success(Unit)
+    } catch (e: HttpException) {
+        Timber.w("deletePhoto: HTTP ${e.code()}")
+        if (e.code() == 401) AppResult.Failure(AppError.Unauthorized)
+        else AppResult.Failure(AppError.Api("HTTP_${e.code()}", e.message()))
+    } catch (e: IOException) {
+        Timber.w(e, "deletePhoto: network error")
+        AppResult.Failure(AppError.Network)
+    } catch (e: Throwable) {
+        Timber.e(e, "deletePhoto: unexpected error")
+        AppResult.Failure(AppError.Unknown(e))
+    }
+
     private fun VehicleResponseDto.toDomain(): Vehicle {
         val resolvedEnergyType = EnergyType.entries
             .firstOrNull { it.apiValue == energyType } ?: EnergyType.Combustion

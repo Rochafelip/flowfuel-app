@@ -44,4 +44,7 @@ interface VehicleRepository {
 
     /** Envia a foto do veículo recém-criado. Comprime a imagem antes do upload. */
     suspend fun uploadVehiclePhoto(vehicleId: Int, uri: Uri): AppResult<String>
+
+    /** Remove a foto do veículo. Retorna sucesso mesmo para 204 sem corpo. */
+    suspend fun deletePhoto(vehicleId: Int): AppResult<Unit>
 }
