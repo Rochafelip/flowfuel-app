@@ -1,6 +1,9 @@
 package com.flowfuel.app.feature.vehicle.presentation.add
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -13,6 +16,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +38,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.EnergySavingsLeaf
 import androidx.compose.material.icons.outlined.EvStation
@@ -64,6 +69,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -77,6 +83,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.flowfuel.app.R
 import com.flowfuel.app.core.designsystem.components.FFButton
 import com.flowfuel.app.core.designsystem.components.FFButtonVariant
@@ -170,18 +177,21 @@ fun AddVehicleScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     FFButton(
-                        text = if (state.currentStep < 3) stringResource(R.string.vehicle_add_continue)
-                               else stringResource(R.string.vehicle_add_cta),
-                        onClick = if (state.currentStep < 3) viewModel::onNextStep
+                        text = when {
+                            state.currentStep < 4        -> stringResource(R.string.vehicle_add_continue)
+                            state.photoUploadError != null -> stringResource(R.string.vehicle_photo_retry)
+                            else                          -> stringResource(R.string.vehicle_add_cta)
+                        },
+                        onClick = if (state.currentStep < 4) viewModel::onNextStep
                                   else ({ viewModel.submit() }),
-                        enabled = if (state.currentStep == 3) state.canSubmit else !state.isSubmitting,
+                        enabled = if (state.currentStep == 4) state.canSubmit else !state.isSubmitting,
                         loading = state.isSubmitting,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (state.currentStep == 3) {
                         FFButton(
                             text = stringResource(R.string.vehicle_add_fill_later),
-                            onClick = { viewModel.submit(skipOptional = true) },
+                            onClick = viewModel::onSkipToPhotoStep,
                             enabled = !state.isSubmitting,
                             variant = FFButtonVariant.Text,
                             modifier = Modifier.fillMaxWidth(),
@@ -222,7 +232,8 @@ fun AddVehicleScreen(
                 when (step) {
                     1 -> Step1Content(state = state, viewModel = viewModel)
                     2 -> Step2Content(state = state, viewModel = viewModel)
-                    else -> Step3Content(state = state, viewModel = viewModel)
+                    3 -> Step3Content(state = state, viewModel = viewModel)
+                    else -> Step4Content(state = state, viewModel = viewModel)
                 }
             }
         }
@@ -497,6 +508,99 @@ private fun Step3Content(
     }
 }
 
+@Composable
+private fun Step4Content(
+    state: AddVehicleUiState,
+    viewModel: AddVehicleViewModel,
+) {
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { viewModel.onPhotoPicked(it) } }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.vehicle_photo_instructions),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .border(
+                    width = 1.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = MaterialTheme.shapes.medium,
+                )
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .clickable(enabled = !state.isSubmitting) {
+                    launcher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.photoUri != null) {
+                AsyncImage(
+                    model = state.photoUri,
+                    contentDescription = stringResource(R.string.vehicle_photo_content_description),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AddAPhoto,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.vehicle_photo_pick_cta),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+
+        if (state.photoUri != null) {
+            FFButton(
+                text = stringResource(R.string.vehicle_photo_change),
+                onClick = {
+                    launcher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                enabled = !state.isSubmitting,
+                variant = FFButtonVariant.Text,
+            )
+        }
+
+        if (state.photoUploadError != null) {
+            Text(
+                text = stringResource(R.string.vehicle_photo_upload_error),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
 // ─── Stepper visual ──────────────────────────────────────────────────────────
 
 @Composable
@@ -508,6 +612,7 @@ private fun WizardStepper(
         stringResource(R.string.vehicle_wizard_step1),
         stringResource(R.string.vehicle_wizard_step2),
         stringResource(R.string.vehicle_wizard_step3),
+        stringResource(R.string.vehicle_wizard_step4),
     )
 
     Row(

@@ -142,6 +142,13 @@
     <string name="vehicle_wizard_step1">Identificação</string>
     <string name="vehicle_wizard_step2">Classificação</string>
     <string name="vehicle_wizard_step3">Detalhes</string>
+    <string name="vehicle_wizard_step4">Foto</string>
+    <string name="vehicle_photo_instructions">Adicione uma foto do seu veículo. Isso ajuda a identificá-lo rapidamente no app.</string>
+    <string name="vehicle_photo_pick_cta">Toque para escolher uma foto</string>
+    <string name="vehicle_photo_change">Trocar foto</string>
+    <string name="vehicle_photo_content_description">Foto do veículo</string>
+    <string name="vehicle_photo_upload_error">Não foi possível enviar a foto. Tente novamente.</string>
+    <string name="vehicle_photo_retry">Tentar novamente</string>
 
     <!-- Vehicle — Seções -->
     <string name="vehicle_section_info">Informações principais</string>
