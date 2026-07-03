@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.vehicle.presentation.add
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.domain.AppError
@@ -9,6 +10,7 @@ import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.CreateVehicleUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.UploadVehiclePhotoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +37,11 @@ data class AddVehicleUiState(
     val odometer: String = "",
     val tankCapacity: String = "",
     val batteryCapacity: String = "",
+    // — Etapa 4: Foto
+    val photoUri: Uri? = null,
+    val photoUploadError: AppError? = null,
+    /** Preenchido após a criação bem-sucedida do veículo; usado para retry do upload de foto. */
+    val createdVehicleId: Int? = null,
     // — Wizard
     val currentStep: Int = 1,
     /**
@@ -62,12 +69,12 @@ data class AddVehicleUiState(
     val showBatteryCapacity: Boolean
         get() = energyType == EnergyType.Electric || energyType == EnergyType.Hybrid
 
-    /** Placa obrigatória; cor e odômetro são opcionais (default null/0). */
+    /**
+     * Placa é validada (ou pulada via "Preencher depois") ao sair do Step 3;
+     * a foto é sempre obrigatória para concluir o cadastro (Step 4).
+     */
     val canSubmit: Boolean
-        get() = brand.isNotBlank() && model.isNotBlank()
-            && manufactureYear.isNotBlank() && modelYear.isNotBlank()
-            && licensePlate.length >= 7
-            && !isSubmitting
+        get() = photoUri != null && !isSubmitting
 }
 
 sealed interface AddVehicleEffect {
@@ -77,6 +84,7 @@ sealed interface AddVehicleEffect {
 @HiltViewModel
 class AddVehicleViewModel @Inject constructor(
     private val createVehicle: CreateVehicleUseCase,
+    private val uploadVehiclePhoto: UploadVehiclePhotoUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddVehicleUiState())
@@ -129,6 +137,10 @@ class AddVehicleViewModel @Inject constructor(
     fun onTankCapacityChange(v: String)    = _state.update { it.copy(tankCapacity = v) }
     fun onBatteryCapacityChange(v: String) = _state.update { it.copy(batteryCapacity = v) }
 
+    // — Etapa 4
+    fun onPhotoPicked(uri: Uri) =
+        _state.update { it.copy(photoUri = uri, photoUploadError = null) }
+
     fun clearError() = _state.update { it.copy(error = null) }
 
     /** Avança para a próxima etapa validando os campos da etapa atual. */
@@ -155,7 +167,25 @@ class AddVehicleViewModel @Inject constructor(
                 _state.update { it.copy(currentStep = 2) }
             }
             2 -> _state.update { it.copy(currentStep = 3) }
+            3 -> {
+                val licensePlateInvalid = s.licensePlate.length < 7
+                if (licensePlateInvalid) {
+                    _state.update {
+                        it.copy(
+                            licensePlateError = true,
+                            stepAttempt       = it.stepAttempt + 1,
+                        )
+                    }
+                    return
+                }
+                _state.update { it.copy(currentStep = 4) }
+            }
         }
+    }
+
+    /** Avança da Etapa 3 para a Etapa 4 sem validar a placa ("Preencher depois"). */
+    fun onSkipToPhotoStep() {
+        _state.update { it.copy(currentStep = 4, licensePlateError = false) }
     }
 
     fun onPreviousStep() {
@@ -163,60 +193,62 @@ class AddVehicleViewModel @Inject constructor(
     }
 
     /**
-     * Submete o formulário.
-     * @param skipOptional Se true, ignora a validação da placa e envia com campos
-     *   opcionais vazios ("Preencher depois").
+     * Cria o veículo (se ainda não criado) e envia a foto.
+     * Se uma tentativa anterior já criou o veículo mas o upload da foto falhou
+     * ([AddVehicleUiState.createdVehicleId] não nulo), reenvia só a foto, sem
+     * recriar o veículo.
      */
-    fun submit(skipOptional: Boolean = false) {
+    fun submit() {
         val s = _state.value
+        val photoUri = s.photoUri
+        if (photoUri == null || s.isSubmitting) return
 
-        if (!skipOptional) {
-            val licensePlateInvalid = s.licensePlate.length < 7
-            if (licensePlateInvalid) {
-                _state.update {
-                    it.copy(
-                        licensePlateError = true,
-                        stepAttempt       = it.stepAttempt + 1,
-                    )
-                }
-                return
-            }
-        }
-
-        _state.update { it.copy(isSubmitting = true, error = null, serverErrors = null) }
+        _state.update { it.copy(isSubmitting = true, error = null, serverErrors = null, photoUploadError = null) }
 
         viewModelScope.launch {
-            val result = createVehicle(
-                brand              = s.brand.trim(),
-                model              = s.model.trim(),
-                manufactureYear    = s.manufactureYear.toInt(),
-                modelYear          = s.modelYear.toInt(),
-                licensePlate       = s.licensePlate,
-                color              = s.color.trim().takeIf { it.isNotBlank() },
-                type               = s.vehicleType,
-                energyType         = s.energyType,
-                fuelType           = if (s.showFuelType) s.fuelType else null,
-                odometerKm         = s.odometer.toIntOrNull() ?: 0,
-                tankCapacityL      = if (s.showTankCapacity) {
-                    s.tankCapacity.replace(",", ".").toDoubleOrNull()
-                } else null,
-                batteryCapacityKwh = if (s.showBatteryCapacity) {
-                    s.batteryCapacity.replace(",", ".").toDoubleOrNull()
-                } else null,
-            )
-            when (result) {
+            val vehicleId: Int = s.createdVehicleId ?: run {
+                val result = createVehicle(
+                    brand              = s.brand.trim(),
+                    model              = s.model.trim(),
+                    manufactureYear    = s.manufactureYear.toInt(),
+                    modelYear          = s.modelYear.toInt(),
+                    licensePlate       = s.licensePlate,
+                    color              = s.color.trim().takeIf { it.isNotBlank() },
+                    type               = s.vehicleType,
+                    energyType         = s.energyType,
+                    fuelType           = if (s.showFuelType) s.fuelType else null,
+                    odometerKm         = s.odometer.toIntOrNull() ?: 0,
+                    tankCapacityL      = if (s.showTankCapacity) {
+                        s.tankCapacity.replace(",", ".").toDoubleOrNull()
+                    } else null,
+                    batteryCapacityKwh = if (s.showBatteryCapacity) {
+                        s.batteryCapacity.replace(",", ".").toDoubleOrNull()
+                    } else null,
+                )
+                when (result) {
+                    is AppResult.Success -> result.value.id
+                    is AppResult.Failure -> {
+                        val apiErr      = result.error as? AppError.Api
+                        val fieldErrors = apiErr?.takeIf { it.code == "VALIDATION_FAILED" }?.fieldErrors
+                        if (!fieldErrors.isNullOrEmpty()) {
+                            _state.update { it.copy(isSubmitting = false, serverErrors = fieldErrors) }
+                        } else {
+                            _state.update { it.copy(isSubmitting = false, error = result.error) }
+                        }
+                        return@launch
+                    }
+                }
+            }
+
+            _state.update { it.copy(createdVehicleId = vehicleId) }
+
+            when (val uploadResult = uploadVehiclePhoto(vehicleId, photoUri)) {
                 is AppResult.Success -> {
                     _state.update { it.copy(isSubmitting = false) }
                     _effects.send(AddVehicleEffect.NavigateBack)
                 }
                 is AppResult.Failure -> {
-                    val apiErr      = result.error as? AppError.Api
-                    val fieldErrors = apiErr?.takeIf { it.code == "VALIDATION_FAILED" }?.fieldErrors
-                    if (!fieldErrors.isNullOrEmpty()) {
-                        _state.update { it.copy(isSubmitting = false, serverErrors = fieldErrors) }
-                    } else {
-                        _state.update { it.copy(isSubmitting = false, error = result.error) }
-                    }
+                    _state.update { it.copy(isSubmitting = false, photoUploadError = uploadResult.error) }
                 }
             }
         }
