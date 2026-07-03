@@ -76,6 +76,8 @@ fun VehicleSwitcherBottomSheet(
                                 plate = vehicle.licensePlate ?: "—",
                                 odometerKm = formatOdometer(vehicle.odometerKm),
                                 isActive = vehicle.id == state.activeId,
+                                photoUrl = vehicle.photoUrl,
+                                vehicleType = vehicle.type,
                                 onClick = { onVehicleSelect(vehicle.id) },
                             )
                         }
