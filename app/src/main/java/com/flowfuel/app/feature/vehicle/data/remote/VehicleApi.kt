@@ -1,13 +1,16 @@
 package com.flowfuel.app.feature.vehicle.data.remote
 
 import kotlinx.serialization.Serializable
+import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Part
 import retrofit2.http.Query
 
 // ─── Paginação ────────────────────────────────────────────────────────────────
@@ -74,6 +77,11 @@ data class VehicleResponseDto(
     val updatedAt: String? = null,
 )
 
+@Serializable
+data class VehiclePhotoResponseDto(
+    val photo: String? = null,
+)
+
 // ─── Interface Retrofit ───────────────────────────────────────────────────────
 
 interface VehicleApi {
@@ -124,4 +132,17 @@ interface VehicleApi {
         @Path("id") id: Int,
         @Query("currentKm") newKm: Int,
     ): VehicleResponseDto
+
+    /**
+     * Envia a foto do veículo (multipart). Chamado logo após a criação do
+     * veículo (ver [createVehicle]) — o endpoint espera o veículo já existir.
+     * Contrato espelha POST /auth/{userId}/upload-profile-picture (ver
+     * docs/superpowers/specs/2026-07-03-vehicle-photo-required-design.md).
+     */
+    @Multipart
+    @POST("vehicles/{id}/photo")
+    suspend fun uploadVehiclePhoto(
+        @Path("id") id: Int,
+        @Part file: MultipartBody.Part,
+    ): VehiclePhotoResponseDto
 }
