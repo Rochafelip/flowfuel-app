@@ -48,38 +48,40 @@ fun StationCard(
                 imageVector = content.icon,
                 contentDescription = content.contentDescription,
                 tint = iconTint,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
             )
             Text(
                 text = station.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 text = formatDistance(station.distanceMeters),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         val address = formatAddress(station.street, station.houseNumber)
-        if (address != null) {
-            Spacer(Modifier.height(FFTheme.spacing.xs))
-            Text(
-                text = address,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
         Spacer(Modifier.height(FFTheme.spacing.xs))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (address != null) {
+                Text(
+                    text = address,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
             if (station.rating != null) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs),
@@ -89,12 +91,10 @@ fun StationCard(
                         imageVector = Icons.Filled.Star,
                         contentDescription = null,
                         tint = FFTheme.semanticColors.warning,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
-                    Text(formatRating(station.rating), style = MaterialTheme.typography.labelMedium)
+                    Text(formatRating(station.rating), style = MaterialTheme.typography.bodyMedium)
                 }
-            } else {
-                Spacer(Modifier)
             }
             IconButton(onClick = onRouteClick) {
                 Icon(imageVector = Icons.Filled.Navigation, contentDescription = "Traçar rota")
