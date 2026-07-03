@@ -79,7 +79,7 @@ data class VehicleResponseDto(
 
 @Serializable
 data class VehiclePhotoResponseDto(
-    val photo: String? = null,
+    val internalUrl: String? = null,
 )
 
 // ─── Interface Retrofit ───────────────────────────────────────────────────────
@@ -136,8 +136,8 @@ interface VehicleApi {
     /**
      * Envia a foto do veículo (multipart). Chamado logo após a criação do
      * veículo (ver [createVehicle]) — o endpoint espera o veículo já existir.
-     * Contrato espelha POST /auth/{userId}/upload-profile-picture (ver
-     * docs/superpowers/specs/2026-07-03-vehicle-photo-required-design.md).
+     * Resposta traz só `internalUrl` (sem `signedUrl`), conforme confirmado
+     * pela implementação real do backend (ver docs/upload-foto-veiculo.md).
      */
     @Multipart
     @POST("vehicles/{id}/photo")

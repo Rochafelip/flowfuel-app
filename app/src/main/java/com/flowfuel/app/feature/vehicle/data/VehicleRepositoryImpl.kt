@@ -162,7 +162,7 @@ class VehicleRepositoryImpl @Inject constructor(
         val compressed = imagePickerHelper.compressToJpeg(uri)
         val requestBody = compressed.toRequestBody("image/jpeg".toMediaType())
         val part = MultipartBody.Part.createFormData("file", "vehicle.jpg", requestBody)
-        apiCall { api.uploadVehiclePhoto(vehicleId, part) }.map { it.photo.orEmpty() }
+        apiCall { api.uploadVehiclePhoto(vehicleId, part) }.map { it.internalUrl.orEmpty() }
     } catch (e: Throwable) {
         Timber.e(e, "VehicleRepo › erro ao comprimir imagem")
         AppResult.Failure(AppError.Unknown(e))
