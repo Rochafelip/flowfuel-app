@@ -242,6 +242,7 @@ class AddVehicleViewModel @Inject constructor(
 
             _state.update { it.copy(createdVehicleId = vehicleId) }
 
+            // Backend endpoint ainda não existe (404 esperado até o deploy) — ver docs/superpowers/specs/2026-07-03-vehicle-photo-required-design.md
             when (val uploadResult = uploadVehiclePhoto(vehicleId, photoUri)) {
                 is AppResult.Success -> {
                     _state.update { it.copy(isSubmitting = false) }

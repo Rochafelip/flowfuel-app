@@ -137,7 +137,7 @@ fun AddVehicleScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage = state.error?.userMessage()
 
-    BackHandler(enabled = state.currentStep > 1) {
+    BackHandler(enabled = state.currentStep > 1 && state.createdVehicleId == null) {
         viewModel.onPreviousStep()
     }
 
@@ -160,7 +160,7 @@ fun AddVehicleScreen(
         topBar = {
             FFTopBar(
                 title = stringResource(R.string.vehicle_add_title),
-                onBack = if (state.currentStep > 1) viewModel::onPreviousStep else onBack,
+                onBack = if (state.currentStep > 1 && state.createdVehicleId == null) viewModel::onPreviousStep else onBack,
             )
         },
         snackbarHost = { FFSnackbarHost(snackbarHostState) },

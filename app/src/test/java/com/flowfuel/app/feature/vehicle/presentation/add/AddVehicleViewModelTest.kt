@@ -4,6 +4,7 @@ import android.net.Uri
 import app.cash.turbine.test
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
@@ -205,6 +206,21 @@ class AddVehicleViewModelTest {
         coVerify(exactly = 0) { uploadVehiclePhoto(any(), any()) }
         assertEquals(AppError.Network, viewModel.state.value.error)
         assertFalse(viewModel.state.value.isSubmitting)
+    }
+
+    @Test
+    fun `submit create failure with field errors sets serverErrors and does not call uploadVehiclePhoto`() {
+        val fieldErrors = listOf(FieldError("capacity", "must not be null"))
+        coEvery { createVehicle(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns
+            AppResult.Failure(AppError.Api("VALIDATION_FAILED", null, fieldErrors))
+        fillStep1()
+        viewModel.onPhotoPicked(photoUri)
+
+        viewModel.submit()
+
+        assertNotNull(viewModel.state.value.serverErrors)
+        assertEquals("capacity", viewModel.state.value.serverErrors!!.first().field)
+        coVerify(exactly = 0) { uploadVehiclePhoto(any(), any()) }
     }
 
     // ── submit — falha só no upload (retry) ──────────────────────────────────
