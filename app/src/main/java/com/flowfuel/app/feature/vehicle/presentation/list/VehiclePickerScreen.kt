@@ -165,6 +165,8 @@ fun VehiclePickerScreen(
                                     odometerKm = String.format(Locale("pt", "BR"), "%,d", vehicle.odometerKm),
                                     isActive = isCurrentlyActive,
                                     modifier = Modifier.fillMaxWidth(),
+                                    photoUrl = vehicle.photoUrl,
+                                    vehicleType = vehicle.type,
                                     onClick = { viewModel.onVehicleSelected(vehicle) },
                                 )
                             }
