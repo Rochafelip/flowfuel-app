@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.vehicle.domain
 
+import android.net.Uri
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
@@ -40,4 +41,7 @@ interface VehicleRepository {
 
     /** Atualiza apenas o odômetro. Retorna sucesso mesmo para 204 sem corpo. */
     suspend fun updateOdometer(vehicleId: Int, newKm: Int): AppResult<Unit>
+
+    /** Envia a foto do veículo recém-criado. Comprime a imagem antes do upload. */
+    suspend fun uploadVehiclePhoto(vehicleId: Int, uri: Uri): AppResult<String>
 }

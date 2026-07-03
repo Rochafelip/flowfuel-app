@@ -1,8 +1,10 @@
 package com.flowfuel.app.feature.vehicle.data
 
+import android.net.Uri
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
+import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.core.network.apiCall
 import com.flowfuel.app.feature.vehicle.data.remote.CreateVehicleRequestDto
 import com.flowfuel.app.feature.vehicle.data.remote.UpdateVehicleRequestDto
@@ -15,6 +17,9 @@ import com.flowfuel.app.feature.vehicle.domain.model.PagedVehicles
 import com.flowfuel.app.feature.vehicle.domain.model.UpdateVehicleRequest
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import timber.log.Timber
 import java.io.IOException
@@ -24,6 +29,7 @@ import javax.inject.Singleton
 @Singleton
 class VehicleRepositoryImpl @Inject constructor(
     private val api: VehicleApi,
+    private val imagePickerHelper: ImagePickerHelper,
 ) : VehicleRepository {
 
     // ─── Listagem (paginada) ──────────────────────────────────────────────────
@@ -148,6 +154,18 @@ class VehicleRepositoryImpl @Inject constructor(
             capacity = request.tankCapacityL ?: request.batteryCapacityKwh,
         )
         return apiCall { api.updateVehicle(id, body) }.map { it.toDomain() }
+    }
+
+    // ─── Foto ─────────────────────────────────────────────────────────────────
+
+    override suspend fun uploadVehiclePhoto(vehicleId: Int, uri: Uri): AppResult<String> = try {
+        val compressed = imagePickerHelper.compressToJpeg(uri)
+        val requestBody = compressed.toRequestBody("image/jpeg".toMediaType())
+        val part = MultipartBody.Part.createFormData("file", "vehicle.jpg", requestBody)
+        apiCall { api.uploadVehiclePhoto(vehicleId, part) }.map { it.photo.orEmpty() }
+    } catch (e: Throwable) {
+        Timber.e(e, "VehicleRepo › erro ao comprimir imagem")
+        AppResult.Failure(AppError.Unknown(e))
     }
 
     private fun VehicleResponseDto.toDomain(): Vehicle {
