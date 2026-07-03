@@ -247,12 +247,14 @@ private fun VehicleManageItem(
     Box(modifier = Modifier.fillMaxWidth()) {
         // Card principal — tap navega para detalhes do veículo
         FFVehicleCard(
-            nickname   = "${vehicle.brand} ${vehicle.model}",
-            plate      = vehicle.licensePlate ?: "—",
-            odometerKm = String.format(Locale("pt", "BR"), "%,d", vehicle.odometerKm),
-            isActive   = isActive,
-            modifier   = Modifier.fillMaxWidth(),
-            onClick    = onNavigateToVehicleDetails,
+            nickname    = "${vehicle.brand} ${vehicle.model}",
+            plate       = vehicle.licensePlate ?: "—",
+            odometerKm  = String.format(Locale("pt", "BR"), "%,d", vehicle.odometerKm),
+            isActive    = isActive,
+            modifier    = Modifier.fillMaxWidth(),
+            photoUrl    = vehicle.photoUrl,
+            vehicleType = vehicle.type,
+            onClick     = onNavigateToVehicleDetails,
         )
 
         // Botão de opções (3 pontos) — canto superior direito sobre o card
