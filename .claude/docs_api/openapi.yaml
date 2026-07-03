@@ -1,0 +1,1569 @@
+openapi: 3.0.3
+info:
+  title: FlowFuel API
+  description: |
+    API de controle de abastecimentos e custos de veículos (combustão, elétrico e híbrido).
+    Documentação gerada via engenharia reversa do código-fonte (`com.devappmobile.flowfuel`).
+    Regras de negócio não explícitas no código estão marcadas `[INFERIDO]`.
+
+    Todos os paths abaixo já incluem o prefixo `/api/v1`, aplicado globalmente pelo
+    `WebMvcConfig` a todos os `@RestController` do pacote `com.devappmobile.flowfuel`
+    (exceto `HomeController`, que fica na raiz `/` para o health check). Os
+    `@RequestMapping` dos controllers individuais (ex: `UserController` em `/auth`)
+    não incluem o prefixo explicitamente — ele é adicionado em tempo de execução.
+  version: "1.0.0"
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+tags:
+  - name: Health
+    description: Health check
+  - name: Auth
+    description: Cadastro, autenticação, perfil e gerenciamento de senha/foto de usuário
+  - name: Vehicles
+    description: CRUD de veículos e gerenciamento de veículo ativo
+  - name: Refuels
+    description: Registro de abastecimentos
+  - name: VehicleEvents
+    description: Eventos de manutenção, seguro, taxas etc. associados a um veículo
+  - name: Dashboard
+    description: Estatísticas agregadas de consumo e gasto por veículo
+
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: API online
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: online
+                  message:
+                    type: string
+                    example: API está online
+                  timestamp:
+                    type: integer
+                    format: int64
+                    description: epoch millis (System.currentTimeMillis())
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Cadastro de usuário (status inicial PENDING_ACTIVATION)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterDTO"
+      responses:
+        "201":
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "409":
+          description: E-mail já cadastrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: https://flowfuel.app/errors/EMAIL_ALREADY_REGISTERED
+                title: Email já cadastrado
+                status: 409
+                detail: "Email já cadastrado"
+                code: EMAIL_ALREADY_REGISTERED
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/auth/activate:
+    post:
+      tags: [Auth]
+      summary: Ativa conta via token de ativação
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "204":
+          description: Conta ativada
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Token de ativação inválido, expirado ou já usado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                code: AUTH_ACTIVATION_INVALID
+                status: 401
+
+  /api/v1/auth/resend-activation:
+    post:
+      tags: [Auth]
+      summary: Reenvia e-mail de ativação
+      description: |
+        Não lança erro para e-mail desconhecido ou conta já ativa (anti-enumeração por design).
+        Sempre retorna 200 com mensagem genérica.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Solicitação processada (idempotente / anti-enumeração)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  activationToken:
+                    type: string
+                    nullable: true
+                    description: >-
+                      Presente apenas quando flowfuel.account-activation.expose-token=true
+                      (uso em ambiente de desenvolvimento/testes).
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login; retorna par de tokens (access + refresh)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login bem-sucedido
+          headers:
+            Authorization:
+              description: "Access token também é ecoado no header: `Bearer <accessToken>`"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPairResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Credenciais inválidas
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                code: AUTH_BAD_CREDENTIALS
+                status: 401
+                detail: "Email ou senha inválidos"
+        "403":
+          description: Conta ainda não ativada
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                code: ACCOUNT_NOT_ACTIVATED
+                status: 403
+                detail: "Conta não ativada. Verifique seu email para ativar a conta."
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotaciona refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Novo par de tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPairResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Refresh token inválido, expirado ou revogado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                invalid:
+                  value: { code: AUTH_REFRESH_INVALID, status: 401 }
+                expired:
+                  value: { code: AUTH_REFRESH_EXPIRED, status: 401 }
+                revoked:
+                  value:
+                    code: AUTH_REFRESH_REVOKED
+                    status: 401
+                    detail: "Reuso de token revogado — todas as sessões do usuário são revogadas como efeito colateral"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoga refresh token (logout)
+      description: Idempotente — não lança erro se o token já não existir ou estiver vazio.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "204":
+          description: Sessão encerrada
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Inicia reset de senha
+      description: Anti-enumeração — não lança erro para e-mail desconhecido.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Solicitação processada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  resetToken:
+                    type: string
+                    nullable: true
+                    description: Presente apenas quando flowfuel.password-reset.expose-token=true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Conclui reset de senha
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 6
+      responses:
+        "204":
+          description: Senha redefinida
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Token de redefinição inválido, expirado ou já usado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example: { code: AUTH_RESET_INVALID, status: 401 }
+
+  /api/v1/auth/{userId}/password:
+    put:
+      tags: [Auth]
+      summary: Altera senha do usuário autenticado
+      description: Efeito colateral — revoga todos os refresh tokens do usuário em caso de sucesso.
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 6
+      responses:
+        "204":
+          description: Senha alterada
+        "400":
+          description: Nova senha igual à atual
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                code: BUSINESS_RULE_VIOLATED
+                status: 400
+                detail: "Nova senha deve ser diferente da atual"
+        "401":
+          description: Senha atual inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                code: AUTH_BAD_CREDENTIALS
+                status: 401
+                detail: "Senha atual inválida"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+
+  /api/v1/auth/{userId}/upload-profile-picture:
+    post:
+      tags: [Auth]
+      summary: Upload de foto de perfil (S3/Backblaze B2)
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload concluído
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  internalUrl:
+                    type: string
+                    example: /api/v1/auth/123/profile-picture
+                  signedUrl:
+                    type: string
+                    nullable: true
+                    description: URL presignada do S3 (15 min)
+        "400":
+          description: >-
+            Arquivo não informado, tipo inválido (permitido apenas JPEG/PNG/WEBP)
+            ou tamanho excede 5 MB
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                missing:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Arquivo não informado" }
+                badType:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Tipo de arquivo inválido. Permitido: JPEG, PNG, WEBP" }
+                tooLarge:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Arquivo excede o tamanho máximo de 5 MB" }
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "413":
+          description: >-
+            [INFERIDO — confirmar com time] Limite de multipart do servlet
+            (spring.servlet.multipart.max-file-size=5MB / max-request-size=10MB)
+            pode rejeitar antes de chegar à camada de serviço; não há handler
+            explícito para MultipartException no GlobalExceptionHandler, então
+            o comportamento real observado pode ser 500 em vez de 413.
+
+  /api/v1/auth/{userId}/profile-picture:
+    get:
+      tags: [Auth]
+      summary: Download da foto de perfil
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: Bytes da imagem
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "204":
+          description: Usuário não possui foto de perfil cadastrada
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Auth]
+      summary: Remove foto de perfil
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "204":
+          description: Foto removida
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/auth/{userId}/profile:
+    get:
+      tags: [Auth]
+      summary: Consulta perfil do usuário
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: Perfil do usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Auth]
+      summary: Atualiza perfil (atualização parcial)
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateDTO"
+      responses:
+        "200":
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Novo e-mail já está em uso por outro usuário
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example: { code: EMAIL_ALREADY_REGISTERED, status: 409 }
+
+  /api/v1/auth/{userId}:
+    delete:
+      tags: [Auth]
+      summary: Exclui usuário
+      description: >-
+        [INFERIDO — confirmar com time] Comportamento de exclusão (soft vs hard delete)
+        não está explícito no código revisado.
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: >-
+            Usuário excluído. Nota: método retorna void sem ResponseEntity, portanto
+            200 com corpo vazio — inconsistente com o padrão 204 usado em outros
+            endpoints de exclusão deste mesmo controller (ex: DELETE profile-picture).
+        "403":
+          $ref: "#/components/responses/ForbiddenNotSelf"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicles:
+    post:
+      tags: [Vehicles]
+      summary: Cria veículo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleRequestDTO"
+      responses:
+        "200":
+          description: >-
+            Veículo criado. Nota: retorna 200, não 201 — não há ResponseEntity/@ResponseStatus
+            explícito neste endpoint de criação.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+    get:
+      tags: [Vehicles]
+      summary: Lista veículos do usuário autenticado (paginado)
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/size"
+        - $ref: "#/components/parameters/sort"
+      responses:
+        "200":
+          description: >-
+            Página de veículos. Default: size=20, sort=createdAt,DESC
+            (@PageableDefault no controller).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageVehicleResponseDTO"
+
+  /api/v1/vehicles/active:
+    get:
+      tags: [Vehicles]
+      summary: Retorna o veículo ativo do usuário autenticado
+      responses:
+        "200":
+          description: Veículo ativo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+        "404":
+          description: Nenhum veículo ativo encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example: { code: RESOURCE_NOT_FOUND, detail: "Nenhum veículo ativo encontrado" }
+
+  /api/v1/vehicles/{id}:
+    get:
+      tags: [Vehicles]
+      summary: Detalhe do veículo
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Detalhe do veículo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Vehicles]
+      summary: Atualiza veículo
+      description: >-
+        DTO de criação é reutilizado para atualização; embora a intenção do código seja
+        de merge parcial (sobrescreve apenas campos não-nulos), as anotações @NotNull/@NotBlank
+        em type/energyType/currentKm/capacity exigem que esses campos sejam sempre enviados —
+        na prática não há atualização parcial real desses campos. [INFERIDO]
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleRequestDTO"
+      responses:
+        "200":
+          description: Veículo atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Vehicles]
+      summary: Exclui veículo (cascade)
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: >-
+            Veículo excluído (cascade para refuels/events). Retorna 200 com corpo
+            vazio (void), não 204 — inconsistente com endpoints de delete do
+            UserController, que usam 204.
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicles/{id}/odometer:
+    put:
+      tags: [Vehicles]
+      summary: Atualiza odômetro do veículo
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: currentKm
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Odômetro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+        "400":
+          description: Odômetro não pode ser menor que o atual
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example: { code: BUSINESS_RULE_VIOLATED, detail: "Odômetro não pode ser menor que o atual" }
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicles/{id}/active:
+    put:
+      tags: [Vehicles]
+      summary: Define este veículo como ativo
+      description: >-
+        Efeito colateral: marca isActive=true neste veículo e false em todos os
+        demais veículos do mesmo usuário (apenas um veículo ativo por usuário).
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Veículo definido como ativo (corpo vazio, void)
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/refuels:
+    post:
+      tags: [Refuels]
+      summary: Cria abastecimento
+      description: >-
+        Efeito colateral: atualiza vehicle.currentKm para o odômetro informado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefuelRequestDTO"
+      responses:
+        "200":
+          description: Abastecimento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefuelResponseDTO"
+        "400":
+          description: Violação de regra de negócio
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                odometer:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Odômetro não pode ser menor que o último registrado" }
+                priceRange:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Preço fora da faixa permitida" }
+                capacity:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Quantidade de energia excede a capacidade do veículo" }
+                hybridMissingType:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Veículo híbrido exige refuelType (FUEL ou ELECTRIC) no abastecimento" }
+                incompatibleType:
+                  value: { code: BUSINESS_RULE_VIOLATED, detail: "Tipo de abastecimento incompatível com o veículo" }
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/refuels/vehicle/{vehicleId}:
+    get:
+      tags: [Refuels]
+      summary: Lista abastecimentos do veículo (filtro por data, paginado)
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/size"
+      responses:
+        "200":
+          description: Página de abastecimentos (default size=20, sem sort explícito)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageRefuelResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/refuels/{id}:
+    get:
+      tags: [Refuels]
+      summary: Detalhe do abastecimento
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Detalhe do abastecimento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefuelResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Refuels]
+      summary: Atualiza abastecimento (atualização parcial)
+      description: >-
+        Apenas campos não-nulos do RefuelRequestDTO são aplicados; refuelType
+        do registro original é reaproveitado nas validações de compatibilidade.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefuelRequestDTO"
+      responses:
+        "200":
+          description: Abastecimento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefuelResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Refuels]
+      summary: Exclui abastecimento
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Abastecimento excluído (corpo vazio, void — não 204)
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicle-events:
+    post:
+      tags: [VehicleEvents]
+      summary: Cria evento (manutenção, seguro, taxa etc.)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleEventRequestDTO"
+      responses:
+        "200":
+          description: Evento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleEventResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicle-events/vehicle/{vehicleId}:
+    get:
+      tags: [VehicleEvents]
+      summary: Lista eventos do veículo (filtro tipo/data, paginado)
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/VehicleEventType"
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/size"
+      responses:
+        "200":
+          description: Página de eventos (default size=20)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageVehicleEventResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/vehicle-events/{id}:
+    get:
+      tags: [VehicleEvents]
+      summary: Detalhe do evento
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Detalhe do evento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleEventResponseDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [VehicleEvents]
+      summary: Atualiza evento (atualização parcial)
+      description: >-
+        Apenas campos não-nulos são aplicados; vehicleId nunca é reatribuído em
+        update() — não é possível mover o evento para outro veículo mesmo enviando
+        um vehicleId diferente.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleEventRequestDTO"
+      responses:
+        "200":
+          description: Evento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleEventResponseDTO"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [VehicleEvents]
+      summary: Exclui evento
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Evento excluído (corpo vazio, void — não 204)
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/dashboard/vehicle/{vehicleId}:
+    get:
+      tags: [Dashboard]
+      summary: Estatísticas agregadas do veículo
+      description: >-
+        Para veículos HYBRID, totalEnergy/averagePrice/averageConsumption/energyUnit/
+        priceUnit/consumptionUnit são null e o detalhamento por tipo é retornado em
+        `breakdown`. Fórmula de consumo médio (DashboardService.calculateAverageConsumption):
+        soma kmDriven e energyUsed entre pares consecutivos de abastecimentos com tanque
+        cheio (mais recente primeiro), divide os totais, arredonda HALF_UP com 2 decimais;
+        retorna 0.0 se houver menos de 2 abastecimentos com tanque cheio ou energia total 0.
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Estatísticas do veículo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardDTO"
+        "403":
+          $ref: "#/components/responses/ForbiddenNotOwner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Header `Authorization: Bearer <token>`. Ausente/malformado → 401 AUTH_REQUIRED;
+        presente mas inválido/expirado → 401 AUTH_TOKEN_INVALID.
+
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 0
+        description: zero-based
+    size:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+        description: spring.data.web.pageable.max-page-size=100
+    sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        example: createdAt,DESC
+
+  responses:
+    ValidationFailed:
+      description: Falha de validação (bean validation / @Valid)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: https://flowfuel.app/errors/VALIDATION_FAILED
+            title: Validação falhou
+            status: 400
+            code: VALIDATION_FAILED
+            errors:
+              - field: email
+                message: must not be blank
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            code: RESOURCE_NOT_FOUND
+            status: 404
+    ForbiddenNotOwner:
+      description: Recurso não pertence ao usuário autenticado
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            code: FORBIDDEN_OPERATION
+            status: 403
+    ForbiddenNotSelf:
+      description: Usuário autenticado tentando operar sobre outro usuário
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            code: FORBIDDEN_OPERATION
+            status: 403
+            detail: "Você não pode operar sobre outro usuário"
+    RateLimited:
+      description: Limite de requisições excedido (Redis + bucket4j, por IP)
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: segundos até liberar nova tentativa
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            code: RATE_LIMIT_EXCEEDED
+            status: 429
+
+  schemas:
+    ProblemDetail:
+      type: object
+      description: RFC 7807 ProblemDetail estendido (GlobalExceptionHandler / ProblemDetailWriter)
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://flowfuel.app/errors/RESOURCE_NOT_FOUND
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        code:
+          type: string
+          enum:
+            - VALIDATION_FAILED
+            - BUSINESS_RULE_VIOLATED
+            - REQUEST_MALFORMED
+            - AUTH_REQUIRED
+            - AUTH_BAD_CREDENTIALS
+            - AUTH_TOKEN_INVALID
+            - AUTH_REFRESH_INVALID
+            - AUTH_REFRESH_EXPIRED
+            - AUTH_REFRESH_REVOKED
+            - AUTH_RESET_INVALID
+            - AUTH_ACTIVATION_INVALID
+            - FORBIDDEN_OPERATION
+            - ACCOUNT_NOT_ACTIVATED
+            - RESOURCE_NOT_FOUND
+            - CONFLICT
+            - EMAIL_ALREADY_REGISTERED
+            - RATE_LIMIT_EXCEEDED
+            - INTERNAL_ERROR
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          nullable: true
+          description: presente apenas quando definido no MDC
+        errors:
+          type: array
+          nullable: true
+          description: presente apenas em VALIDATION_FAILED (MethodArgumentNotValidException/ConstraintViolationException)
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    UserRegisterDTO:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          description: "Senha deve ter pelo menos 6 caracteres"
+        name:
+          type: string
+        phone:
+          type: string
+
+    UserUpdateDTO:
+      type: object
+      description: >-
+        Todos os campos opcionais; se email for enviado não pode ser
+        branco/whitespace-only (validador customizado @ValidUserUpdateDTO).
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+
+    UserResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        profilePicture:
+          type: string
+          nullable: true
+          description: URL interna (/api/v1/auth/{userId}/profile-picture), null se não houver foto
+        profilePictureUrl:
+          type: string
+          nullable: true
+          description: URL presignada do S3, null se não houver foto
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    TokenPairResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          format: int64
+          description: segundos até expirar o access token
+
+    EnergyType:
+      type: string
+      enum: [COMBUSTION, ELECTRIC, HYBRID]
+
+    RefuelType:
+      type: string
+      enum: [FUEL, ELECTRIC]
+
+    VehicleEventType:
+      type: string
+      enum: [FUEL, MAINTENANCE, OIL_CHANGE, CAR_WASH, TIRES, INSURANCE, TAX, DOCUMENTS, OTHER]
+
+    VehicleRequestDTO:
+      type: object
+      required: [type, energyType, currentKm, capacity]
+      properties:
+        type:
+          type: string
+        energyType:
+          $ref: "#/components/schemas/EnergyType"
+        fuelSubType:
+          type: string
+          nullable: true
+        currentKm:
+          type: integer
+          minimum: 0
+        capacity:
+          type: integer
+          minimum: 1
+          description: capacidade do tanque em litros
+        batteryCapacity:
+          type: number
+          format: double
+          nullable: true
+          description: kWh
+        brand:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        manufactureYear:
+          type: integer
+          minimum: 1886
+          maximum: 2100
+          nullable: true
+        modelYear:
+          type: integer
+          minimum: 1886
+          maximum: 2100
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        licensePlate:
+          type: string
+          nullable: true
+
+    VehicleResponseDTO:
+      allOf:
+        - $ref: "#/components/schemas/VehicleRequestDTO"
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            photo:
+              type: string
+              nullable: true
+            isActive:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    RefuelRequestDTO:
+      type: object
+      required: [vehicleId, odometer, energyAmount, pricePerUnit]
+      properties:
+        vehicleId:
+          type: integer
+          format: int64
+        odometer:
+          type: integer
+          minimum: 0
+        energyAmount:
+          type: number
+          format: double
+          minimum: 0.01
+        pricePerUnit:
+          type: number
+          format: double
+          minimum: 0.01
+        fullTank:
+          type: boolean
+          default: false
+        refuelType:
+          $ref: "#/components/schemas/RefuelType"
+          nullable: true
+          description: >-
+            Obrigatório apenas para veículos HYBRID (regra de negócio, não bean validation).
+            Faixas de preço por unidade aceitas: ELECTRIC 0.1–5.0, FUEL 0.5–15.0 (hardcoded).
+
+    RefuelResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        vehicleId:
+          type: integer
+          format: int64
+        refuelDate:
+          type: string
+          format: date-time
+        odometer:
+          type: integer
+        kmSinceLastRefuel:
+          type: integer
+          nullable: true
+        energyAmount:
+          type: number
+          format: double
+        pricePerUnit:
+          type: number
+          format: double
+        totalAmount:
+          type: number
+          format: double
+          description: calculado = energyAmount × pricePerUnit (@PrePersist/@PreUpdate)
+        fullTank:
+          type: boolean
+        refuelType:
+          $ref: "#/components/schemas/RefuelType"
+
+    VehicleEventRequestDTO:
+      type: object
+      required: [vehicleId, type, amount, eventDate]
+      properties:
+        vehicleId:
+          type: integer
+          format: int64
+        type:
+          $ref: "#/components/schemas/VehicleEventType"
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          description: "@Digits(integer=10, fraction=2)"
+        eventDate:
+          type: string
+          format: date
+          description: "@PastOrPresent"
+        odometer:
+          type: integer
+          minimum: 0
+          nullable: true
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    VehicleEventResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        vehicleId:
+          type: integer
+          format: int64
+        type:
+          $ref: "#/components/schemas/VehicleEventType"
+        amount:
+          type: number
+          format: double
+        eventDate:
+          type: string
+          format: date
+        odometer:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FuelMetrics:
+      type: object
+      description: Métricas para um tipo de energia dentro do breakdown híbrido
+      properties:
+        totalEnergy:
+          type: number
+          format: double
+        totalSpent:
+          type: number
+          format: double
+        averagePrice:
+          type: number
+          format: double
+        averageConsumption:
+          type: number
+          format: double
+        energyUnit:
+          type: string
+        priceUnit:
+          type: string
+        consumptionUnit:
+          type: string
+
+    HybridBreakdownDTO:
+      type: object
+      description: Presente apenas quando energyType=HYBRID
+      properties:
+        fuel:
+          $ref: "#/components/schemas/FuelMetrics"
+        electric:
+          $ref: "#/components/schemas/FuelMetrics"
+
+    DashboardDTO:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+          format: int64
+        energyType:
+          $ref: "#/components/schemas/EnergyType"
+        totalRefuels:
+          type: integer
+          format: int64
+        totalSpent:
+          type: number
+          format: double
+        totalEnergy:
+          type: number
+          format: double
+          nullable: true
+          description: null quando energyType=HYBRID
+        averagePrice:
+          type: number
+          format: double
+          nullable: true
+          description: null quando energyType=HYBRID
+        averageConsumption:
+          type: number
+          format: double
+          nullable: true
+          description: null quando energyType=HYBRID
+        energyUnit:
+          type: string
+          nullable: true
+          description: "litros ou kWh; null quando HYBRID"
+        priceUnit:
+          type: string
+          nullable: true
+          description: "ex: R$/litro; null quando HYBRID"
+        consumptionUnit:
+          type: string
+          nullable: true
+          description: "ex: km/L; null quando HYBRID"
+        breakdown:
+          $ref: "#/components/schemas/HybridBreakdownDTO"
+          nullable: true
+          description: presente apenas para HYBRID
+        lastRefuelDate:
+          type: string
+          format: date
+          nullable: true
+          description: null se não houver abastecimentos
+        lastOdometer:
+          type: integer
+          nullable: true
+          description: null se não houver abastecimentos
+
+    PageVehicleResponseDTO:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/VehicleResponseDTO"
+
+    PageRefuelResponseDTO:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/RefuelResponseDTO"
+
+    PageVehicleEventResponseDTO:
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/VehicleEventResponseDTO"
+
+    PageMetadata:
+      type: object
+      description: PageResponseDTO<T> genérico (common/PageResponseDTO.java)
+      properties:
+        page:
+          type: integer
+          description: zero-based
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

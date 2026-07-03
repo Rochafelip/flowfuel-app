@@ -14,3 +14,11 @@ app/release/
 *.aab
 
 .superpowers/
+
+# Copias instaladas de skills externas (gerenciadas por skills-lock.json,
+# regeneraveis - so o lock file fica versionado)
+.agents/
+.claude/skills/writing-plans/
+
+# Cache do compilador Kotlin
+.kotlin/
