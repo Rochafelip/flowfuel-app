@@ -1,6 +1,10 @@
 package com.flowfuel.app.feature.vehicle.presentation.edit
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -9,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,6 +44,7 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.TwoWheeler
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +63,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
@@ -88,6 +97,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTextField
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
+import com.flowfuel.app.core.designsystem.components.VehiclePhotoAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.ui.userMessage
@@ -157,6 +167,15 @@ fun EditVehicleScreen(
         if (formErrorMsg != null) {
             snackbarHostState.showSnackbar(FFSnackbarVisuals(formErrorMsg, FFSnackbarKind.Error))
             viewModel.clearError()
+        }
+    }
+
+    // Erro de upload de foto (independente do formError)
+    val photoErrorMsg = state.photoUploadError?.userMessage()
+    LaunchedEffect(photoErrorMsg) {
+        if (photoErrorMsg != null) {
+            snackbarHostState.showSnackbar(FFSnackbarVisuals(photoErrorMsg, FFSnackbarKind.Error))
+            viewModel.clearPhotoUploadError()
         }
     }
 
@@ -269,6 +288,16 @@ fun EditVehicleScreen(
                     verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xl),
                 ) {
                     Spacer(Modifier.height(FFTheme.spacing.xs))
+
+                    // ── Foto do veículo ───────────────────────────────────────
+                    EditVehiclePhotoSection(
+                        photoUrl = state.photoUrl,
+                        vehicleType = state.vehicleType,
+                        isUploading = state.isUploadingPhoto,
+                        onPhotoPicked = viewModel::onPhotoPicked,
+                    )
+
+                    EditSectionDivider()
 
                     // ── Seção 1: Informações principais ──────────────────────
                     EditFormSection(title = stringResource(R.string.vehicle_section_info)) {
@@ -555,6 +584,64 @@ private fun EditFormSection(
 @Composable
 private fun EditSectionDivider() {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun EditVehiclePhotoSection(
+    photoUrl: String?,
+    vehicleType: VehicleType,
+    isUploading: Boolean,
+    onPhotoPicked: (Uri) -> Unit,
+) {
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let(onPhotoPicked) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier = Modifier.size(96.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            VehiclePhotoAvatar(
+                photoUrl = photoUrl,
+                vehicleType = vehicleType,
+                size = 96.dp,
+                onClick = if (!isUploading) {
+                    {
+                        launcher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                } else null,
+            )
+
+            if (isUploading) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = stringResource(R.string.vehicle_photo_change),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 @Composable
