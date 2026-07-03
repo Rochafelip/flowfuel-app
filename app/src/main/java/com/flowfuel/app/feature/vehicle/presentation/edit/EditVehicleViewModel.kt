@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.vehicle.presentation.edit
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.flowfuel.app.feature.vehicle.domain.model.UpdateVehicleRequest
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.UpdateVehicleUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.UploadVehiclePhotoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,6 +31,7 @@ class EditVehicleViewModel @Inject constructor(
     private val getVehicleById: GetVehicleByIdUseCase,
     private val updateVehicle: UpdateVehicleUseCase,
     private val sessionStore: SessionStore,
+    private val uploadVehiclePhoto: UploadVehiclePhotoUseCase,
 ) : ViewModel() {
 
     private val vehicleId: Int = checkNotNull(savedStateHandle["vehicleId"])
@@ -65,6 +69,7 @@ class EditVehicleViewModel @Inject constructor(
                         odometer         = vehicle.odometerKm.toString(),
                         tankCapacity     = vehicle.tankCapacityL?.toFormString() ?: "",
                         batteryCapacity  = vehicle.batteryCapacityKwh?.toFormString() ?: "",
+                        photoUrl         = vehicle.photoUrl,
                     )
                     initialState = loaded
                     _state.value = loaded
@@ -129,6 +134,28 @@ class EditVehicleViewModel @Inject constructor(
         updateWithDirtyCheck { it.copy(batteryCapacity = v) }
 
     fun clearError() = _state.update { it.copy(formError = null) }
+
+    /**
+     * Envia a foto imediatamente ao ser escolhida — independente do botão
+     * "Salvar" e do isDirty/diálogo de descarte dos demais campos, mesmo
+     * padrão de [ProfileViewModel.onPickImage].
+     */
+    fun onPhotoPicked(uri: Uri) {
+        _state.update { it.copy(isUploadingPhoto = true, photoUploadError = null) }
+        viewModelScope.launch {
+            when (val result = uploadVehiclePhoto(vehicleId, uri)) {
+                is AppResult.Success -> _state.update {
+                    it.copy(isUploadingPhoto = false, photoUrl = result.value)
+                }
+                is AppResult.Failure -> {
+                    Timber.e("EditVehicle › erro ao enviar foto: ${result.error}")
+                    _state.update { it.copy(isUploadingPhoto = false, photoUploadError = result.error) }
+                }
+            }
+        }
+    }
+
+    fun clearPhotoUploadError() = _state.update { it.copy(photoUploadError = null) }
 
     // ─── Navegação / descarte ─────────────────────────────────────────────────
 

@@ -49,6 +49,10 @@ data class EditVehicleUiState(
     val submitAttempt: Int = 0,
     val isDirty: Boolean = false,
     val showDiscardDialog: Boolean = false,
+    // — Foto (upload imediato, independente do botão Salvar)
+    val photoUrl: String? = null,
+    val isUploadingPhoto: Boolean = false,
+    val photoUploadError: AppError? = null,
 ) {
     val showFuelType: Boolean
         get() = energyType == EnergyType.Combustion || energyType == EnergyType.Hybrid
