@@ -62,6 +62,104 @@ class ImagePickerHelperTest {
     }
 
     @Test
+    fun `loadForCropping rotates the bitmap for EXIF transpose orientation`() {
+        val file = writeJpeg(width = 4, height = 2, color = Color.RED)
+        ExifInterface(file.absolutePath).apply {
+            setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_TRANSPOSE.toString())
+            saveAttributes()
+        }
+
+        val result = helper.loadForCropping(Uri.fromFile(file))
+
+        assertEquals(2, result.width)
+        assertEquals(4, result.height)
+    }
+
+    @Test
+    fun `loadForCropping rotates the bitmap for EXIF transverse orientation`() {
+        val file = writeJpeg(width = 4, height = 2, color = Color.RED)
+        ExifInterface(file.absolutePath).apply {
+            setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_TRANSVERSE.toString())
+            saveAttributes()
+        }
+
+        val result = helper.loadForCropping(Uri.fromFile(file))
+
+        assertEquals(2, result.width)
+        assertEquals(4, result.height)
+    }
+
+    // Pixel-level verification of flip/transpose transforms isn't possible via Robolectric's
+    // legacy Bitmap shadow: Bitmap.createBitmap(src, x, y, w, h, matrix, filter) only recomputes
+    // width/height from matrix.mapRect and never actually resamples pixels through the matrix.
+    // So the matrix construction itself is verified directly here via point mapping instead.
+
+    @Test
+    fun `orientationMatrix mirrors horizontally for FLIP_HORIZONTAL`() {
+        val matrix = requireNotNull(ImagePickerHelper.orientationMatrix(ExifInterface.ORIENTATION_FLIP_HORIZONTAL))
+
+        val points = floatArrayOf(0f, 0f, 10f, 0f, 10f, 5f)
+        matrix.mapPoints(points)
+
+        assertEquals(0f, points[0], 0.001f)
+        assertEquals(0f, points[1], 0.001f)
+        assertEquals(-10f, points[2], 0.001f)
+        assertEquals(0f, points[3], 0.001f)
+        assertEquals(-10f, points[4], 0.001f)
+        assertEquals(5f, points[5], 0.001f)
+    }
+
+    @Test
+    fun `orientationMatrix mirrors vertically for FLIP_VERTICAL`() {
+        val matrix = requireNotNull(ImagePickerHelper.orientationMatrix(ExifInterface.ORIENTATION_FLIP_VERTICAL))
+
+        val points = floatArrayOf(0f, 0f, 10f, 0f, 10f, 5f)
+        matrix.mapPoints(points)
+
+        assertEquals(0f, points[0], 0.001f)
+        assertEquals(0f, points[1], 0.001f)
+        assertEquals(10f, points[2], 0.001f)
+        assertEquals(0f, points[3], 0.001f)
+        assertEquals(10f, points[4], 0.001f)
+        assertEquals(-5f, points[5], 0.001f)
+    }
+
+    @Test
+    fun `orientationMatrix transposes across the main diagonal for TRANSPOSE`() {
+        val matrix = requireNotNull(ImagePickerHelper.orientationMatrix(ExifInterface.ORIENTATION_TRANSPOSE))
+
+        val points = floatArrayOf(0f, 0f, 10f, 0f, 10f, 5f)
+        matrix.mapPoints(points)
+
+        assertEquals(0f, points[0], 0.001f)
+        assertEquals(0f, points[1], 0.001f)
+        assertEquals(0f, points[2], 0.001f)
+        assertEquals(10f, points[3], 0.001f)
+        assertEquals(5f, points[4], 0.001f)
+        assertEquals(10f, points[5], 0.001f)
+    }
+
+    @Test
+    fun `orientationMatrix transposes across the anti-diagonal for TRANSVERSE`() {
+        val matrix = requireNotNull(ImagePickerHelper.orientationMatrix(ExifInterface.ORIENTATION_TRANSVERSE))
+
+        val points = floatArrayOf(0f, 0f, 10f, 0f, 10f, 5f)
+        matrix.mapPoints(points)
+
+        assertEquals(0f, points[0], 0.001f)
+        assertEquals(0f, points[1], 0.001f)
+        assertEquals(0f, points[2], 0.001f)
+        assertEquals(-10f, points[3], 0.001f)
+        assertEquals(-5f, points[4], 0.001f)
+        assertEquals(-10f, points[5], 0.001f)
+    }
+
+    @Test
+    fun `orientationMatrix returns null for ORIENTATION_NORMAL`() {
+        assertEquals(null, ImagePickerHelper.orientationMatrix(ExifInterface.ORIENTATION_NORMAL))
+    }
+
+    @Test
     fun `cropToCache writes a square jpeg with the requested output size`() {
         val bitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.RED) }
         val cropRect = CropRect(left = 50, top = 50, size = 200)

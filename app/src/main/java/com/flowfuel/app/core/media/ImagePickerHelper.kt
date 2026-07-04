@@ -61,15 +61,7 @@ class ImagePickerHelper @Inject constructor(
             ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
         } ?: ExifInterface.ORIENTATION_NORMAL
 
-        val degrees = when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90  -> 90f
-            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-            else -> 0f
-        }
-        if (degrees == 0f) return decoded
-
-        val matrix = Matrix().apply { postRotate(degrees) }
+        val matrix = orientationMatrix(orientation) ?: return decoded
         return Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
     }
 
@@ -101,5 +93,28 @@ class ImagePickerHelper @Inject constructor(
             halfWidth /= 2
         }
         return sampleSize
+    }
+
+    companion object {
+        /** Cobre os 8 valores de [ExifInterface.TAG_ORIENTATION] — TRANSPOSE/TRANSVERSE são comuns em selfies de câmera frontal. */
+        internal fun orientationMatrix(orientation: Int): Matrix? = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> Matrix().apply { setRotate(90f) }
+            ExifInterface.ORIENTATION_ROTATE_180 -> Matrix().apply { setRotate(180f) }
+            ExifInterface.ORIENTATION_ROTATE_270 -> Matrix().apply { setRotate(270f) }
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> Matrix().apply { setScale(-1f, 1f) }
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> Matrix().apply {
+                setRotate(180f)
+                postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSPOSE -> Matrix().apply {
+                setRotate(90f)
+                postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> Matrix().apply {
+                setRotate(270f)
+                postScale(-1f, 1f)
+            }
+            else -> null
+        }
     }
 }
