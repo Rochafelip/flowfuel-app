@@ -12,6 +12,7 @@ import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
+import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsTotalUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -49,6 +50,7 @@ class HomeViewModelTest {
     private val getVehicles: GetVehiclesUseCase = mockk(relaxed = true)
     private val setActiveVehicle: SetActiveVehicleUseCase = mockk(relaxed = true)
     private val stationsPrefetcher: NearbyStationsPrefetcher = mockk(relaxed = true)
+    private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase = mockk(relaxed = true)
 
     private val testVehicle = ActiveVehicleData(
         id = 1,
@@ -81,7 +83,7 @@ class HomeViewModelTest {
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard)
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, createRefuel, logout,
-            sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher,
+            sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
         )
     }
 
