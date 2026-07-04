@@ -511,6 +511,12 @@ fun FlowFuelNavHost(
                                 .savedStateHandle["tab_event_created"] = true
                         }
                     }
+                    // Um evento novo afeta o gasto total exibido no dashboard da Home,
+                    // então sinaliza independentemente de qual aba recebeu o evento acima.
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["home_needs_refresh"] = true
+                    }
                     navController.popBackStack()
                 },
                 onNavigateToLogin = {
@@ -548,6 +554,10 @@ fun FlowFuelNavHost(
                                 .savedStateHandle["tab_event_deleted"] = eventId
                         }
                     }
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["home_needs_refresh"] = true
+                    }
                     navController.popBackStack()
                 },
                 onNavigateToLogin = {
@@ -583,6 +593,10 @@ fun FlowFuelNavHost(
                                 .savedStateHandle["tab_event_updated"] = true
                         }
                     }
+                    runCatching {
+                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
+                            .savedStateHandle["home_needs_refresh"] = true
+                    }
                     navController.popBackStack()
                 },
                 onNavigateToLogin = {
@@ -600,6 +614,9 @@ fun FlowFuelNavHost(
                 .collectAsStateWithLifecycle()
             val historyNeedsRefresh by entry.savedStateHandle
                 .getStateFlow("history_needs_refresh", false)
+                .collectAsStateWithLifecycle()
+            val homeNeedsRefresh by entry.savedStateHandle
+                .getStateFlow("home_needs_refresh", false)
                 .collectAsStateWithLifecycle()
             val tabEventCreated by entry.savedStateHandle
                 .getStateFlow("tab_event_created", false)
@@ -648,6 +665,10 @@ fun FlowFuelNavHost(
                 historyNeedsRefresh = historyNeedsRefresh,
                 onHistoryRefreshConsumed = {
                     entry.savedStateHandle["history_needs_refresh"] = false
+                },
+                homeNeedsRefresh = homeNeedsRefresh,
+                onHomeRefreshConsumed = {
+                    entry.savedStateHandle["home_needs_refresh"] = false
                 },
                 tabEventCreated = tabEventCreated,
                 onTabEventCreatedConsumed = {

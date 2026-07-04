@@ -66,6 +66,8 @@ fun MainContainerScreen(
     onProfileUpdatedConsumed: () -> Unit = {},
     historyNeedsRefresh: Boolean = false,
     onHistoryRefreshConsumed: () -> Unit = {},
+    homeNeedsRefresh: Boolean = false,
+    onHomeRefreshConsumed: () -> Unit = {},
     tabEventCreated: Boolean = false,
     onTabEventCreatedConsumed: () -> Unit = {},
     tabEventDeleted: Int = -1,
@@ -159,6 +161,8 @@ fun MainContainerScreen(
                     onNavigateToAddVehicle = onNavigateToAddVehicle,
                     openRefuelSheet        = openRefuelSheet,
                     onRefuelSheetOpened    = { openRefuelSheet = false },
+                    refreshTrigger         = homeNeedsRefresh,
+                    onRefreshConsumed      = onHomeRefreshConsumed,
                 )
             }
 

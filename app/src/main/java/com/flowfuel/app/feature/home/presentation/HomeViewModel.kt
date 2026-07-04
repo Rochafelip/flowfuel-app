@@ -7,12 +7,14 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
+import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
+import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsTotalUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -36,6 +38,7 @@ class HomeViewModel @Inject constructor(
     private val getVehicles: GetVehiclesUseCase,
     private val setActiveVehicle: SetActiveVehicleUseCase,
     private val stationsPrefetcher: NearbyStationsPrefetcher,
+    private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -75,7 +78,7 @@ class HomeViewModel @Inject constructor(
             }
 
             // Dashboard pode ser carregado agora que temos o ID
-            val dashboardResult = getDashboard(vehicleId)
+            val dashboardResult = fetchDashboardWithEventsTotal(vehicleId)
 
             when (dashboardResult) {
                 is AppResult.Success ->
@@ -115,7 +118,7 @@ class HomeViewModel @Inject constructor(
             val vehicle = (vehicleResult as AppResult.Success).value
             val vehicleId = storedVehicleId ?: vehicle.id
 
-            when (val dashboardResult = getDashboard(vehicleId)) {
+            when (val dashboardResult = fetchDashboardWithEventsTotal(vehicleId)) {
                 is AppResult.Success -> _state.update {
                     it.copy(
                         isRefreshing = false,
@@ -350,6 +353,27 @@ class HomeViewModel @Inject constructor(
     }
 
     // ─── Helpers privados ─────────────────────────────────────────────────────
+
+    /**
+     * O dashboard remoto soma apenas abastecimentos. Eventos do veículo
+     * (manutenção, troca de óleo etc.) vivem em outra coleção e não entram
+     * nesse total, então somamos aqui para que "Gasto total" reflita o veículo
+     * como um todo.
+     */
+    private suspend fun fetchDashboardWithEventsTotal(vehicleId: Int): AppResult<DashboardData> {
+        val dashboardResult = getDashboard(vehicleId)
+        if (dashboardResult is AppResult.Failure) return dashboardResult
+        val dashboard = (dashboardResult as AppResult.Success).value
+
+        val eventsTotal = when (val eventsResult = getVehicleEventsTotal(vehicleId)) {
+            is AppResult.Success -> eventsResult.value
+            is AppResult.Failure -> {
+                Timber.w("Home: falha ao somar eventos do veículo, exibindo apenas abastecimentos")
+                0.0
+            }
+        }
+        return AppResult.Success(dashboard.copy(totalSpent = dashboard.totalSpent + eventsTotal))
+    }
 
     private suspend fun handleGlobalError(error: AppError) {
         Timber.e("Home: error → $error")

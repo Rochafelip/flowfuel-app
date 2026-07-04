@@ -75,6 +75,8 @@ fun HomeScreen(
     onNavigateToAddVehicle: () -> Unit,
     openRefuelSheet: Boolean = false,
     onRefuelSheetOpened: () -> Unit = {},
+    refreshTrigger: Boolean = false,
+    onRefreshConsumed: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -84,6 +86,13 @@ fun HomeScreen(
         if (openRefuelSheet) {
             viewModel.openRefuelSheet()
             onRefuelSheetOpened()
+        }
+    }
+
+    LaunchedEffect(refreshTrigger) {
+        if (refreshTrigger) {
+            viewModel.refresh()
+            onRefreshConsumed()
         }
     }
 
