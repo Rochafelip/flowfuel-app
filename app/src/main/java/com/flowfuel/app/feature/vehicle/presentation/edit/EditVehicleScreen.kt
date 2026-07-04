@@ -60,7 +60,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,6 +99,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTextField
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
+import com.flowfuel.app.core.designsystem.components.PhotoCropDialog
 import com.flowfuel.app.core.designsystem.components.VehiclePhotoAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.domain.AppError
@@ -593,9 +596,10 @@ private fun EditVehiclePhotoSection(
     isUploading: Boolean,
     onPhotoPicked: (Uri) -> Unit,
 ) {
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> uri?.let(onPhotoPicked) }
+    ) { uri -> uri?.let { pendingCropUri = it } }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -640,6 +644,17 @@ private fun EditVehiclePhotoSection(
             text = stringResource(R.string.vehicle_photo_change),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    pendingCropUri?.let { pickedUri ->
+        PhotoCropDialog(
+            uri = pickedUri,
+            onConfirm = { cropped ->
+                pendingCropUri = null
+                onPhotoPicked(cropped)
+            },
+            onDismiss = { pendingCropUri = null },
         )
     }
 }
