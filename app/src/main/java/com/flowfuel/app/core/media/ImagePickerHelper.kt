@@ -85,7 +85,7 @@ class ImagePickerHelper @Inject constructor(
 
         val dir = File(context.cacheDir, "photo_crops").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val file = File(dir, "crop_${System.currentTimeMillis()}.jpg")
+        val file = File.createTempFile("crop_", ".jpg", dir)
         FileOutputStream(file).use { out ->
             scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
         }
