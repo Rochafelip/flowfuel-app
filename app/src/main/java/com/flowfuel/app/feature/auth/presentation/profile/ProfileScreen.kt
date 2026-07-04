@@ -65,6 +65,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
+import com.flowfuel.app.core.designsystem.components.PhotoCropDialog
 import com.flowfuel.app.core.designsystem.components.UserAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
@@ -209,10 +210,11 @@ private fun ProfileContent(
 ) {
     var showAvatarSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     val isBusy = isUploadingPhoto || isDeletingPhoto
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> uri?.let { onPickImage(it) } }
+    ) { uri -> uri?.let { pendingCropUri = it } }
 
     Column(
         modifier = modifier
@@ -263,6 +265,17 @@ private fun ProfileContent(
                 onConfirm   = { showDeleteDialog = false; onDeletePicture() },
                 onDismiss   = { showDeleteDialog = false },
                 kind        = FFDialogKind.Destructive,
+            )
+        }
+
+        pendingCropUri?.let { pickedUri ->
+            PhotoCropDialog(
+                uri = pickedUri,
+                onConfirm = { cropped ->
+                    pendingCropUri = null
+                    onPickImage(cropped)
+                },
+                onDismiss = { pendingCropUri = null },
             )
         }
 
