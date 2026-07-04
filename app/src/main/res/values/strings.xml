@@ -7,6 +7,7 @@
     <string name="action_back">Voltar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_confirm">Confirmar</string>
+    <string name="photo_crop_title">Ajustar foto</string>
     <string name="action_retry">Tentar novamente</string>
     <string name="action_save">Salvar</string>
     <string name="action_delete">Excluir</string>
