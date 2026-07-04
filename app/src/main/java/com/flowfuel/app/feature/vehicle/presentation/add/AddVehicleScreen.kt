@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.vehicle.presentation.add
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -61,7 +62,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,6 +93,7 @@ import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFChip
 import com.flowfuel.app.core.designsystem.components.FFNumberField
 import com.flowfuel.app.core.designsystem.components.FFNumberKind
+import com.flowfuel.app.core.designsystem.components.PhotoCropDialog
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
@@ -513,9 +517,10 @@ private fun Step4Content(
     state: AddVehicleUiState,
     viewModel: AddVehicleViewModel,
 ) {
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> uri?.let { viewModel.onPhotoPicked(it) } }
+    ) { uri -> uri?.let { pendingCropUri = it } }
 
     Column(
         modifier = Modifier
@@ -535,11 +540,11 @@ private fun Step4Content(
         Box(
             modifier = Modifier
                 .size(200.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(CircleShape)
                 .border(
                     width = 1.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = MaterialTheme.shapes.medium,
+                    shape = CircleShape,
                 )
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .clickable(enabled = !state.isSubmitting) {
@@ -598,6 +603,17 @@ private fun Step4Content(
                 textAlign = TextAlign.Center,
             )
         }
+    }
+
+    pendingCropUri?.let { pickedUri ->
+        PhotoCropDialog(
+            uri = pickedUri,
+            onConfirm = { cropped ->
+                pendingCropUri = null
+                viewModel.onPhotoPicked(cropped)
+            },
+            onDismiss = { pendingCropUri = null },
+        )
     }
 }
 
