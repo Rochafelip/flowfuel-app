@@ -8,6 +8,8 @@ import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -69,6 +71,25 @@ class ImagePickerHelper @Inject constructor(
 
         val matrix = Matrix().apply { postRotate(degrees) }
         return Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+    }
+
+    /**
+     * Recorta [bitmap] em [cropRect] (região quadrada já calculada por
+     * [CropMath.computeCropRect]), redimensiona para [outputSizePx] e grava
+     * como JPEG num arquivo de cache, apagando o crop anterior — evita
+     * acumular arquivos temporários em uso prolongado do app.
+     */
+    fun cropToCache(bitmap: Bitmap, cropRect: CropRect, outputSizePx: Int = 800): Uri {
+        val cropped = Bitmap.createBitmap(bitmap, cropRect.left, cropRect.top, cropRect.size, cropRect.size)
+        val scaled = Bitmap.createScaledBitmap(cropped, outputSizePx, outputSizePx, true)
+
+        val dir = File(context.cacheDir, "photo_crops").apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() }
+        val file = File(dir, "crop_${System.currentTimeMillis()}.jpg")
+        FileOutputStream(file).use { out ->
+            scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+        return Uri.fromFile(file)
     }
 
     private fun calculateInSampleSize(outWidth: Int, maxWidth: Int): Int {
