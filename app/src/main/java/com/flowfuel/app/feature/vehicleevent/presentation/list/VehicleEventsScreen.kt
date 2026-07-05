@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -164,7 +165,11 @@ fun VehicleEventsScreen(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
+        // Como aba (onBack == null), o Scaffold do MainContainerScreen já consumiu
+        // os insets do sistema. Como tela top-level (onBack != null, ex.: aberta a
+        // partir dos detalhes do veículo), não há ancestral consumindo-os, então
+        // os insets do sistema precisam ser respeitados aqui.
+        contentWindowInsets = if (onBack != null) WindowInsets.systemBars else WindowInsets(0),
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
         topBar = {
             val title = buildString {

@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -89,7 +88,6 @@ fun EditProfileScreen(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
         topBar = {
             FFTopBar(
                 title   = stringResource(R.string.profile_edit_title),
