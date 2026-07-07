@@ -23,6 +23,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -296,5 +297,47 @@ class HomeViewModelTest {
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
+    }
+
+    @Test
+    fun `stale financialSummary fetch for a previous vehicle does not overwrite the new vehicle's state after a switch`() = runTest {
+        val vehicle2 = testVehicle.copy(id = 2, brand = "Toyota", model = "Corolla")
+        val financialSummaryForVehicle2 = testFinancialSummary.copy(currentMonthTotal = 999.0)
+        val staleFetchGate = CompletableDeferred<Unit>()
+
+        // getFinancialSummary(1) parks on staleFetchGate until we explicitly release it,
+        // simulating a slow in-flight fetch for the vehicle the user is navigating away from.
+        coEvery { getFinancialSummary(1) } coAnswers {
+            staleFetchGate.await()
+            AppResult.Success(testFinancialSummary)
+        }
+        coEvery { getFinancialSummary(2) } returns AppResult.Success(financialSummaryForVehicle2)
+
+        // Kick off a fresh load for vehicle 1; its loadFinancialSummary(1) call suspends on the gate,
+        // leaving the coroutine in flight when we switch vehicles below.
+        viewModel.load()
+        val afterInitialLoad = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(1, afterInitialLoad.vehicle.id)
+        assertEquals(SectionState.Loading, afterInitialLoad.financialSummary)
+
+        // Now switch to vehicle 2 while vehicle 1's financial summary fetch is still pending.
+        every { sessionStore.activeVehicleIdFlow } returns flowOf(2)
+        coEvery { getActiveVehicle() } returns AppResult.Success(vehicle2)
+        viewModel.onVehicleSwitch(2)
+
+        val afterSwitch = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(2, afterSwitch.vehicle.id)
+        assertEquals(SectionState.Success(financialSummaryForVehicle2), afterSwitch.financialSummary)
+
+        // Release the stale vehicle-1 fetch now that vehicle 2's Success state is in place.
+        staleFetchGate.complete(Unit)
+
+        val finalState = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(2, finalState.vehicle.id)
+        assertEquals(
+            "Stale vehicle-1 financial summary must not overwrite vehicle 2's state",
+            SectionState.Success(financialSummaryForVehicle2),
+            finalState.financialSummary,
+        )
     }
 }

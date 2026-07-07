@@ -104,6 +104,9 @@ class HomeViewModel @Inject constructor(
         }
         _state.update { state ->
             val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            // Descarta o resultado se, enquanto o fetch estava em andamento, o usuário
+            // trocou de veículo — o Success atual já não pertence a este vehicleId.
+            if (success.vehicle.id != vehicleId) return@update state
             state.copy(screenState = success.copy(financialSummary = sectionState))
         }
     }
@@ -115,6 +118,9 @@ class HomeViewModel @Inject constructor(
         }
         _state.update { state ->
             val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            // Descarta o resultado se, enquanto o fetch estava em andamento, o usuário
+            // trocou de veículo — o Success atual já não pertence a este vehicleId.
+            if (success.vehicle.id != vehicleId) return@update state
             state.copy(screenState = success.copy(recentActivity = sectionState))
         }
     }
