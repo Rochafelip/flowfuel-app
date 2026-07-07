@@ -6,12 +6,10 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
-import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
-import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
@@ -54,7 +52,6 @@ class HomeViewModelTest {
 
     private val getActiveVehicle: GetActiveVehicleUseCase = mockk()
     private val getDashboard: GetDashboardUseCase = mockk()
-    private val createRefuel: CreateRefuelUseCase = mockk()
     private val logout: LogoutUseCase = mockk(relaxed = true)
     private val sessionStore: SessionStore = mockk(relaxed = true)
     private val getVehicles: GetVehiclesUseCase = mockk(relaxed = true)
@@ -111,7 +108,7 @@ class HomeViewModelTest {
         coEvery { getRecentActivity(any()) } returns AppResult.Success(emptyList())
         coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Success(testUpcomingMaintenance)
         viewModel = HomeViewModel(
-            getActiveVehicle, getDashboard, createRefuel, logout,
+            getActiveVehicle, getDashboard, logout,
             sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
             getFinancialSummary, getRecentActivity, getUpcomingMaintenance, maintenancePrefsStore,
         )
@@ -120,143 +117,6 @@ class HomeViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-    }
-
-    // ── onOdometerInputModeChange ─────────────────────────────────────────────
-
-    @Test
-    fun `onOdometerInputModeChange to ODOMETER sets mode`() {
-        viewModel.onOdometerInputModeChange(OdometerInputMode.ODOMETER)
-        assertEquals(OdometerInputMode.ODOMETER, viewModel.state.value.refuelForm.odometerInputMode)
-    }
-
-    @Test
-    fun `onOdometerInputModeChange clears odometer and tripKm fields`() {
-        viewModel.onOdometerChange("672700")
-        viewModel.onTripKmChange("310,6")
-        viewModel.onOdometerInputModeChange(OdometerInputMode.ODOMETER)
-
-        val form = viewModel.state.value.refuelForm
-        assertEquals("", form.odometer)
-        assertEquals("", form.tripKm)
-    }
-
-    @Test
-    fun `onOdometerInputModeChange clears errors`() {
-        viewModel.onOdometerInputModeChange(OdometerInputMode.ODOMETER)
-
-        val form = viewModel.state.value.refuelForm
-        assertFalse(form.odometerError)
-        assertFalse(form.tripKmError)
-    }
-
-    // ── onTripKmChange ────────────────────────────────────────────────────────
-
-    @Test
-    fun `onTripKmChange filters to digits comma and dot only`() {
-        viewModel.onTripKmChange("310,6abc!@#")
-        assertEquals("310,6", viewModel.state.value.refuelForm.tripKm)
-    }
-
-    @Test
-    fun `onTripKmChange accepts dot as decimal separator`() {
-        viewModel.onTripKmChange("310.6")
-        assertEquals("310.6", viewModel.state.value.refuelForm.tripKm)
-    }
-
-    @Test
-    fun `onTripKmChange clears tripKmError`() = runTest {
-        // Trigger validation error first
-        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-        viewModel.submitRefuel()
-        assertTrue(viewModel.state.value.refuelForm.tripKmError)
-
-        viewModel.onTripKmChange("310,6")
-        assertFalse(viewModel.state.value.refuelForm.tripKmError)
-    }
-
-    // ── submitRefuel em modo TRIP ─────────────────────────────────────────────
-
-    @Test
-    fun `submitRefuel TRIP mode sends currentKm plus tripKm as odometer`() = runTest {
-        var capturedRequest: CreateRefuelRequest? = null
-        coEvery { createRefuel(any()) } answers {
-            capturedRequest = firstArg()
-            AppResult.Success(Unit)
-        }
-
-        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onTripKmChange("310,6")
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-
-        viewModel.submitRefuel()
-
-        // 67270.0 + 310.6 = 67580.6
-        assertEquals(67580.6, capturedRequest!!.odometer, 0.001)
-    }
-
-    @Test
-    fun `submitRefuel TRIP mode with comma separator parses correctly`() = runTest {
-        var capturedRequest: CreateRefuelRequest? = null
-        coEvery { createRefuel(any()) } answers {
-            capturedRequest = firstArg()
-            AppResult.Success(Unit)
-        }
-
-        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onTripKmChange("310.6")
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-
-        viewModel.submitRefuel()
-
-        assertEquals(67580.6, capturedRequest!!.odometer, 0.001)
-    }
-
-    @Test
-    fun `submitRefuel TRIP mode blank tripKm sets tripKmError and skips api`() = runTest {
-        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-
-        viewModel.submitRefuel()
-
-        assertTrue(viewModel.state.value.refuelForm.tripKmError)
-        coVerify(exactly = 0) { createRefuel(any()) }
-    }
-
-    @Test
-    fun `submitRefuel TRIP mode zero tripKm sets tripKmError and skips api`() = runTest {
-        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
-        viewModel.onTripKmChange("0")
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-
-        viewModel.submitRefuel()
-
-        assertTrue(viewModel.state.value.refuelForm.tripKmError)
-        coVerify(exactly = 0) { createRefuel(any()) }
-    }
-
-    @Test
-    fun `submitRefuel ODOMETER mode uses odometerDouble as before`() = runTest {
-        var capturedRequest: CreateRefuelRequest? = null
-        coEvery { createRefuel(any()) } answers {
-            capturedRequest = firstArg()
-            AppResult.Success(Unit)
-        }
-
-        viewModel.onOdometerInputModeChange(OdometerInputMode.ODOMETER)
-        viewModel.onOdometerChange("675800")   // 67580.0 km
-        viewModel.onLitersChange("21,29")
-        viewModel.onTotalPriceInput("14842")
-
-        viewModel.submitRefuel()
-
-        assertEquals(67580.0, capturedRequest!!.odometer, 0.001)
     }
 
     // ── Estações (prefetch) ────────────────────────────────────────────────────

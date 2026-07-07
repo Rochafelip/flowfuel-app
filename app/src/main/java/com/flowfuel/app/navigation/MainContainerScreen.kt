@@ -21,9 +21,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -80,8 +78,6 @@ fun MainContainerScreen(
     val innerNavController = rememberNavController()
     val backStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-
-    var openRefuelSheet by remember { mutableStateOf(false) }
 
     val tabs = remember {
         listOf(
@@ -162,8 +158,6 @@ fun MainContainerScreen(
                     onNavigateToLogin      = onNavigateToLogin,
                     onNavigateToAddVehicle = onNavigateToAddVehicle,
                     onNavigateToMaintenanceEventCreate = onNavigateToMaintenanceEventCreate,
-                    openRefuelSheet        = openRefuelSheet,
-                    onRefuelSheetOpened    = { openRefuelSheet = false },
                     refreshTrigger         = homeNeedsRefresh,
                     onRefreshConsumed      = onHomeRefreshConsumed,
                 )

@@ -4,18 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -32,12 +26,8 @@ import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.components.FFEmptyState
 import com.flowfuel.app.core.designsystem.components.FFErrorState
-import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.components.FFSkeletonBlock
 import com.flowfuel.app.core.designsystem.components.FFSkeletonLine
-import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
-import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
-import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
@@ -67,14 +57,12 @@ fun HomeScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
     onNavigateToMaintenanceEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
-    openRefuelSheet: Boolean = false,
-    onRefuelSheetOpened: () -> Unit = {},
+    onOpenRefuelSheet: () -> Unit = {},
     refreshTrigger: Boolean = false,
     onRefreshConsumed: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     val onUpcomingEventClick: (UpcomingMaintenanceType) -> Unit = { type ->
         when (type) {
@@ -84,13 +72,6 @@ fun HomeScreen(
                 val category = if (type == UpcomingMaintenanceType.OIL_CHANGE) EventCategory.OIL_CHANGE else EventCategory.TIRES
                 if (vehicleId != null) onNavigateToMaintenanceEventCreate(vehicleId, category)
             }
-        }
-    }
-
-    LaunchedEffect(openRefuelSheet) {
-        if (openRefuelSheet) {
-            viewModel.openRefuelSheet()
-            onRefuelSheetOpened()
         }
     }
 
@@ -105,13 +86,6 @@ fun HomeScreen(
         viewModel.effects.collectLatest { effect ->
             when (effect) {
                 HomeEffect.NavigateToLogin -> onNavigateToLogin()
-                HomeEffect.RefuelRegistered -> snackbarHostState.showSnackbar(
-                    FFSnackbarVisuals(
-                        message = "Abastecimento registrado com sucesso!",
-                        kind = FFSnackbarKind.Success,
-                        duration = SnackbarDuration.Short,
-                    ),
-                )
             }
         }
     }
@@ -120,16 +94,6 @@ fun HomeScreen(
         // Zera os insets do sistema: eles já foram consumidos pelo Scaffold
         // externo (MainContainerScreen), evitando padding duplicado.
         contentWindowInsets = WindowInsets(0),
-        snackbarHost = { FFSnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            if (state.screenState is HomeScreenState.Success) {
-                FFFab(
-                    icon = Icons.Default.LocalGasStation,
-                    contentDescription = "Registrar abastecimento",
-                    onClick = viewModel::openRefuelSheet,
-                )
-            }
-        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -156,7 +120,7 @@ fun HomeScreen(
                         financialSummary = s.financialSummary,
                         recentActivity = s.recentActivity,
                         upcomingMaintenance = s.upcomingMaintenance,
-                        onRegisterRefuel = viewModel::openRefuelSheet,
+                        onRegisterRefuel = onOpenRefuelSheet,
                         onVehicleClick = viewModel::openVehicleSwitcher,
                         onInfoClick = viewModel::openAboutDialog,
                         onRetryFinancialSummary = viewModel::retryFinancialSummary,
@@ -168,26 +132,6 @@ fun HomeScreen(
                 }
             }
         }
-    }
-
-    if (state.showRefuelSheet) {
-        val energyType = (state.screenState as? HomeScreenState.Success)
-            ?.vehicle?.energyType ?: ""
-        QuickRefuelBottomSheet(
-            form                      = state.refuelForm,
-            isSubmitting              = state.isSubmittingRefuel,
-            submitError               = state.submitError,
-            energyType                = energyType,
-            onOdometerInputModeChange = viewModel::onOdometerInputModeChange,
-            onTripKmChange            = viewModel::onTripKmChange,
-            onOdometerChange          = viewModel::onOdometerChange,
-            onLitersChange = viewModel::onLitersChange,
-            onTotalPriceInput = viewModel::onTotalPriceInput,
-            onFullTankToggle = viewModel::onFullTankToggle,
-            onRefuelTypeChange = viewModel::onRefuelTypeChange,
-            onSubmit = viewModel::submitRefuel,
-            onDismiss = viewModel::closeRefuelSheet,
-        )
     }
 
     if (state.showVehicleSwitcher) {
@@ -312,9 +256,6 @@ private fun HomeContent(
                 is SectionState.Error -> SectionErrorCard(onRetry = onRetryUpcomingMaintenance)
             }
         }
-
-        // Espaço para o FAB não sobrepor o último item da lista.
-        item { Spacer(Modifier.height(80.dp)) }
     }
 }
 

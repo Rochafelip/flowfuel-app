@@ -7,9 +7,7 @@ import com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
-import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
-import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
@@ -36,7 +34,6 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getActiveVehicle: GetActiveVehicleUseCase,
     private val getDashboard: GetDashboardUseCase,
-    private val createRefuel: CreateRefuelUseCase,
     private val logout: LogoutUseCase,
     private val sessionStore: SessionStore,
     private val getVehicles: GetVehiclesUseCase,
@@ -64,7 +61,7 @@ class HomeViewModel @Inject constructor(
 
     fun load() {
         stationsPrefetcher.prefetch()
-        _state.update { it.copy(screenState = HomeScreenState.Loading, submitError = null) }
+        _state.update { it.copy(screenState = HomeScreenState.Loading) }
         viewModelScope.launch {
             val storedVehicleId = sessionStore.activeVehicleIdFlow.first()
             val vehicleResult = getActiveVehicle()
@@ -202,7 +199,7 @@ class HomeViewModel @Inject constructor(
         if (_state.value.screenState !is HomeScreenState.Success) return
         if (_state.value.isRefreshing) return
 
-        _state.update { it.copy(isRefreshing = true, submitError = null) }
+        _state.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             val storedVehicleId = sessionStore.activeVehicleIdFlow.first()
             val vehicleResult = getActiveVehicle()
@@ -235,161 +232,6 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-
-    // ─── Bottom Sheet ─────────────────────────────────────────────────────────
-
-    fun openRefuelSheet() = _state.update { it.copy(showRefuelSheet = true) }
-
-    fun closeRefuelSheet() =
-        _state.update { it.copy(showRefuelSheet = false, refuelForm = RefuelFormState()) }
-
-    // ─── Handlers do formulário ───────────────────────────────────────────────
-
-    fun onOdometerChange(v: String) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(
-            odometer = v.filter(Char::isDigit),
-            odometerError = false,
-            serverErrors = null,
-        ))
-    }
-
-    fun onLitersChange(v: String) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(
-            liters = v.filter { c -> c.isDigit() || c == ',' || c == '.' },
-            litersError = false,
-            serverErrors = null,
-        ))
-    }
-
-    /** Recebe apenas dígitos; armazena em centavos. Ex: "24944" = R$ 249,44 */
-    fun onTotalPriceInput(digits: String) {
-        val cleaned = digits.filter(Char::isDigit).trimStart('0').ifEmpty { "" }
-        _state.update {
-            it.copy(refuelForm = it.refuelForm.copy(
-                totalPriceRaw = cleaned.take(7),   // max R$ 99.999,99
-                totalPriceError = false,
-                serverErrors = null,
-            ))
-        }
-    }
-
-    fun onFullTankToggle(checked: Boolean) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(fullTank = checked))
-    }
-
-    fun onRefuelTypeChange(type: String) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(refuelType = type, refuelTypeError = false, serverErrors = null))
-    }
-
-    fun onOdometerInputModeChange(mode: OdometerInputMode) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(
-            odometerInputMode = mode,
-            odometer          = "",
-            tripKm            = "",
-            odometerError     = false,
-            tripKmError       = false,
-            serverErrors      = null,
-        ))
-    }
-
-    fun onTripKmChange(v: String) = _state.update {
-        it.copy(refuelForm = it.refuelForm.copy(
-            tripKm       = v.filter { c -> c.isDigit() || c == ',' || c == '.' },
-            tripKmError  = false,
-            serverErrors = null,
-        ))
-    }
-
-    // ─── Submissão do formulário ──────────────────────────────────────────────
-
-    fun submitRefuel() {
-        val s = _state.value
-        val form = s.refuelForm
-        val vehicle = (s.screenState as? HomeScreenState.Success)?.vehicle ?: return
-        val isHybrid = vehicle.energyType.equals("HYBRID", ignoreCase = true)
-
-        val isTripMode = form.odometerInputMode == OdometerInputMode.TRIP
-
-        val odometerInvalid = !isTripMode && form.odometer.isBlank()
-        val tripInvalid = isTripMode && (
-            form.tripKm.isBlank() ||
-            form.tripKm.replace(',', '.').toDoubleOrNull()?.let { it <= 0.0 } != false
-        )
-        val litersInvalid = form.liters.isBlank()
-            || form.liters.replace(',', '.').toDoubleOrNull() == null
-        val priceInvalid      = form.totalPriceCents == 0L
-        val refuelTypeInvalid = isHybrid && form.refuelType == null
-
-        if (odometerInvalid || tripInvalid || litersInvalid || priceInvalid || refuelTypeInvalid) {
-            _state.update {
-                it.copy(refuelForm = it.refuelForm.copy(
-                    odometerError   = odometerInvalid,
-                    tripKmError     = tripInvalid,
-                    litersError     = litersInvalid,
-                    totalPriceError = priceInvalid,
-                    refuelTypeError = refuelTypeInvalid,
-                ))
-            }
-            return
-        }
-
-        val resolvedRefuelType = when {
-            isHybrid -> form.refuelType
-            vehicle.energyType.equals("ELECTRIC", ignoreCase = true) -> "ELECTRIC"
-            else -> "FUEL"
-        }
-
-        val odometer = if (isTripMode)
-            vehicle.currentKm.toDouble() + form.tripKm.replace(',', '.').toDouble()
-        else
-            form.odometerDouble
-
-        _state.update { it.copy(isSubmittingRefuel = true, submitError = null) }
-        viewModelScope.launch {
-            val result = createRefuel(
-                CreateRefuelRequest(
-                    vehicleId  = vehicle.id,
-                    odometer   = odometer,
-                    liters     = form.liters.replace(',', '.').toDouble(),
-                    totalPrice = form.totalPriceDouble,
-                    fullTank   = form.fullTank,
-                    refuelType = resolvedRefuelType,
-                )
-            )
-            when (result) {
-                is AppResult.Success -> {
-                    _state.update {
-                        it.copy(
-                            isSubmittingRefuel = false,
-                            showRefuelSheet    = false,
-                            refuelForm         = RefuelFormState(),
-                        )
-                    }
-                    _effects.send(HomeEffect.RefuelRegistered)
-                    load()
-                }
-                is AppResult.Failure -> {
-                    Timber.e("submitRefuel: ${result.error}")
-                    val apiErr     = result.error as? AppError.Api
-                    val fieldErrors = apiErr?.takeIf { it.code == "VALIDATION_FAILED" }?.fieldErrors
-                    if (!fieldErrors.isNullOrEmpty()) {
-                        _state.update {
-                            it.copy(
-                                isSubmittingRefuel = false,
-                                refuelForm         = it.refuelForm.copy(serverErrors = fieldErrors),
-                            )
-                        }
-                    } else {
-                        _state.update {
-                            it.copy(isSubmittingRefuel = false, submitError = result.error)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fun clearSubmitError() = _state.update { it.copy(submitError = null) }
 
     // ─── Seletor de veículo ───────────────────────────────────────────────────
 
