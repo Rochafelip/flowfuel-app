@@ -2,8 +2,8 @@ package com.flowfuel.app.core.designsystem.components
 
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,37 +18,47 @@ data class FFBottomItem(
     val badgeCount: Int? = null,
 )
 
+/**
+ * `floatingActionButton`, quando fornecido, fica "docado" (elevado, sobrepondo
+ * levemente a barra) — comportamento nativo de `BottomAppBar`. As abas em [items]
+ * continuam todas visíveis ao redor dele.
+ */
 @Composable
 fun FFBottomBar(
     items: List<FFBottomItem>,
     currentRoute: String?,
     onSelect: (FFBottomItem) -> Unit,
     modifier: Modifier = Modifier,
+    floatingActionButton: @Composable (() -> Unit)? = null,
 ) {
-    NavigationBar(modifier = modifier) {
-        items.forEach { item ->
-            val selected = currentRoute == item.route
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onSelect(item) },
-                icon = {
-                    BadgedBox(
-                        badge = {
-                            val count = item.badgeCount
-                            if (count != null && count > 0) {
-                                Badge { Text(if (count > 99) "99+" else count.toString()) }
+    BottomAppBar(
+        modifier = modifier,
+        floatingActionButton = floatingActionButton,
+        actions = {
+            items.forEach { item ->
+                val selected = currentRoute == item.route
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onSelect(item) },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                val count = item.badgeCount
+                                if (count != null && count > 0) {
+                                    Badge { Text(if (count > 99) "99+" else count.toString()) }
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.icon,
+                                contentDescription = item.label
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (selected) item.selectedIcon else item.icon,
-                            contentDescription = item.label
-                        )
-                    }
-                },
-                label = { Text(item.label) },
-                alwaysShowLabel = true,
-            )
-        }
-    }
+                    },
+                    label = { Text(item.label) },
+                    alwaysShowLabel = true,
+                )
+            }
+        },
+    )
 }
