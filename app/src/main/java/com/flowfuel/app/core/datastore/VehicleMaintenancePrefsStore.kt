@@ -44,10 +44,6 @@ class VehicleMaintenancePrefsStore @Inject constructor(
         context.vehicleMaintenanceDataStore.edit { it[anchorKmKey(vehicleId, category)] = km }
     }
 
-    suspend fun clear() {
-        context.vehicleMaintenanceDataStore.edit { it.clear() }
-    }
-
     private fun licensingDueDateKey(vehicleId: Int) = stringPreferencesKey("licensing_due_$vehicleId")
 
     private fun anchorKmKey(vehicleId: Int, category: EventCategory) =
