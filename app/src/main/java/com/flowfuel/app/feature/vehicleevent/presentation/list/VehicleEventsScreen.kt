@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +56,6 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
-import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.export.presentation.ExportBottomSheet
@@ -91,6 +89,8 @@ fun VehicleEventsScreen(
     onEventDeletedConsumed: () -> Unit = {},
     eventUpdated: Boolean = false,
     onEventUpdatedConsumed: () -> Unit = {},
+    triggerCreate: Boolean = false,
+    onCreateTriggerConsumed: () -> Unit = {},
     viewModel: VehicleEventsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -118,6 +118,13 @@ fun VehicleEventsScreen(
         if (eventUpdated) {
             viewModel.refresh()
             onEventUpdatedConsumed()
+        }
+    }
+
+    LaunchedEffect(triggerCreate) {
+        if (triggerCreate) {
+            viewModel.onCreateClick()
+            onCreateTriggerConsumed()
         }
     }
 
@@ -186,14 +193,6 @@ fun VehicleEventsScreen(
                         Icon(Icons.Outlined.FileDownload, contentDescription = "Exportar")
                     }
                 },
-            )
-        },
-        floatingActionButton = {
-            FFFab(
-                icon = Icons.Default.Add,
-                contentDescription = "Novo evento",
-                onClick = viewModel::onCreateClick,
-                text = "Novo Evento",
             )
         },
     ) { innerPadding ->
