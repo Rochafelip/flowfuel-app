@@ -122,7 +122,7 @@ fun FFBottomBar(
 - [ ] **Step 2: Compilar**
 
 Run: `./gradlew compileDebugKotlin`
-Expected: BUILD SUCCESSFUL (o único chamador, `MainContainerScreen.FFBottomBar(items=..., currentRoute=..., onSelect=...)`, continua compilando sem alterações — `floatingActionButton` usa o padrão `null`, a barra aparece sem FAB até a Task 6).
+Expected: BUILD SUCCESSFUL (os chamadores atuais — `MainContainerScreen.FFBottomBar(items=..., currentRoute=..., onSelect=...)` e o preview em `UiKitDemoScreen.kt` — continuam compilando sem alterações — `floatingActionButton` usa o padrão `null`, a barra aparece sem FAB até a Task 6).
 
 - [ ] **Step 3: Commit**
 
@@ -413,7 +413,7 @@ git commit -m "feat(home): icone Sobre no VehicleHeader abre dialogo com nome/lo
 
 - [ ] **Step 1: Adicionar `triggerCreate`/`onCreateTriggerConsumed` e remover o FAB**
 
-Na assinatura de `VehicleEventsScreen`, adicionar os dois novos parâmetros (com valor padrão, para não quebrar o único chamador, `MainContainerScreen`, antes da Task 6):
+Na assinatura de `VehicleEventsScreen`, adicionar os dois novos parâmetros (com valor padrão, para não quebrar os chamadores atuais — `MainContainerScreen` e `FlowFuelNavHost.kt`, esta última usada quando a tela é aberta a partir dos detalhes do veículo — antes da Task 6):
 
 ```kotlin
 @Composable
