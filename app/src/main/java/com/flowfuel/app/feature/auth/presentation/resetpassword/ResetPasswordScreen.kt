@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flowfuel.app.R
 import com.flowfuel.app.core.designsystem.components.FFButton
+import com.flowfuel.app.core.designsystem.components.FFInfoBanner
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
@@ -73,6 +74,7 @@ fun ResetPasswordScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            FFInfoBanner(text = stringResource(R.string.spam_folder_notice))
             FFTextField(
                 value = state.token,
                 onValueChange = viewModel::onTokenChange,

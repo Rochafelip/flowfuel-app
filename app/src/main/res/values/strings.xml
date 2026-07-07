@@ -71,6 +71,7 @@
     <string name="check_email_manual_token_label">Não recebeu o e-mail? Cole o código de ativação abaixo.</string>
     <string name="check_email_manual_token_field">Código de ativação</string>
     <string name="check_email_manual_token_cta">Ativar com código</string>
+    <string name="spam_folder_notice">Não encontrou o e-mail? Verifique também a caixa de spam ou lixo eletrônico.</string>
     <string name="error_account_not_activated">Conta ainda não ativada. Verifique seu e-mail.</string>
     <string name="error_activation_invalid">Código de ativação inválido, expirado ou já usado.</string>
 

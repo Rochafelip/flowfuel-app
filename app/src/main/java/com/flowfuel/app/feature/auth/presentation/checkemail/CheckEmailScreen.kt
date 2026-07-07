@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.flowfuel.app.R
 import com.flowfuel.app.core.designsystem.components.FFButton
 import com.flowfuel.app.core.designsystem.components.FFButtonVariant
+import com.flowfuel.app.core.designsystem.components.FFInfoBanner
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
@@ -135,6 +136,10 @@ fun CheckEmailScreen(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            Spacer(Modifier.height(FFTheme.spacing.sm))
+
+            FFInfoBanner(text = stringResource(R.string.spam_folder_notice))
 
             Spacer(Modifier.height(FFTheme.spacing.xl))
 
