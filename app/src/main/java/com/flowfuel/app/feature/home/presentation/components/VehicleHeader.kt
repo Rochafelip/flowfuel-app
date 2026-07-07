@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +27,7 @@ fun VehicleHeader(
     vehicle: ActiveVehicleData,
     daysSinceLastRefuel: Int?,
     onVehicleClick: () -> Unit,
+    onInfoClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -58,13 +60,22 @@ fun VehicleHeader(
                 )
             }
         }
-        // Reservado para o futuro: hoje é só um ícone estático, sem contagem/lógica de notificações.
-        IconButton(onClick = {}) {
-            Icon(
-                imageVector = Icons.Outlined.Notifications,
-                contentDescription = "Notificações",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onInfoClick) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = "Sobre o app",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // Reservado para o futuro: hoje é só um ícone estático, sem contagem/lógica de notificações.
+            IconButton(onClick = {}) {
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "Notificações",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -87,5 +98,6 @@ private fun VehicleHeaderPreview() {
         ),
         daysSinceLastRefuel = 3,
         onVehicleClick = {},
+        onInfoClick = {},
     )
 }

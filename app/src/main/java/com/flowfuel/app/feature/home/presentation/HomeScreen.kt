@@ -158,6 +158,7 @@ fun HomeScreen(
                         upcomingMaintenance = s.upcomingMaintenance,
                         onRegisterRefuel = viewModel::openRefuelSheet,
                         onVehicleClick = viewModel::openVehicleSwitcher,
+                        onInfoClick = viewModel::openAboutDialog,
                         onRetryFinancialSummary = viewModel::retryFinancialSummary,
                         onRetryRecentActivity = viewModel::retryRecentActivity,
                         onRetryUpcomingMaintenance = viewModel::retryUpcomingMaintenance,
@@ -208,6 +209,10 @@ fun HomeScreen(
             onDismiss = viewModel::closeLicensingDueDatePicker,
         )
     }
+
+    if (state.showAboutDialog) {
+        AboutDialog(onDismiss = viewModel::closeAboutDialog)
+    }
 }
 
 // ─── Conteúdo principal (estado Success) ──────────────────────────────────────
@@ -221,6 +226,7 @@ private fun HomeContent(
     upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>>,
     onRegisterRefuel: () -> Unit,
     onVehicleClick: () -> Unit,
+    onInfoClick: () -> Unit,
     onRetryFinancialSummary: () -> Unit,
     onRetryRecentActivity: () -> Unit,
     onRetryUpcomingMaintenance: () -> Unit,
@@ -246,6 +252,7 @@ private fun HomeContent(
                 vehicle = vehicle,
                 daysSinceLastRefuel = if (isFirstUse) null else daysSince,
                 onVehicleClick = onVehicleClick,
+                onInfoClick = onInfoClick,
             )
         }
 

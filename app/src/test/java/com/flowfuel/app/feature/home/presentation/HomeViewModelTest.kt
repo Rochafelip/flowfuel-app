@@ -414,4 +414,19 @@ class HomeViewModelTest {
         coVerify { maintenancePrefsStore.saveLicensingDueDate(1, "2026-08-15") }
         coVerify(atLeast = 2) { getUpcomingMaintenance(1, 67270) } // 1x do load() + 1x do retry pós-seleção
     }
+
+    // ── Diálogo "Sobre" ─────────────────────────────────────────────────────
+
+    @Test
+    fun `openAboutDialog() shows the dialog`() {
+        viewModel.openAboutDialog()
+        assertTrue(viewModel.state.value.showAboutDialog)
+    }
+
+    @Test
+    fun `closeAboutDialog() hides the dialog`() {
+        viewModel.openAboutDialog()
+        viewModel.closeAboutDialog()
+        assertFalse(viewModel.state.value.showAboutDialog)
+    }
 }

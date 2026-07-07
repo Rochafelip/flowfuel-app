@@ -122,6 +122,8 @@ data class HomeUiState(
     val showLogoutDialog: Boolean = false,
     // ── Data de licenciamento (lembrete de manutenção) ─────────────────────
     val showLicensingDueDatePicker: Boolean = false,
+    // ── Diálogo "Sobre" ─────────────────────────────────────────────────────
+    val showAboutDialog: Boolean = false,
 )
 
 // ─── Efeitos de navegação ─────────────────────────────────────────────────────

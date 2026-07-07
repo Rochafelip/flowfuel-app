@@ -185,6 +185,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // ─── Diálogo "Sobre" ──────────────────────────────────────────────────────
+
+    fun openAboutDialog() = _state.update { it.copy(showAboutDialog = true) }
+
+    fun closeAboutDialog() = _state.update { it.copy(showAboutDialog = false) }
+
     // ─── Pull-to-refresh ──────────────────────────────────────────────────────
 
     /**
