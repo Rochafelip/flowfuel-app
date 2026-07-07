@@ -75,3 +75,20 @@ data class FinancialSummary(
             ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100.0
         else null
 }
+
+/** Tipo de lembrete de manutenção exibido na seção "Próximos eventos" da Home. */
+enum class UpcomingMaintenanceType { OIL_CHANGE, TIRE_ROTATION, LICENSING }
+
+/**
+ * Um dos 3 lembretes da seção "Próximos eventos". [remainingKm] é usado por
+ * OIL_CHANGE/TIRE_ROTATION, [remainingDays] por LICENSING — os dois nunca são
+ * preenchidos ao mesmo tempo. [needsSetup] só é true para LICENSING sem data
+ * definida ainda pelo usuário (ver [com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore]).
+ */
+data class UpcomingMaintenanceItem(
+    val type: UpcomingMaintenanceType,
+    val remainingKm: Int? = null,
+    val remainingDays: Int? = null,
+    val isOverdue: Boolean = false,
+    val needsSetup: Boolean = false,
+)
