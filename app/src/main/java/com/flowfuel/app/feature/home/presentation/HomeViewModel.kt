@@ -11,6 +11,8 @@ import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
@@ -39,6 +41,8 @@ class HomeViewModel @Inject constructor(
     private val setActiveVehicle: SetActiveVehicleUseCase,
     private val stationsPrefetcher: NearbyStationsPrefetcher,
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
+    private val getFinancialSummary: GetFinancialSummaryUseCase,
+    private val getRecentActivity: GetRecentActivityUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -46,6 +50,9 @@ class HomeViewModel @Inject constructor(
 
     private val _effects = Channel<HomeEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    /** ID do veículo carregado por último — usado pelos retries de seção. */
+    private var loadedVehicleId: Int? = null
 
     init { load() }
 
@@ -55,9 +62,7 @@ class HomeViewModel @Inject constructor(
         stationsPrefetcher.prefetch()
         _state.update { it.copy(screenState = HomeScreenState.Loading, submitError = null) }
         viewModelScope.launch {
-            // Busca veículo ativo e ID local em paralelo com o veículo
             val storedVehicleId = sessionStore.activeVehicleIdFlow.first()
-
             val vehicleResult = getActiveVehicle()
 
             if (vehicleResult is AppResult.Failure) {
@@ -68,29 +73,70 @@ class HomeViewModel @Inject constructor(
             val vehicle = (vehicleResult as AppResult.Success).value
             val vehicleId = storedVehicleId ?: vehicle.id
 
-            // FIX: Persiste o ID localmente caso ainda não estivesse salvo.
-            // Isso ocorre quando o usuário veio do fluxo AddVehicle → MainContainer
-            // sem passar pelo VehiclePicker (que é quem normalmente chama setActiveVehicle).
-            // Sem isso, HistoryViewModel lê null do SessionStore e exibe Empty state.
             if (storedVehicleId == null) {
                 Timber.d("Home › vehicleId não estava no SessionStore, persistindo id=${vehicle.id}")
                 sessionStore.saveActiveVehicleId(vehicle.id)
             }
+            loadedVehicleId = vehicleId
 
-            // Dashboard pode ser carregado agora que temos o ID
-            val dashboardResult = fetchDashboardWithEventsTotal(vehicleId)
-
-            when (dashboardResult) {
-                is AppResult.Success ->
+            when (val dashboardResult = fetchDashboardWithEventsTotal(vehicleId)) {
+                is AppResult.Success -> {
                     _state.update {
                         it.copy(
-                            screenState = HomeScreenState.Success(vehicle, dashboardResult.value)
+                            screenState = HomeScreenState.Success(
+                                vehicle = vehicle,
+                                dashboard = dashboardResult.value,
+                            ),
                         )
                     }
-                is AppResult.Failure ->
-                    handleGlobalError(dashboardResult.error)
+                    launch { loadFinancialSummary(vehicleId) }
+                    launch { loadRecentActivity(vehicleId) }
+                }
+                is AppResult.Failure -> handleGlobalError(dashboardResult.error)
             }
         }
+    }
+
+    private suspend fun loadFinancialSummary(vehicleId: Int) {
+        val sectionState = when (val result = getFinancialSummary(vehicleId)) {
+            is AppResult.Success -> SectionState.Success(result.value)
+            is AppResult.Failure -> SectionState.Error(result.error)
+        }
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            state.copy(screenState = success.copy(financialSummary = sectionState))
+        }
+    }
+
+    private suspend fun loadRecentActivity(vehicleId: Int) {
+        val sectionState = when (val result = getRecentActivity(vehicleId)) {
+            is AppResult.Success -> SectionState.Success(result.value)
+            is AppResult.Failure -> SectionState.Error(result.error)
+        }
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            state.copy(screenState = success.copy(recentActivity = sectionState))
+        }
+    }
+
+    /** Reexecuta só o resumo financeiro, sem recarregar o resto da tela. */
+    fun retryFinancialSummary() {
+        val vehicleId = loadedVehicleId ?: return
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            state.copy(screenState = success.copy(financialSummary = SectionState.Loading))
+        }
+        viewModelScope.launch { loadFinancialSummary(vehicleId) }
+    }
+
+    /** Reexecuta só a atividade recente, sem recarregar o resto da tela. */
+    fun retryRecentActivity() {
+        val vehicleId = loadedVehicleId ?: return
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            state.copy(screenState = success.copy(recentActivity = SectionState.Loading))
+        }
+        viewModelScope.launch { loadRecentActivity(vehicleId) }
     }
 
     // ─── Pull-to-refresh ──────────────────────────────────────────────────────
@@ -107,26 +153,31 @@ class HomeViewModel @Inject constructor(
         _state.update { it.copy(isRefreshing = true, submitError = null) }
         viewModelScope.launch {
             val storedVehicleId = sessionStore.activeVehicleIdFlow.first()
-
             val vehicleResult = getActiveVehicle()
             if (vehicleResult is AppResult.Failure) {
-                // Mantém conteúdo atual; apenas encerra o indicador
                 _state.update { it.copy(isRefreshing = false) }
                 return@launch
             }
 
             val vehicle = (vehicleResult as AppResult.Success).value
             val vehicleId = storedVehicleId ?: vehicle.id
+            loadedVehicleId = vehicleId
 
             when (val dashboardResult = fetchDashboardWithEventsTotal(vehicleId)) {
-                is AppResult.Success -> _state.update {
-                    it.copy(
-                        isRefreshing = false,
-                        screenState = HomeScreenState.Success(vehicle, dashboardResult.value),
-                    )
+                is AppResult.Success -> {
+                    _state.update {
+                        it.copy(
+                            isRefreshing = false,
+                            screenState = HomeScreenState.Success(
+                                vehicle = vehicle,
+                                dashboard = dashboardResult.value,
+                            ),
+                        )
+                    }
+                    launch { loadFinancialSummary(vehicleId) }
+                    launch { loadRecentActivity(vehicleId) }
                 }
                 is AppResult.Failure ->
-                    // Mantém conteúdo atual; apenas encerra o indicador
                     _state.update { it.copy(isRefreshing = false) }
             }
         }

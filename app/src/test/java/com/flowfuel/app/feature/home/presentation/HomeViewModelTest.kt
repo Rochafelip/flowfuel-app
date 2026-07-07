@@ -1,17 +1,22 @@
 package com.flowfuel.app.feature.home.presentation
 
+import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
+import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
+import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsTotalUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -51,6 +56,14 @@ class HomeViewModelTest {
     private val setActiveVehicle: SetActiveVehicleUseCase = mockk(relaxed = true)
     private val stationsPrefetcher: NearbyStationsPrefetcher = mockk(relaxed = true)
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase = mockk(relaxed = true)
+    private val getFinancialSummary: GetFinancialSummaryUseCase = mockk()
+    private val getRecentActivity: GetRecentActivityUseCase = mockk()
+
+    private val testFinancialSummary = FinancialSummary(
+        currentMonthTotal = 300.0,
+        previousMonthTotal = 250.0,
+        averagePricePerUnit = 5.5,
+    )
 
     private val testVehicle = ActiveVehicleData(
         id = 1,
@@ -81,9 +94,12 @@ class HomeViewModelTest {
         every { sessionStore.activeVehicleIdFlow } returns flowOf(1)
         coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard)
+        coEvery { getFinancialSummary(any()) } returns AppResult.Success(testFinancialSummary)
+        coEvery { getRecentActivity(any()) } returns AppResult.Success(emptyList())
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, createRefuel, logout,
             sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
+            getFinancialSummary, getRecentActivity,
         )
     }
 
@@ -246,5 +262,39 @@ class HomeViewModelTest {
         // 1 call from init's load() in setUp(), +1 explicit call in onVehicleSwitch(),
         // +1 from the load() that onVehicleSwitch() calls internally
         verify(exactly = 3) { stationsPrefetcher.prefetch() }
+    }
+
+    // ── Seções independentes (financialSummary / recentActivity) ──────────────
+
+    @Test
+    fun `load() populates financialSummary and recentActivity sections on success`() = runTest {
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
+        assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
+    }
+
+    @Test
+    fun `load() isolates financialSummary failure without breaking the rest of the screen`() = runTest {
+        coEvery { getFinancialSummary(any()) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Error(AppError.Network), success.financialSummary)
+        assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
+    }
+
+    @Test
+    fun `retryFinancialSummary() re-fetches only the financial summary section`() = runTest {
+        coEvery { getFinancialSummary(any()) } returns AppResult.Failure(AppError.Network)
+        viewModel.load()
+        coEvery { getFinancialSummary(any()) } returns AppResult.Success(testFinancialSummary)
+
+        viewModel.retryFinancialSummary()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
     }
 }
