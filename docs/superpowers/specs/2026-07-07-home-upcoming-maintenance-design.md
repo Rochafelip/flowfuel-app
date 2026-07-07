@@ -229,8 +229,12 @@ fun UpcomingEventsSection(
     onCardClick: (UpcomingMaintenanceType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
-        FFSectionHeader(title = "Próximos eventos") // sem link "Ver todos"
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
+        // Título simples (Text), não FFSectionHeader: esse componente já aplica seu
+        // próprio padding horizontal, o que dobraria o padding dentro de um item do
+        // LazyColumn (que já recebe contentPadding) — nenhuma outra seção da Home usa
+        // FFSectionHeader hoje, todas usam o título embutido do FFCard.
+        Text("Próximos eventos", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
             items.forEach { item ->
                 UpcomingEventCard(item, onClick = { onCardClick(item.type) }, modifier = Modifier.weight(1f))
@@ -239,6 +243,8 @@ fun UpcomingEventsSection(
     }
 }
 ```
+
+Sem link "Ver todos" (decisão já registrada em "Escopo").
 
 `UpcomingEventCard`: ícone em bolha colorida + título curto + subtexto de
 contagem — mesma estrutura visual de `IndicatorCard`/`FFStatTile`
