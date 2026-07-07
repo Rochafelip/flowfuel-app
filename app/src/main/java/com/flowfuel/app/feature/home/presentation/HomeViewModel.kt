@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.home.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.datastore.SessionStore
+import com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
@@ -13,6 +14,7 @@ import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
@@ -43,6 +45,8 @@ class HomeViewModel @Inject constructor(
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
     private val getFinancialSummary: GetFinancialSummaryUseCase,
     private val getRecentActivity: GetRecentActivityUseCase,
+    private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
+    private val maintenancePrefsStore: VehicleMaintenancePrefsStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -91,6 +95,7 @@ class HomeViewModel @Inject constructor(
                     }
                     launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
+                    launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
                 }
                 is AppResult.Failure -> handleGlobalError(dashboardResult.error)
             }
@@ -145,6 +150,41 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { loadRecentActivity(vehicleId) }
     }
 
+    private suspend fun loadUpcomingMaintenance(vehicleId: Int, currentKm: Int) {
+        val sectionState = when (val result = getUpcomingMaintenance(vehicleId, currentKm)) {
+            is AppResult.Success -> SectionState.Success(result.value)
+            is AppResult.Failure -> SectionState.Error(result.error)
+        }
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            if (success.vehicle.id != vehicleId) return@update state
+            state.copy(screenState = success.copy(upcomingMaintenance = sectionState))
+        }
+    }
+
+    /** Reexecuta só os lembretes de manutenção, sem recarregar o resto da tela. */
+    fun retryUpcomingMaintenance() {
+        val success = _state.value.screenState as? HomeScreenState.Success ?: return
+        _state.update { it.copy(screenState = success.copy(upcomingMaintenance = SectionState.Loading)) }
+        viewModelScope.launch { loadUpcomingMaintenance(success.vehicle.id, success.vehicle.currentKm) }
+    }
+
+    // ─── Data de licenciamento ────────────────────────────────────────────────
+
+    fun openLicensingDueDatePicker() = _state.update { it.copy(showLicensingDueDatePicker = true) }
+
+    fun closeLicensingDueDatePicker() = _state.update { it.copy(showLicensingDueDatePicker = false) }
+
+    /** Salva a data escolhida localmente e recarrega só a seção de lembretes. */
+    fun onLicensingDueDateSelected(isoDate: String) {
+        val vehicleId = loadedVehicleId ?: return
+        _state.update { it.copy(showLicensingDueDatePicker = false) }
+        viewModelScope.launch {
+            maintenancePrefsStore.saveLicensingDueDate(vehicleId, isoDate)
+            retryUpcomingMaintenance()
+        }
+    }
+
     // ─── Pull-to-refresh ──────────────────────────────────────────────────────
 
     /**
@@ -182,6 +222,7 @@ class HomeViewModel @Inject constructor(
                     }
                     launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
+                    launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
                 }
                 is AppResult.Failure ->
                     _state.update { it.copy(isRefreshing = false) }

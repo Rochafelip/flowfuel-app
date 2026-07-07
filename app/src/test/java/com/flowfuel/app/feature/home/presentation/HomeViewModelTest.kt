@@ -3,16 +3,20 @@ package com.flowfuel.app.feature.home.presentation
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.datastore.SessionStore
+import com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
+import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
@@ -59,11 +63,19 @@ class HomeViewModelTest {
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase = mockk(relaxed = true)
     private val getFinancialSummary: GetFinancialSummaryUseCase = mockk()
     private val getRecentActivity: GetRecentActivityUseCase = mockk()
+    private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase = mockk()
+    private val maintenancePrefsStore: VehicleMaintenancePrefsStore = mockk(relaxed = true)
 
     private val testFinancialSummary = FinancialSummary(
         currentMonthTotal = 300.0,
         previousMonthTotal = 250.0,
         averagePricePerUnit = 5.5,
+    )
+
+    private val testUpcomingMaintenance = listOf(
+        UpcomingMaintenanceItem(type = UpcomingMaintenanceType.OIL_CHANGE, remainingKm = 320),
+        UpcomingMaintenanceItem(type = UpcomingMaintenanceType.TIRE_ROTATION, remainingKm = 900),
+        UpcomingMaintenanceItem(type = UpcomingMaintenanceType.LICENSING, remainingDays = 18),
     )
 
     private val testVehicle = ActiveVehicleData(
@@ -97,10 +109,11 @@ class HomeViewModelTest {
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard)
         coEvery { getFinancialSummary(any()) } returns AppResult.Success(testFinancialSummary)
         coEvery { getRecentActivity(any()) } returns AppResult.Success(emptyList())
+        coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Success(testUpcomingMaintenance)
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, createRefuel, logout,
             sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
-            getFinancialSummary, getRecentActivity,
+            getFinancialSummary, getRecentActivity, getUpcomingMaintenance, maintenancePrefsStore,
         )
     }
 
@@ -339,5 +352,66 @@ class HomeViewModelTest {
             SectionState.Success(financialSummaryForVehicle2),
             finalState.financialSummary,
         )
+    }
+
+    // ── Seção independente (upcomingMaintenance) ──────────────────────────────
+
+    @Test
+    fun `load() populates upcomingMaintenance section on success`() = runTest {
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Success(testUpcomingMaintenance), success.upcomingMaintenance)
+    }
+
+    @Test
+    fun `load() isolates upcomingMaintenance failure without breaking the rest of the screen`() = runTest {
+        coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Error(AppError.Network), success.upcomingMaintenance)
+        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
+    }
+
+    @Test
+    fun `retryUpcomingMaintenance() re-fetches only that section, using the current vehicle's km`() = runTest {
+        coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Failure(AppError.Network)
+        viewModel.load()
+        coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Success(testUpcomingMaintenance)
+
+        viewModel.retryUpcomingMaintenance()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Success(testUpcomingMaintenance), success.upcomingMaintenance)
+        coVerify { getUpcomingMaintenance(1, 67270) }
+    }
+
+    // ── Diálogo de data de licenciamento ───────────────────────────────────────
+
+    @Test
+    fun `openLicensingDueDatePicker() shows the dialog`() {
+        viewModel.openLicensingDueDatePicker()
+        assertTrue(viewModel.state.value.showLicensingDueDatePicker)
+    }
+
+    @Test
+    fun `closeLicensingDueDatePicker() hides the dialog`() {
+        viewModel.openLicensingDueDatePicker()
+        viewModel.closeLicensingDueDatePicker()
+        assertFalse(viewModel.state.value.showLicensingDueDatePicker)
+    }
+
+    @Test
+    fun `onLicensingDueDateSelected() saves the date, closes the dialog, and reloads the section`() = runTest {
+        viewModel.load()
+        viewModel.openLicensingDueDatePicker()
+
+        viewModel.onLicensingDueDateSelected("2026-08-15")
+
+        assertFalse(viewModel.state.value.showLicensingDueDatePicker)
+        coVerify { maintenancePrefsStore.saveLicensingDueDate(1, "2026-08-15") }
+        coVerify(atLeast = 2) { getUpcomingMaintenance(1, 67270) } // 1x do load() + 1x do retry pós-seleção
     }
 }

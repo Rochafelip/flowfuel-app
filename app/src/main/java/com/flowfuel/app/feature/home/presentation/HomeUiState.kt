@@ -5,6 +5,7 @@ import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 
@@ -17,6 +18,7 @@ sealed interface HomeScreenState {
         val dashboard: DashboardData,
         val financialSummary: SectionState<FinancialSummary> = SectionState.Loading,
         val recentActivity: SectionState<List<VehicleTimelineItem>> = SectionState.Loading,
+        val upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>> = SectionState.Loading,
     ) : HomeScreenState
     data class Error(val error: AppError) : HomeScreenState
 }
@@ -118,6 +120,8 @@ data class HomeUiState(
     val vehicleSwitcherState: VehicleSwitcherState = VehicleSwitcherState.Idle,
     // ── Confirmação de logout ──────────────────────────────────────────────
     val showLogoutDialog: Boolean = false,
+    // ── Data de licenciamento (lembrete de manutenção) ─────────────────────
+    val showLicensingDueDatePicker: Boolean = false,
 )
 
 // ─── Efeitos de navegação ─────────────────────────────────────────────────────
