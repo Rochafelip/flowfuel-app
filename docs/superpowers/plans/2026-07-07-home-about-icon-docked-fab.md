@@ -46,7 +46,7 @@ app/src/test/java/com/flowfuel/app/feature/home/presentation/
 - Modify: `app/src/main/java/com/flowfuel/app/core/designsystem/components/FFBottomBar.kt`
 
 **Interfaces:**
-- Produces: `FFBottomBar(items: List<FFBottomItem>, currentRoute: String?, onSelect: (FFBottomItem) -> Unit, modifier: Modifier = Modifier, floatingActionButton: @Composable (() -> Unit)? = null)` — novo parâmetro opcional, `null` por padrão (compatível com o único chamador atual, `MainContainerScreen`, até a Task 6).
+- Produces: `FFBottomBar(items: List<FFBottomItem>, currentRoute: String?, onSelect: (FFBottomItem) -> Unit, modifier: Modifier = Modifier, floatingActionButton: @Composable (() -> Unit)? = null)` — novo parâmetro opcional, `null` por padrão (compatível com os chamadores atuais — `MainContainerScreen`, até a Task 6, e o preview `core/designsystem/preview/UiKitDemoScreen.kt`, que não passa esse parâmetro).
 
 - [ ] **Step 1: Substituir `NavigationBar` por `BottomAppBar` com slot de FAB**
 
@@ -553,7 +553,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -636,6 +635,43 @@ class QuickRefuelViewModelTest {
         assertEquals("", form.tripKm)
     }
 
+    @Test
+    fun `onOdometerInputModeChange clears errors`() {
+        viewModel.onOdometerInputModeChange(OdometerInputMode.ODOMETER)
+
+        val form = viewModel.state.value.form
+        assertFalse(form.odometerError)
+        assertFalse(form.tripKmError)
+    }
+
+    // ── onTripKmChange ────────────────────────────────────────────────────────
+
+    @Test
+    fun `onTripKmChange filters to digits comma and dot only`() {
+        viewModel.onTripKmChange("310,6abc!@#")
+        assertEquals("310,6", viewModel.state.value.form.tripKm)
+    }
+
+    @Test
+    fun `onTripKmChange accepts dot as decimal separator`() {
+        viewModel.onTripKmChange("310.6")
+        assertEquals("310.6", viewModel.state.value.form.tripKm)
+    }
+
+    @Test
+    fun `onTripKmChange clears tripKmError`() = runTest {
+        // Dispara o erro de validação primeiro
+        viewModel.openSheet()
+        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
+        viewModel.onLitersChange("21,29")
+        viewModel.onTotalPriceInput("14842")
+        viewModel.submitRefuel()
+        assertTrue(viewModel.state.value.form.tripKmError)
+
+        viewModel.onTripKmChange("310,6")
+        assertFalse(viewModel.state.value.form.tripKmError)
+    }
+
     // ── submitRefuel em modo TRIP ─────────────────────────────────────────────
 
     @Test
@@ -659,9 +695,42 @@ class QuickRefuelViewModelTest {
     }
 
     @Test
+    fun `submitRefuel TRIP mode with comma separator parses correctly`() = runTest {
+        var capturedRequest: CreateRefuelRequest? = null
+        coEvery { createRefuel(any()) } answers {
+            capturedRequest = firstArg()
+            AppResult.Success(Unit)
+        }
+
+        viewModel.openSheet()
+        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
+        viewModel.onTripKmChange("310.6")
+        viewModel.onLitersChange("21,29")
+        viewModel.onTotalPriceInput("14842")
+
+        viewModel.submitRefuel()
+
+        assertEquals(67580.6, capturedRequest!!.odometer, 0.001)
+    }
+
+    @Test
     fun `submitRefuel TRIP mode blank tripKm sets tripKmError and skips api`() = runTest {
         viewModel.openSheet()
         viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
+        viewModel.onLitersChange("21,29")
+        viewModel.onTotalPriceInput("14842")
+
+        viewModel.submitRefuel()
+
+        assertTrue(viewModel.state.value.form.tripKmError)
+        coVerify(exactly = 0) { createRefuel(any()) }
+    }
+
+    @Test
+    fun `submitRefuel TRIP mode zero tripKm sets tripKmError and skips api`() = runTest {
+        viewModel.openSheet()
+        viewModel.onOdometerInputModeChange(OdometerInputMode.TRIP)
+        viewModel.onTripKmChange("0")
         viewModel.onLitersChange("21,29")
         viewModel.onTotalPriceInput("14842")
 
