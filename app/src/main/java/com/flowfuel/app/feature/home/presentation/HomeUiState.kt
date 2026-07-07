@@ -4,7 +4,9 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
+import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
+import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 
 // ─── Estado da tela ───────────────────────────────────────────────────────────
 
@@ -13,8 +15,17 @@ sealed interface HomeScreenState {
     data class Success(
         val vehicle: ActiveVehicleData,
         val dashboard: DashboardData,
+        val financialSummary: SectionState<FinancialSummary> = SectionState.Loading,
+        val recentActivity: SectionState<List<VehicleTimelineItem>> = SectionState.Loading,
     ) : HomeScreenState
     data class Error(val error: AppError) : HomeScreenState
+}
+
+/** Estado independente de uma seção carregada em paralelo ao restante da tela. */
+sealed interface SectionState<out T> {
+    data object Loading : SectionState<Nothing>
+    data class Success<T>(val value: T) : SectionState<T>
+    data class Error(val error: AppError) : SectionState<Nothing>
 }
 
 // ─── Estado do seletor de veículo ─────────────────────────────────────────────
