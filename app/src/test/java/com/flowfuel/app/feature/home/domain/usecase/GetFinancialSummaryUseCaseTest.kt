@@ -11,10 +11,14 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsPageUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+
+private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
 
 class GetFinancialSummaryUseCaseTest {
 
@@ -41,11 +45,20 @@ class GetFinancialSummaryUseCaseTest {
 
     @Test
     fun `sums refuels and events for current and previous month`() = runTest {
-        coEvery { getRefuelHistory(1, 0, 50, any(), any()) } returnsMany listOf(
+        val refuelFromCalls = mutableListOf<LocalDate>()
+        val refuelToCalls = mutableListOf<LocalDate>()
+        val eventFromCalls = mutableListOf<String>()
+        val eventToCalls = mutableListOf<String>()
+
+        coEvery {
+            getRefuelHistory(1, 0, 50, capture(refuelFromCalls), capture(refuelToCalls))
+        } returnsMany listOf(
             AppResult.Success(refuelPage(listOf(refuel(200.0, 40.0)))),
             AppResult.Success(refuelPage(listOf(refuel(150.0, 30.0)))),
         )
-        coEvery { getVehicleEventsPage(1, 0, null, any(), any()) } returnsMany listOf(
+        coEvery {
+            getVehicleEventsPage(1, 0, null, capture(eventFromCalls), capture(eventToCalls))
+        } returnsMany listOf(
             AppResult.Success(eventPage(listOf(event(50.0)))),
             AppResult.Success(eventPage(listOf(event(30.0)))),
         )
@@ -54,6 +67,26 @@ class GetFinancialSummaryUseCaseTest {
 
         assertEquals(250.0, summary.currentMonthTotal, 0.001)
         assertEquals(180.0, summary.previousMonthTotal, 0.001)
+
+        // Verify the actual date windows requested, not just call order: a bug that swaps
+        // current/previous windows or miscalculates month boundaries must fail these asserts.
+        val today = LocalDate.now()
+        val expectedCurrentStart = today.withDayOfMonth(1)
+        val previousMonth = today.minusMonths(1)
+        val expectedPreviousStart = previousMonth.withDayOfMonth(1)
+        val expectedPreviousEnd = previousMonth.withDayOfMonth(previousMonth.lengthOfMonth())
+
+        assertEquals(2, refuelFromCalls.size)
+        assertEquals(expectedCurrentStart, refuelFromCalls[0])
+        assertEquals(today, refuelToCalls[0])
+        assertEquals(expectedPreviousStart, refuelFromCalls[1])
+        assertEquals(expectedPreviousEnd, refuelToCalls[1])
+
+        assertEquals(2, eventFromCalls.size)
+        assertEquals(expectedCurrentStart.format(isoFmt), eventFromCalls[0])
+        assertEquals(today.format(isoFmt), eventToCalls[0])
+        assertEquals(expectedPreviousStart.format(isoFmt), eventFromCalls[1])
+        assertEquals(expectedPreviousEnd.format(isoFmt), eventToCalls[1])
     }
 
     @Test
