@@ -17,10 +17,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.IconButton
-import com.flowfuel.app.core.designsystem.components.FFFab
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDialog
@@ -91,7 +89,6 @@ private sealed interface HistoryListItem {
 fun HistoryScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToDetails: (id: Int) -> Unit = {},
-    onAddRefuel: () -> Unit = {},
     historyNeedsRefresh: Boolean = false,
     onHistoryRefreshConsumed: () -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel(),
@@ -201,14 +198,6 @@ fun HistoryScreen(
                         Icon(Icons.Outlined.FileDownload, contentDescription = "Exportar")
                     }
                 },
-            )
-        },
-        floatingActionButton = {
-            FFFab(
-                icon               = Icons.Default.LocalGasStation,
-                contentDescription = "Registrar abastecimento",
-                text               = "Registrar",
-                onClick            = onAddRefuel,
             )
         },
     ) { innerPadding ->

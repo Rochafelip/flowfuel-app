@@ -174,16 +174,6 @@ fun MainContainerScreen(
                 HistoryScreen(
                     onNavigateToLogin        = onNavigateToLogin,
                     onNavigateToDetails      = onNavigateToRefuelDetails,
-                    onAddRefuel              = {
-                        openRefuelSheet = true
-                        innerNavController.navigate(MainDestinations.HOME) {
-                            popUpTo(innerNavController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState    = true
-                        }
-                    },
                     historyNeedsRefresh      = historyNeedsRefresh,
                     onHistoryRefreshConsumed = onHistoryRefreshConsumed,
                 )
