@@ -43,15 +43,19 @@ import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
+import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.presentation.components.FinancialSummaryCard
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
 import com.flowfuel.app.feature.home.presentation.components.InsightCard
 import com.flowfuel.app.feature.home.presentation.components.LastRefuelCard
 import com.flowfuel.app.feature.home.presentation.components.RecentActivityCard
+import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
 import com.flowfuel.app.feature.home.presentation.components.VehicleHeader
 import com.flowfuel.app.feature.home.presentation.components.formatBrl
 import com.flowfuel.app.feature.home.presentation.components.formatKm
+import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import kotlinx.coroutines.flow.collectLatest
 import java.util.Calendar
@@ -62,6 +66,7 @@ import java.util.Calendar
 fun HomeScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
+    onNavigateToMaintenanceEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
     openRefuelSheet: Boolean = false,
     onRefuelSheetOpened: () -> Unit = {},
     refreshTrigger: Boolean = false,
@@ -70,6 +75,17 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val onUpcomingEventClick: (UpcomingMaintenanceType) -> Unit = { type ->
+        when (type) {
+            UpcomingMaintenanceType.LICENSING -> viewModel.openLicensingDueDatePicker()
+            UpcomingMaintenanceType.OIL_CHANGE, UpcomingMaintenanceType.TIRE_ROTATION -> {
+                val vehicleId = (state.screenState as? HomeScreenState.Success)?.vehicle?.id
+                val category = if (type == UpcomingMaintenanceType.OIL_CHANGE) EventCategory.OIL_CHANGE else EventCategory.TIRES
+                if (vehicleId != null) onNavigateToMaintenanceEventCreate(vehicleId, category)
+            }
+        }
+    }
 
     LaunchedEffect(openRefuelSheet) {
         if (openRefuelSheet) {
@@ -139,10 +155,13 @@ fun HomeScreen(
                         dashboard = s.dashboard,
                         financialSummary = s.financialSummary,
                         recentActivity = s.recentActivity,
+                        upcomingMaintenance = s.upcomingMaintenance,
                         onRegisterRefuel = viewModel::openRefuelSheet,
                         onVehicleClick = viewModel::openVehicleSwitcher,
                         onRetryFinancialSummary = viewModel::retryFinancialSummary,
                         onRetryRecentActivity = viewModel::retryRecentActivity,
+                        onRetryUpcomingMaintenance = viewModel::retryUpcomingMaintenance,
+                        onUpcomingEventClick = onUpcomingEventClick,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -182,6 +201,13 @@ fun HomeScreen(
             onDismiss = viewModel::closeVehicleSwitcher,
         )
     }
+
+    if (state.showLicensingDueDatePicker) {
+        LicensingDueDateDialog(
+            onConfirm = viewModel::onLicensingDueDateSelected,
+            onDismiss = viewModel::closeLicensingDueDatePicker,
+        )
+    }
 }
 
 // ─── Conteúdo principal (estado Success) ──────────────────────────────────────
@@ -192,10 +218,13 @@ private fun HomeContent(
     dashboard: DashboardData,
     financialSummary: SectionState<FinancialSummary>,
     recentActivity: SectionState<List<VehicleTimelineItem>>,
+    upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>>,
     onRegisterRefuel: () -> Unit,
     onVehicleClick: () -> Unit,
     onRetryFinancialSummary: () -> Unit,
     onRetryRecentActivity: () -> Unit,
+    onRetryUpcomingMaintenance: () -> Unit,
+    onUpcomingEventClick: (UpcomingMaintenanceType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isFirstUse = dashboard.totalRefuels == 0
@@ -266,6 +295,17 @@ private fun HomeContent(
             }
         }
 
+        item {
+            when (upcomingMaintenance) {
+                is SectionState.Success -> UpcomingEventsSection(
+                    items = upcomingMaintenance.value,
+                    onCardClick = onUpcomingEventClick,
+                )
+                SectionState.Loading -> FFSkeletonBlock(height = 96.dp)
+                is SectionState.Error -> SectionErrorCard(onRetry = onRetryUpcomingMaintenance)
+            }
+        }
+
         // Espaço para o FAB não sobrepor o último item da lista.
         item { Spacer(Modifier.height(80.dp)) }
     }
@@ -302,6 +342,7 @@ private fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
         FFSkeletonBlock(height = 176.dp)
         FFSkeletonBlock(height = 96.dp)
         FFSkeletonBlock(height = 160.dp)
+        FFSkeletonBlock(height = 96.dp)
         FFSkeletonLine(widthFraction = 0.6f)
         FFSkeletonLine(widthFraction = 0.4f)
     }
