@@ -32,8 +32,10 @@ endpoint novo no backend.
   com o mês anterior (`FFTrendBadge` up/down/flat), calculada no cliente via
   filtro de datas já suportado pela API de eventos.
 - `IndicatorsGrid`: grid 2x2 de `IndicatorCard` — Consumo médio, Preço médio
-  (derivado: total gasto ÷ energia total, sem chamada nova), Odômetro,
-  Último abastecimento (versão compacta, ex. "há 3 dias").
+  (do mês atual — soma de `totalPrice` ÷ soma de `energyAmount` dos
+  abastecimentos do mês, calculado dentro de `GetFinancialSummaryUseCase` a
+  partir dos mesmos dados já buscados para o resumo financeiro, sem chamada
+  extra), Odômetro, Último abastecimento (versão compacta, ex. "há 3 dias").
 - `InsightCard`: dica rotativa estática (lista fixa de ~12 dicas em
   Kotlin/recursos), seleção estável por dia (`dayOfYear % tips.size`) — sem
   dependência de dados do usuário.
@@ -95,30 +97,41 @@ feature/home/
 └── di/HomeModule.kt                 (registra os 2 use cases novos)
 ```
 
-**`GetFinancialSummaryUseCase`**: wrapper fino que chama
-`GetVehicleEventsPageUseCase` (de `feature/vehicleevent`, já existente) duas
-vezes — uma para o mês atual e uma para o mês anterior — usando
-`EventDateFilter.Custom(from, to)` (já existente em
-`domain/model/EventDateFilter.kt`) para montar `dateFrom`/`dateTo` do
-primeiro/último dia de cada mês. Os parâmetros `startDate`/`endDate` já são
-suportados pelo endpoint `GET vehicle-events/vehicle/{vehicleId}` — não é
-necessário buscar todos os eventos do veículo, a busca já vem filtrada e
-paginada pelo servidor (tipicamente 1-2 páginas por mês). Soma `amount` das
-páginas retornadas para cada mês e calcula o delta percentual.
+**`GetFinancialSummaryUseCase`**: "gasto total" do veículo é sempre a soma de
+duas fontes (mesmo padrão já usado em
+`HomeViewModel.fetchDashboardWithEventsTotal`): abastecimentos
+(`GetRefuelHistoryUseCase`, de `feature/history`) e eventos
+(`GetVehicleEventsPageUseCase`, de `feature/vehicleevent` — manutenção,
+troca de óleo, etc.). O use case busca as duas fontes, cada uma com filtro
+de data server-side, para o mês atual e o mês anterior (4 chamadas no
+total): `GetRefuelHistoryUseCase(vehicleId, page=0, size=200, startDate,
+endDate)` e `GetVehicleEventsPageUseCase(vehicleId, page=0, category=null,
+dateFrom, dateTo)`, paginando além da primeira página só se `hasMore`/
+`totalElements` indicar mais itens no mês (tipicamente 1 página basta). Soma
+`totalPrice` (abastecimentos) + `amount` (eventos) por mês e calcula o
+delta percentual entre os dois totais.
 
-**`GetRecentActivityUseCase`**: wrapper sobre `GetVehicleEventsPageUseCase`
-sem filtro de data/categoria, `page = 0`, tamanho de página padrão da API
-(20) truncado para os 4 primeiros itens na apresentação.
+**`GetRecentActivityUseCase`**: reaproveita o mesmo padrão de
+`VehicleEventsViewModel.buildTimeline()` (feature/vehicleevent) — busca
+`GetVehicleEventsPageUseCase(vehicleId, page=0, category=null)` e
+`GetRefuelHistoryUseCase(vehicleId, page=0, size=20)` em paralelo, mapeia
+cada item para `VehicleTimelineItem.EventEntry`/`RefuelEntry` (já existente
+em `feature/vehicleevent/domain/model/VehicleTimelineItem.kt`), ordena por
+`sortDate` decrescente e trunca para os 4 primeiros.
 
-**Preço médio** (indicador do grid): calculado em `HomeViewModel`/mapper a
-partir de campos já presentes em `DashboardData` (total gasto ÷ energia
-total), sem use case nem chamada de API novos.
+**Preço médio** (indicador do grid): não existe campo de energia total em
+`DashboardData` (só a do último abastecimento), então esse indicador é
+calculado dentro do próprio `GetFinancialSummaryUseCase`, a partir da lista
+de `RefuelItem` do mês atual já buscada para o resumo financeiro — soma
+`totalPrice` ÷ soma `energyAmount` desses itens. `null` (exibido como "—")
+quando não há abastecimento no mês atual.
 
 **Dependência entre features:** `feature/home` passa a depender também de
-`feature/vehicleevent` (via `GetVehicleEventsPageUseCase` e
-`EventDateFilter`) além de `feature/vehicle`, que já usava — mesmo padrão de
-dependência entre features já existente no projeto (ex.: `feature/home` já
-usa `GetVehicleEventsTotalUseCase` de `feature/vehicleevent` hoje).
+`feature/vehicleevent` (via `GetVehicleEventsPageUseCase`) e
+`feature/history` (via `GetRefuelHistoryUseCase`), além de `feature/vehicle`,
+que já usava — mesmo padrão de dependência entre features já existente no
+projeto (ex.: `feature/home` já usa `GetVehicleEventsTotalUseCase` de
+`feature/vehicleevent` hoje).
 
 ## Estados e tratamento de erros
 
