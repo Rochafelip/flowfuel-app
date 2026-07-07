@@ -15,6 +15,7 @@ import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.HybridConsumptionBreakdown
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
+import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,14 +30,16 @@ class HomeRepositoryImpl @Inject constructor(
     override suspend fun getActiveVehicle(): AppResult<ActiveVehicleData> =
         apiCall { vehicleApi.getActiveVehicle() }.map { dto ->
             ActiveVehicleData(
-                id          = dto.id,
-                brand       = dto.brand,
-                model       = dto.model,
-                fuelSubType = dto.fuelSubType,
-                capacity    = dto.capacity,
+                id           = dto.id,
+                brand        = dto.brand,
+                model        = dto.model,
+                fuelSubType  = dto.fuelSubType,
+                capacity     = dto.capacity,
                 licensePlate = dto.licensePlate,
-                energyType  = dto.energyType,
-                currentKm   = dto.currentKm,
+                energyType   = dto.energyType,
+                currentKm    = dto.currentKm,
+                photoUrl     = dto.photo,
+                vehicleType  = VehicleType.entries.firstOrNull { it.apiValue == dto.type } ?: VehicleType.Car,
             )
         }
 

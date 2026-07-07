@@ -1,5 +1,7 @@
 package com.flowfuel.app.feature.home.domain.model
 
+import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
+
 /**
  * Representação simplificada do veículo ativo para a tela principal.
  * Evita acoplar o domínio de Home ao domínio de Vehicle.
@@ -13,6 +15,8 @@ data class ActiveVehicleData(
     val licensePlate: String?,
     val energyType: String,
     val currentKm: Int,
+    val photoUrl: String? = null,
+    val vehicleType: VehicleType = VehicleType.Car,
 )
 
 /** Consumo separado por modal para veículos HYBRID. */
