@@ -29,8 +29,12 @@ class CreateVehicleEventViewModel @Inject constructor(
 
     private val vehicleId: Int = checkNotNull(savedStateHandle["vehicleId"])
 
+    private val initialCategory: EventCategory = savedStateHandle.get<String>("category")
+        ?.let { raw -> EventCategory.entries.firstOrNull { it.name == raw } }
+        ?: EventCategory.OTHER
+
     private val _state = MutableStateFlow(
-        CreateVehicleEventUiState(eventDate = LocalDate.now().toString()),
+        CreateVehicleEventUiState(category = initialCategory, eventDate = LocalDate.now().toString()),
     )
     val state: StateFlow<CreateVehicleEventUiState> = _state.asStateFlow()
 

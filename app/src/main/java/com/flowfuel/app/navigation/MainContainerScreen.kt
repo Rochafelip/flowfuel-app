@@ -36,6 +36,7 @@ import com.flowfuel.app.feature.auth.presentation.profile.ProfileScreen
 import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.home.presentation.HomeScreen
 import com.flowfuel.app.feature.station.presentation.list.StationsScreen
+import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
 
 /**
@@ -55,6 +56,7 @@ fun MainContainerScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
     onNavigateToEventCreate: (vehicleId: Int) -> Unit = {},
+    onNavigateToMaintenanceEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
@@ -159,6 +161,7 @@ fun MainContainerScreen(
                 HomeScreen(
                     onNavigateToLogin      = onNavigateToLogin,
                     onNavigateToAddVehicle = onNavigateToAddVehicle,
+                    onNavigateToMaintenanceEventCreate = onNavigateToMaintenanceEventCreate,
                     openRefuelSheet        = openRefuelSheet,
                     onRefuelSheetOpened    = { openRefuelSheet = false },
                     refreshTrigger         = homeNeedsRefresh,

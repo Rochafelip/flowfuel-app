@@ -24,7 +24,7 @@ object Destinations {
     const val REFUEL_EDIT      = "refuel/edit/{refuelId}"
 
     const val VEHICLE_EVENTS        = "vehicle/events/{vehicleId}"
-    const val VEHICLE_EVENT_CREATE  = "vehicle/events/create/{vehicleId}"
+    const val VEHICLE_EVENT_CREATE  = "vehicle/events/create/{vehicleId}?category={category}"
     const val VEHICLE_EVENT_DETAILS = "vehicle/events/details/{eventId}"
     const val VEHICLE_EVENT_EDIT    = "vehicle/events/edit/{eventId}"
 
@@ -42,7 +42,14 @@ object Destinations {
     fun refuelDetails(id: Int)                     = "refuel/details/$id"
     fun refuelEdit(id: Int)                        = "refuel/edit/$id"
     fun vehicleEvents(vehicleId: Int)              = "vehicle/events/$vehicleId"
-    fun vehicleEventCreate(vehicleId: Int)         = "vehicle/events/create/$vehicleId"
+    fun vehicleEventCreate(vehicleId: Int, category: String? = null): String {
+        val base = "vehicle/events/create/$vehicleId"
+
+        return if (category == null)
+            base
+        else
+            "$base?category=$category"
+    }
     fun vehicleEventDetails(eventId: Int)          = "vehicle/events/details/$eventId"
     fun vehicleEventEdit(eventId: Int)             = "vehicle/events/edit/$eventId"
 }

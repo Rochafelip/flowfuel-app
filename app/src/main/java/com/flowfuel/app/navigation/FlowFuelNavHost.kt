@@ -495,7 +495,10 @@ fun FlowFuelNavHost(
         // ── Criar evento do veículo ────────────────────────────────────────
         composable(
             route = Destinations.VEHICLE_EVENT_CREATE,
-            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.IntType },
+                navArgument("category") { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
         ) {
             CreateVehicleEventScreen(
                 onBack = { navController.popBackStack() },
@@ -642,6 +645,9 @@ fun FlowFuelNavHost(
                 },
                 onNavigateToEventCreate = { vehicleId ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId))
+                },
+                onNavigateToMaintenanceEventCreate = { vehicleId, category ->
+                    navController.navigate(Destinations.vehicleEventCreate(vehicleId, category.name))
                 },
                 onNavigateToEventDetails = { eventId ->
                     navController.navigate(Destinations.vehicleEventDetails(eventId))
