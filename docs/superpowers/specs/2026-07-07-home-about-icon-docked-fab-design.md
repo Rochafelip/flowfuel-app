@@ -61,8 +61,9 @@ concreto hoje — ver "Escopo" abaixo.
   existente, no mesmo `Row`. Novo parâmetro `onInfoClick: () -> Unit`.
   Nenhuma `FFTopBar` nova é criada — sem gasto extra de altura de tela,
   sem título duplicado (o nome do veículo já aparece ali).
-- Toque abre um `AlertDialog`: ícone/logo do app (`drawable/ic_launcher_foreground`),
-  nome "FlowFuel", versão (`BuildConfig.VERSION_NAME`) e botão "Fechar".
+- Toque abre um `AlertDialog`: logo do app (`R.drawable.ic_splash`, o mesmo
+  ícone já usado como logo em `LoginScreen`), nome "FlowFuel", versão
+  (`BuildConfig.VERSION_NAME`) e botão "Fechar".
   Sem links de termos/privacidade (não existem hoje) e sem
   "Ajuda/Suporte" (sem canal definido — ver "Fora do escopo").
 - Escopo só na `HomeScreen`; as outras 4 abas não mudam.
