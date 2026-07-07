@@ -56,3 +56,22 @@ data class CreateRefuelRequest(
     /** null para combustão/elétrico puro; "FUEL" ou "ELECTRIC" para híbridos. */
     val refuelType: String? = null,
 )
+
+/**
+ * Resumo financeiro do mês atual (até hoje) comparado ao mês anterior
+ * completo — soma abastecimentos + eventos, mesma regra de "gasto total"
+ * usada em [com.flowfuel.app.feature.home.presentation.HomeViewModel].
+ * Comparar "mês atual até hoje" com "mês anterior completo" é uma
+ * aproximação aceita para o MVP, não uma proporção estrita de dias.
+ */
+data class FinancialSummary(
+    val currentMonthTotal: Double,
+    val previousMonthTotal: Double,
+    val averagePricePerUnit: Double?,
+) {
+    /** Delta percentual do mês atual vs. anterior; null se o mês anterior não teve gastos. */
+    val percentDelta: Double?
+        get() = if (previousMonthTotal > 0.0)
+            ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100.0
+        else null
+}
