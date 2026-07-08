@@ -2,6 +2,7 @@
 
 [![Versão](https://img.shields.io/badge/vers%C3%A3o-1.1.0-4CAF93)](#release)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Licença](https://img.shields.io/badge/licença-MIT-blue)](LICENSE)
 
 App Android para controle de combustível e manutenção de veículos, com prontuário financeiro por veículo: abastecimentos, manutenções, seguro, IPVA e outras despesas — tudo em um só lugar, com dashboard de consumo, histórico exportável e integração com Android Auto.
 
@@ -131,3 +132,9 @@ Builds de release são assinados e publicados automaticamente como GitHub Releas
 git tag v1.1.1
 git push origin v1.1.1
 ```
+
+## Licença
+
+Distribuído sob a licença MIT — veja [LICENSE](LICENSE) para o texto completo.
+
+© 2026 [Rochafelip](https://github.com/Rochafelip)

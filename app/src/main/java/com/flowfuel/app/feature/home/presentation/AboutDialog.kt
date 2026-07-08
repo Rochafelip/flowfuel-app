@@ -95,6 +95,14 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
+
+                Spacer(Modifier.height(FFTheme.spacing.md))
+
+                Text(
+                    text = "© 2026 Rochafelip",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
     )
