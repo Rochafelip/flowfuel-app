@@ -1,5 +1,6 @@
 package com.flowfuel.app.feature.home.presentation.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import com.flowfuel.app.core.designsystem.components.VehiclePhotoAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
@@ -37,28 +36,17 @@ fun VehicleHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
-        ) {
-            VehiclePhotoAvatar(
-                photoUrl = vehicle.photoUrl,
-                vehicleType = vehicle.vehicleType,
-                size = 48.dp,
-                onClick = onVehicleClick,
+        Column(modifier = Modifier.clickable(onClick = onVehicleClick)) {
+            Text(
+                text = "${vehicle.brand} ${vehicle.model}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Column {
-                Text(
-                    text = "${vehicle.brand} ${vehicle.model}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = daysSinceRefuelLabel(daysSinceLastRefuel),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = daysSinceRefuelLabel(daysSinceLastRefuel),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onInfoClick) {
