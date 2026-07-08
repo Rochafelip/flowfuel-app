@@ -195,7 +195,6 @@ fun MainContainerScreen(
                         FFFab(
                             icon               = Icons.Default.Add,
                             contentDescription = "Novo evento",
-                            text               = "Novo Evento",
                             onClick            = { triggerEventCreate = true },
                         )
                     } else {
