@@ -1,6 +1,6 @@
 # FlowFuel
 
-[![Versão](https://img.shields.io/badge/vers%C3%A3o-1.1.0-4CAF93)](#release)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-1.2.0-4CAF93)](#release)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Licença](https://img.shields.io/badge/licença-MIT-blue)](LICENSE)
 
