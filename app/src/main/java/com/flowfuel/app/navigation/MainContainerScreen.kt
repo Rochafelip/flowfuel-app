@@ -1,5 +1,8 @@
 package com.flowfuel.app.navigation
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,7 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -54,6 +62,9 @@ import com.flowfuel.app.feature.home.presentation.QuickRefuelBottomSheet
 import com.flowfuel.app.feature.home.presentation.QuickRefuelEffect
 import com.flowfuel.app.feature.home.presentation.QuickRefuelViewModel
 import com.flowfuel.app.feature.station.presentation.list.StationsScreen
+import com.flowfuel.app.feature.update.presentation.UpdateAvailableDialog
+import com.flowfuel.app.feature.update.presentation.UpdateUiState
+import com.flowfuel.app.feature.update.presentation.UpdateViewModel
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
 import kotlinx.coroutines.flow.collectLatest
@@ -100,12 +111,15 @@ fun MainContainerScreen(
     tabEventUpdated: Boolean = false,
     onTabEventUpdatedConsumed: () -> Unit = {},
     quickRefuelViewModel: QuickRefuelViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     val innerNavController = rememberNavController()
     val backStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
     val quickRefuelState by quickRefuelViewModel.state.collectAsState()
+    val updateState by updateViewModel.state.collectAsState()
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var triggerEventCreate by remember { mutableStateOf(false) }
     // Sinalizadores locais de "houve um abastecimento registrado agora", um por
@@ -320,5 +334,44 @@ fun MainContainerScreen(
                 onDismiss                 = quickRefuelViewModel::closeSheet,
             )
         }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                updateViewModel.onInstallPermissionResumed()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    when (val update = updateState) {
+        is UpdateUiState.Available, is UpdateUiState.Downloading -> UpdateAvailableDialog(
+            state         = update,
+            onUpdateClick = updateViewModel::onUpdateClick,
+            onDismiss     = updateViewModel::onDismiss,
+        )
+
+        is UpdateUiState.RequestingInstallPermission -> LaunchedEffect(Unit) {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}"),
+                )
+            )
+        }
+
+        is UpdateUiState.ReadyToInstall -> LaunchedEffect(update.installUri) {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(update.installUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+
+        UpdateUiState.Idle -> Unit
     }
 }
