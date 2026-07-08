@@ -1,5 +1,8 @@
 # FlowFuel
 
+[![Release](https://img.shields.io/github/v/release/Rochafelip/flowfuel-app?label=vers%C3%A3o)](https://github.com/Rochafelip/flowfuel-app/releases/latest)
+[![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+
 App Android para controle de combustível e manutenção de veículos, com prontuário financeiro por veículo: abastecimentos, manutenções, seguro, IPVA e outras despesas — tudo em um só lugar, com dashboard de consumo, histórico exportável e integração com Android Auto.
 
 <p align="center">
@@ -125,6 +128,6 @@ Os scripts em `scripts/` populam uma conta de teste com veículos (combustão, e
 Builds de release são assinados e publicados automaticamente como GitHub Release sempre que uma tag `vX.Y.Z` é enviada ao repositório (ver `.github/workflows/release.yml`).
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v1.1.1
+git push origin v1.1.1
 ```
