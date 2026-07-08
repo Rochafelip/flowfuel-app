@@ -215,6 +215,7 @@ private fun HomeContent(
                     is SectionState.Success -> FinancialSummaryCard(
                         currentMonthTotalLabel = formatBrl(financialSummary.value.currentMonthTotal),
                         percentDelta = financialSummary.value.percentDelta,
+                        totalSpentLabel = formatBrl(dashboard.totalSpent),
                     )
                     SectionState.Loading -> FFSkeletonBlock(height = 96.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetryFinancialSummary)
