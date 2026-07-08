@@ -122,11 +122,16 @@ class UpdateViewModel @Inject constructor(
             }
         }
         downloadReceiver = receiver
+        // DownloadManager's completion broadcast is sent as an explicit intent by
+        // com.android.providers.downloads (a different app/UID), not by the system
+        // itself — RECEIVER_NOT_EXPORTED silently drops it (verified on a real
+        // device/emulator; Robolectric's sendBroadcast() doesn't enforce this).
+        // onReceive() filters by the exact downloadId, so exporting is safe here.
         ContextCompat.registerReceiver(
             context,
             receiver,
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            ContextCompat.RECEIVER_NOT_EXPORTED,
+            ContextCompat.RECEIVER_EXPORTED,
         )
     }
 
