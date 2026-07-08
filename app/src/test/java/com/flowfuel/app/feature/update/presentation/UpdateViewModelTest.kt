@@ -193,4 +193,100 @@ class UpdateViewModelTest {
 
         assertEquals(UpdateUiState.Downloading(updateInfo()), vm.state.value)
     }
+
+    @Test
+    fun `onHideDownloadProgress moves Downloading back to Available without dismissing`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        val vm = buildViewModel()
+        vm.onUpdateClick()
+
+        vm.onHideDownloadProgress()
+
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+        coVerify(inverse = true) { updateRepository.dismiss(any()) }
+    }
+
+    @Test
+    fun `onHideDownloadProgress does nothing when not Downloading`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        val vm = buildViewModel()
+
+        vm.onHideDownloadProgress()
+
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+    }
+
+    @Test
+    fun `a completion broadcast that arrives after hiding the download still reaches ReadyToInstall`() = runTest {
+        val installUri = Uri.parse("content://com.flowfuel.app.debug.provider/downloads/flowfuel-update.apk")
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        every { updateRepository.isDownloadComplete(42L) } returns true
+        every { updateRepository.installUri(42L) } returns installUri
+        val vm = buildViewModel()
+        vm.onUpdateClick()
+        vm.onHideDownloadProgress()
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+
+        context.sendBroadcast(
+            Intent(DownloadManager.ACTION_DOWNLOAD_COMPLETE).putExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 42L)
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(UpdateUiState.ReadyToInstall(installUri), vm.state.value)
+    }
+
+    @Test
+    fun `a failure broadcast that arrives after hiding the download still falls back to Available with the original info`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        every { updateRepository.isDownloadComplete(42L) } returns false
+        val vm = buildViewModel()
+        vm.onUpdateClick()
+        vm.onHideDownloadProgress()
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+
+        context.sendBroadcast(
+            Intent(DownloadManager.ACTION_DOWNLOAD_COMPLETE).putExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 42L)
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+    }
+
+    @Test
+    fun `onDismissReadyToInstall moves ReadyToInstall back to Idle without dismissing`() = runTest {
+        val installUri = Uri.parse("content://com.flowfuel.app.debug.provider/downloads/flowfuel-update.apk")
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        every { updateRepository.isDownloadComplete(42L) } returns true
+        every { updateRepository.installUri(42L) } returns installUri
+        val vm = buildViewModel()
+        vm.onUpdateClick()
+        context.sendBroadcast(
+            Intent(DownloadManager.ACTION_DOWNLOAD_COMPLETE).putExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 42L)
+        )
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(UpdateUiState.ReadyToInstall(installUri), vm.state.value)
+
+        vm.onDismissReadyToInstall()
+
+        assertEquals(UpdateUiState.Idle, vm.state.value)
+        coVerify(inverse = true) { updateRepository.dismiss(any()) }
+    }
+
+    @Test
+    fun `onDismissReadyToInstall does nothing when not ReadyToInstall`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        val vm = buildViewModel()
+
+        vm.onDismissReadyToInstall()
+
+        assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+    }
 }

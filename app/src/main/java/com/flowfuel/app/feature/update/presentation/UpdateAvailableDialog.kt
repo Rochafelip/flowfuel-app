@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +19,9 @@ fun UpdateAvailableDialog(
     state: UpdateUiState,
     onUpdateClick: () -> Unit,
     onDismiss: () -> Unit,
+    onHideDownload: () -> Unit,
+    onInstallClick: () -> Unit,
+    onDismissReadyToInstall: () -> Unit,
 ) {
     when (state) {
         is UpdateUiState.Available -> FFDialog(
@@ -36,8 +40,11 @@ fun UpdateAvailableDialog(
         )
 
         is UpdateUiState.Downloading -> AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = onHideDownload,
             confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = onHideDownload) { Text("Ocultar") }
+            },
             title = { Text("Baixando atualização") },
             text = {
                 Column(
@@ -49,6 +56,15 @@ fun UpdateAvailableDialog(
                     Text("Baixando FlowFuel ${state.info.versionLabel}...")
                 }
             },
+        )
+
+        is UpdateUiState.ReadyToInstall -> FFDialog(
+            title = "Atualização pronta",
+            message = "A nova versão do FlowFuel já foi baixada e está pronta para ser instalada.",
+            confirmText = "Instalar",
+            dismissText = "Depois",
+            onConfirm = onInstallClick,
+            onDismiss = onDismissReadyToInstall,
         )
 
         else -> Unit

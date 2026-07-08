@@ -1,5 +1,6 @@
 package com.flowfuel.app.navigation
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -349,9 +350,12 @@ fun MainContainerScreen(
 
     when (val update = updateState) {
         is UpdateUiState.Available, is UpdateUiState.Downloading -> UpdateAvailableDialog(
-            state         = update,
-            onUpdateClick = updateViewModel::onUpdateClick,
-            onDismiss     = updateViewModel::onDismiss,
+            state                   = update,
+            onUpdateClick           = updateViewModel::onUpdateClick,
+            onDismiss               = updateViewModel::onDismiss,
+            onHideDownload          = updateViewModel::onHideDownloadProgress,
+            onInstallClick          = {},
+            onDismissReadyToInstall = {},
         )
 
         is UpdateUiState.RequestingInstallPermission -> LaunchedEffect(Unit) {
@@ -363,15 +367,34 @@ fun MainContainerScreen(
             )
         }
 
-        is UpdateUiState.ReadyToInstall -> LaunchedEffect(update.installUri) {
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(update.installUri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        is UpdateUiState.ReadyToInstall -> {
+            // Best case: the app is foregrounded and this launches the installer
+            // immediately. On Android 10+, starting an activity from the
+            // background can be silently blocked (e.g. the download finished
+            // while the app wasn't foregrounded) — the dialog below is the
+            // visible fallback so the user always has a way to trigger install.
+            LaunchedEffect(update.installUri) {
+                launchInstallIntent(context, update.installUri)
             }
-            context.startActivity(intent)
+            UpdateAvailableDialog(
+                state                   = update,
+                onUpdateClick           = updateViewModel::onUpdateClick,
+                onDismiss               = updateViewModel::onDismiss,
+                onHideDownload          = updateViewModel::onHideDownloadProgress,
+                onInstallClick          = { launchInstallIntent(context, update.installUri) },
+                onDismissReadyToInstall = updateViewModel::onDismissReadyToInstall,
+            )
         }
 
         UpdateUiState.Idle -> Unit
     }
+}
+
+private fun launchInstallIntent(context: Context, installUri: Uri) {
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(installUri, "application/vnd.android.package-archive")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(intent)
 }
