@@ -1,6 +1,6 @@
 # FlowFuel
 
-[![Release](https://img.shields.io/github/v/release/Rochafelip/flowfuel-app?label=vers%C3%A3o)](https://github.com/Rochafelip/flowfuel-app/releases/latest)
+[![Versão](https://img.shields.io/badge/vers%C3%A3o-1.1.0-4CAF93)](#release)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 
 App Android para controle de combustível e manutenção de veículos, com prontuário financeiro por veículo: abastecimentos, manutenções, seguro, IPVA e outras despesas — tudo em um só lugar, com dashboard de consumo, histórico exportável e integração com Android Auto.
