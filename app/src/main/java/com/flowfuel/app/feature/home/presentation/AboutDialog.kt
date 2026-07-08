@@ -27,8 +27,15 @@ import androidx.compose.ui.unit.dp
 import com.flowfuel.app.BuildConfig
 import com.flowfuel.app.R
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import java.time.Year
 
 private const val DEVELOPER_GITHUB_URL = "https://github.com/Rochafelip"
+private const val FOUNDING_YEAR = 2026
+
+/** "© 2026 Rochafelip" no ano de fundação; "© 2026–2028 Rochafelip" depois disso. */
+private fun copyrightLabel(currentYear: Int = Year.now().value): String =
+    if (currentYear > FOUNDING_YEAR) "© $FOUNDING_YEAR–$currentYear Rochafelip"
+    else "© $FOUNDING_YEAR Rochafelip"
 
 /** Diálogo simples de "Sobre": logo, nome, versão do app e link do desenvolvedor. */
 @Composable
@@ -99,7 +106,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Spacer(Modifier.height(FFTheme.spacing.md))
 
                 Text(
-                    text = "© 2026 Rochafelip",
+                    text = copyrightLabel(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
