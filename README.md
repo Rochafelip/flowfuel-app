@@ -1,6 +1,73 @@
 # FlowFuel
 
-App Android para controle de combustível e manutenção de veículos, com prontuário financeiro por veículo (abastecimentos, manutenções e outras despesas).
+App Android para controle de combustível e manutenção de veículos, com prontuário financeiro por veículo: abastecimentos, manutenções, seguro, IPVA e outras despesas — tudo em um só lugar, com dashboard de consumo, histórico exportável e integração com Android Auto.
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="200" alt="Home" />
+  <img src="docs/screenshots/historico.png" width="200" alt="Histórico" />
+  <img src="docs/screenshots/eventos.png" width="200" alt="Eventos" />
+  <img src="docs/screenshots/detalhes_veiculo.png" width="200" alt="Detalhes do veículo" />
+</p>
+
+## Funcionalidades
+
+### Autenticação e perfil
+
+Cadastro por e-mail/senha com confirmação de conta (magic link ou token manual), recuperação de senha, edição de perfil com foto e troca de senha.
+
+<p align="center">
+  <img src="docs/screenshots/login.png" width="220" alt="Login" />
+  <img src="docs/screenshots/register.png" width="220" alt="Criar conta" />
+  <img src="docs/screenshots/perfil.png" width="220" alt="Perfil" />
+</p>
+
+### Dashboard (Home)
+
+Resumo financeiro do mês com variação em relação ao mês anterior, indicadores de consumo médio, preço médio e odômetro, dica do dia, dados do último abastecimento, atividade recente e alertas de manutenções futuras (licenciamento, troca de óleo, rodízio de pneus).
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="240" alt="Dashboard" />
+</p>
+
+### Registro rápido de abastecimento
+
+Acessível pelo botão flutuante em qualquer aba: alterna entre informar o percurso (km rodados) ou o odômetro absoluto, aceita litros ou kWh (veículos elétricos/híbridos) e marca se o tanque ficou cheio — usado para calcular o consumo médio automaticamente.
+
+<p align="center">
+  <img src="docs/screenshots/registrar_abastecimento.png" width="220" alt="Registrar abastecimento" />
+  <img src="docs/screenshots/detalhes_abastecimento.png" width="220" alt="Detalhes do abastecimento" />
+</p>
+
+### Veículos
+
+Suporte a carros e motos, com energia por combustão, elétrica ou híbrida (e o respectivo tipo de combustível — gasolina, etanol, diesel, flex ou GNV). Cadastro em wizard de 4 passos (identificação, classificação, dados técnicos e foto), lista de gestão com troca do veículo ativo e edição completa.
+
+<p align="center">
+  <img src="docs/screenshots/veiculos.png" width="220" alt="Lista de veículos" />
+  <img src="docs/screenshots/detalhes_veiculo.png" width="220" alt="Detalhes do veículo" />
+  <img src="docs/screenshots/cadastrar_veiculo.png" width="220" alt="Cadastro de veículo" />
+</p>
+
+### Histórico e eventos financeiros
+
+Histórico de abastecimentos agrupado por mês com filtros de período. Linha do tempo de eventos combinando abastecimentos e despesas por categoria (manutenção, troca de óleo, lavagem, pneus, seguro, imposto, documentos e outros), com filtro por categoria/data e exportação em CSV ou PDF.
+
+<p align="center">
+  <img src="docs/screenshots/historico.png" width="220" alt="Histórico" />
+  <img src="docs/screenshots/eventos.png" width="220" alt="Eventos" />
+</p>
+
+### Postos próximos
+
+Busca de postos de combustível ou eletropostos nas proximidades via geolocalização, com filtro por raio de distância e abertura de rota no app de navegação do dispositivo.
+
+<p align="center">
+  <img src="docs/screenshots/postos.png" width="240" alt="Postos próximos" />
+</p>
+
+### Android Auto
+
+Mini-app dedicado (`feature/auto`) com login e um fluxo simplificado de 3 passos para registrar abastecimento direto do painel do carro, sem precisar pegar o celular.
 
 ## Stack
 
@@ -20,14 +87,19 @@ App Android para controle de combustível e manutenção de veículos, com pront
 app/src/main/java/com/flowfuel/app/
 ├── core/          # infraestrutura compartilhada (rede, DI, design system, etc.)
 ├── feature/
-│   ├── auth/          # login e ativação de conta
+│   ├── auth/          # login, cadastro, ativação de conta e perfil
 │   ├── onboarding/    # fluxo inicial
-│   ├── home/          # tela principal
+│   ├── home/          # dashboard e registro rápido de abastecimento
 │   ├── vehicle/       # cadastro e gestão de veículos
 │   ├── vehicleevent/  # eventos financeiros do veículo (abastecimentos, manutenções, despesas)
-│   └── history/       # histórico
+│   ├── history/       # histórico de abastecimentos
+│   ├── station/       # postos próximos
+│   ├── export/        # exportação de dados (CSV/PDF)
+│   └── auto/          # integração com Android Auto
 └── navigation/    # grafo de navegação
 ```
+
+O design system próprio (`core/designsystem`) segue Material 3 com tema claro/escuro automático, componentes reutilizáveis prefixados com `FF*` (`FFButton`, `FFCard`, `FFBottomSheet`, etc.) e uma paleta em tons de slate/grafite com verde-esmeralda como cor de destaque da marca.
 
 ## Build
 
@@ -38,6 +110,15 @@ Requer JDK 17 e Android SDK 35.
 ```
 
 Configurações locais (URL da API de desenvolvimento, DSN do Sentry, keystore de release) vão em `local.properties` — veja o template comentado nesse arquivo.
+
+## Dados de demonstração
+
+Os scripts em `scripts/` populam uma conta de teste com veículos (combustão, elétrico e híbrido) e meses de histórico de abastecimentos/eventos via API, úteis para testar a UI com dados realistas:
+
+```bash
+./scripts/seed-demo-account.ps1
+./scripts/seed-demo-extra.ps1
+```
 
 ## Release
 
