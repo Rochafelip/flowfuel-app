@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -216,10 +216,13 @@ private fun ProfileContent(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { pendingCropUri = it } }
 
+    // Não usa rememberScrollState (saveable): a posição de rolagem não deve
+    // sobreviver a trocas de aba — cada visita ao Perfil começa do topo.
+    val scrollState = remember { ScrollState(0) }
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = FFTheme.spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
