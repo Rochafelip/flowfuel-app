@@ -9,6 +9,7 @@ import com.flowfuel.app.BuildConfig
 import com.flowfuel.app.feature.update.data.remote.GithubReleasesApi
 import com.flowfuel.app.feature.update.domain.UpdateRepository
 import com.flowfuel.app.feature.update.domain.VersionComparator
+import com.flowfuel.app.feature.update.domain.model.DownloadProgress
 import com.flowfuel.app.feature.update.domain.model.UpdateInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.SerializationException
@@ -72,6 +73,20 @@ class UpdateRepositoryImpl @Inject constructor(
             } else {
                 val statusIndex = it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
                 it.getInt(statusIndex) == DownloadManager.STATUS_SUCCESSFUL
+            }
+        }
+    }
+
+    override fun downloadProgress(downloadId: Long): DownloadProgress? {
+        val downloadManager = context.getSystemService(DownloadManager::class.java)
+        val cursor = downloadManager.query(DownloadManager.Query().setFilterById(downloadId))
+        return cursor.use {
+            if (!it.moveToFirst()) {
+                null
+            } else {
+                val downloaded = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                val total = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                DownloadProgress(bytesDownloaded = downloaded, totalBytes = total)
             }
         }
     }

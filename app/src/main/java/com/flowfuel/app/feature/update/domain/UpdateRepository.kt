@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.update.domain
 
 import android.net.Uri
+import com.flowfuel.app.feature.update.domain.model.DownloadProgress
 import com.flowfuel.app.feature.update.domain.model.UpdateInfo
 
 interface UpdateRepository {
@@ -12,6 +13,9 @@ interface UpdateRepository {
 
     /** true se o download terminou com sucesso (STATUS_SUCCESSFUL); false se falhou ou não foi encontrado. */
     fun isDownloadComplete(downloadId: Long): Boolean
+
+    /** Progresso do download em andamento; null se o downloadId não for encontrado pelo DownloadManager. */
+    fun downloadProgress(downloadId: Long): DownloadProgress?
 
     /** Uri (via FileProvider) do APK baixado, pronta para abrir o instalador; null se o arquivo não existe. */
     fun installUri(downloadId: Long): Uri?

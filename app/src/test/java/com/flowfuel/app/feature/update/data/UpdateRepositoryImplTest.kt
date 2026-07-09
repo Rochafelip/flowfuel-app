@@ -92,4 +92,9 @@ class UpdateRepositoryImplTest {
 
         coVerify { updatePrefsStore.dismissVersion("v1.2.0") }
     }
+
+    @Test
+    fun `downloadProgress returns null when the downloadId does not exist`() {
+        assertNull(repository.downloadProgress(downloadId = 424242L))
+    }
 }
