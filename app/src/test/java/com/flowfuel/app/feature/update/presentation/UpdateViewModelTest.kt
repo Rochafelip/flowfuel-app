@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.flowfuel.app.feature.update.domain.UpdateRepository
+import com.flowfuel.app.feature.update.domain.model.DownloadProgress
 import com.flowfuel.app.feature.update.domain.model.UpdateInfo
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -26,6 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -288,5 +290,40 @@ class UpdateViewModelTest {
         vm.onDismissReadyToInstall()
 
         assertEquals(UpdateUiState.Available(updateInfo()), vm.state.value)
+    }
+
+    @Test
+    fun `polls download progress every 300ms while Downloading`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        val firstTick = DownloadProgress(bytesDownloaded = 50, totalBytes = 200)
+        val secondTick = DownloadProgress(bytesDownloaded = 150, totalBytes = 200)
+        every { updateRepository.downloadProgress(42L) } returnsMany listOf(firstTick, secondTick)
+        val vm = buildViewModel()
+
+        vm.onUpdateClick()
+        assertEquals(UpdateUiState.Downloading(updateInfo(), progress = null), vm.state.value)
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+        assertEquals(UpdateUiState.Downloading(updateInfo(), progress = firstTick), vm.state.value)
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+        assertEquals(UpdateUiState.Downloading(updateInfo(), progress = secondTick), vm.state.value)
+    }
+
+    @Test
+    fun `onHideDownloadProgress stops polling without unregistering the download receiver`() = runTest {
+        coEvery { updateRepository.checkForUpdate() } returns updateInfo()
+        every { updateRepository.canRequestPackageInstalls() } returns true
+        every { updateRepository.enqueueDownload(updateInfo()) } returns 42L
+        every { updateRepository.downloadProgress(42L) } returns DownloadProgress(50, 200)
+        val vm = buildViewModel()
+        vm.onUpdateClick()
+
+        vm.onHideDownloadProgress()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+
+        coVerify(inverse = true) { updateRepository.downloadProgress(42L) }
     }
 }

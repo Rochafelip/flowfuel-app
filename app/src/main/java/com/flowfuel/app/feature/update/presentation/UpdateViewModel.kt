@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Named
@@ -40,6 +43,23 @@ class UpdateViewModel @Inject constructor(
      * state, even though [_state] is no longer [UpdateUiState.Downloading] by then.
      */
     private var downloadingInfo: UpdateInfo? = null
+
+    /**
+     * Drives [pollRunnable] on the main thread's message queue rather than via a
+     * coroutine `delay()` loop on [viewModelScope]: the latter shares its scheduler
+     * with `Dispatchers.Main` in tests (via `Dispatchers.setMain`), and an
+     * indefinitely-recurring `delay()`-based loop that's still pending when a test
+     * ends gets force-drained by `runTest`'s automatic `advanceUntilIdle()` cleanup —
+     * which never terminates for a self-rescheduling loop and crashes/OOMs even tests
+     * that never touch progress. Posting through the main [Looper] instead means the
+     * poll only ever advances when a test explicitly idles the looper (as this file
+     * already does for the download-completion broadcast), matching real Android
+     * behavior without fighting the coroutine test scheduler.
+     */
+    private val handler = Handler(Looper.getMainLooper())
+
+    /** Polls [UpdateRepository.downloadProgress] while [UpdateUiState.Downloading] is visible. */
+    private var pollRunnable: Runnable? = null
 
     init {
         if (!isDebugBuild) {
@@ -81,10 +101,12 @@ class UpdateViewModel @Inject constructor(
      * Hides the non-dismissible [UpdateUiState.Downloading] progress UI without
      * rejecting the update or losing track of the in-flight download: the
      * broadcast receiver stays registered, so if the download completes or fails
-     * later, [onDownloadFinished] still transitions the state correctly.
+     * later, [onDownloadFinished] still transitions the state correctly. Progress
+     * polling is stopped since there's no UI left to show it to.
      */
     fun onHideDownloadProgress() {
         val info = (_state.value as? UpdateUiState.Downloading)?.info ?: return
+        stopPolling()
         _state.value = UpdateUiState.Available(info)
     }
 
@@ -110,6 +132,25 @@ class UpdateViewModel @Inject constructor(
         val downloadId = updateRepository.enqueueDownload(info)
         registerDownloadReceiver(downloadId)
         downloadingInfo = info
+        startPolling(downloadId)
+    }
+
+    private fun startPolling(downloadId: Long) {
+        lateinit var runnable: Runnable
+        runnable = Runnable {
+            val progress = updateRepository.downloadProgress(downloadId)
+            _state.update { s ->
+                (s as? UpdateUiState.Downloading)?.copy(progress = progress) ?: s
+            }
+            handler.postDelayed(runnable, PROGRESS_POLL_INTERVAL_MS)
+        }
+        pollRunnable = runnable
+        handler.postDelayed(runnable, PROGRESS_POLL_INTERVAL_MS)
+    }
+
+    private fun stopPolling() {
+        pollRunnable?.let(handler::removeCallbacks)
+        pollRunnable = null
     }
 
     private fun registerDownloadReceiver(downloadId: Long) {
@@ -150,9 +191,14 @@ class UpdateViewModel @Inject constructor(
         downloadReceiver?.let { runCatching { context.unregisterReceiver(it) } }
         downloadReceiver = null
         downloadingInfo = null
+        stopPolling()
     }
 
     override fun onCleared() {
         unregisterDownloadReceiver()
+    }
+
+    private companion object {
+        const val PROGRESS_POLL_INTERVAL_MS = 300L
     }
 }
