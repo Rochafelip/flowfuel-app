@@ -36,7 +36,6 @@ class UpdateRepositoryImplTest {
 
     private fun releaseDto(tagName: String, assetName: String = "flowfuel-app.apk") = GithubReleaseDto(
         tagName = tagName,
-        body = "Notas da versão $tagName",
         assets = listOf(GithubReleaseAssetDto(name = assetName, downloadUrl = "https://example.com/$assetName")),
     )
 
@@ -49,7 +48,6 @@ class UpdateRepositoryImplTest {
 
         assertEquals("v999.0.0", result?.tag)
         assertEquals("999.0.0", result?.versionLabel)
-        assertEquals("Notas da versão v999.0.0", result?.releaseNotes)
         assertEquals("https://example.com/flowfuel-app.apk", result?.downloadUrl)
     }
 

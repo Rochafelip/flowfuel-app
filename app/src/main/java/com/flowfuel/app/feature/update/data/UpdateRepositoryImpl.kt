@@ -37,7 +37,6 @@ class UpdateRepositoryImpl @Inject constructor(
             else -> UpdateInfo(
                 tag = release.tagName,
                 versionLabel = release.tagName.removePrefix("v"),
-                releaseNotes = release.body,
                 downloadUrl = asset.downloadUrl,
             )
         }

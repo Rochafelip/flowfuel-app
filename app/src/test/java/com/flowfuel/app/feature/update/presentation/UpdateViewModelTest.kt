@@ -41,7 +41,6 @@ class UpdateViewModelTest {
     private fun updateInfo(tag: String = "v9.9.9") = UpdateInfo(
         tag = tag,
         versionLabel = tag.removePrefix("v"),
-        releaseNotes = "notas",
         downloadUrl = "https://example.com/a.apk",
     )
 
