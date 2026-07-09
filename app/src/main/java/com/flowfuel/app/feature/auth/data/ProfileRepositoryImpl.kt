@@ -1,11 +1,13 @@
 package com.flowfuel.app.feature.auth.data
 
 import android.net.Uri
+import com.flowfuel.app.BuildConfig
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.core.network.apiCall
+import com.flowfuel.app.core.network.withCacheBust
 import com.flowfuel.app.feature.auth.data.remote.ProfileApi
 import com.flowfuel.app.feature.auth.data.remote.dto.UpdateProfileRequestDto
 import com.flowfuel.app.feature.auth.domain.ProfileRepository
@@ -39,7 +41,9 @@ class ProfileRepositoryImpl @Inject constructor(
             val compressed = imagePickerHelper.compressToJpeg(uri)
             val requestBody = compressed.toRequestBody("image/jpeg".toMediaType())
             val part = MultipartBody.Part.createFormData("file", "profile.jpg", requestBody)
-            apiCall { api.uploadProfilePicture(userId, part) }.map { it.signedUrl ?: it.internalUrl }
+            apiCall { api.uploadProfilePicture(userId, part) }.map { dto ->
+                (dto.signedUrl ?: (BuildConfig.API_BASE_URL.trimEnd('/') + dto.internalUrl)).withCacheBust()
+            }
         } catch (e: Throwable) {
             Timber.e(e, "ProfileRepo › erro ao comprimir imagem")
             AppResult.Failure(AppError.Unknown(e))

@@ -7,6 +7,7 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.core.network.apiCall
+import com.flowfuel.app.core.network.withCacheBust
 import com.flowfuel.app.feature.vehicle.data.remote.CreateVehicleRequestDto
 import com.flowfuel.app.feature.vehicle.data.remote.UpdateVehicleRequestDto
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
@@ -163,7 +164,9 @@ class VehicleRepositoryImpl @Inject constructor(
         val compressed = imagePickerHelper.compressToJpeg(uri)
         val requestBody = compressed.toRequestBody("image/jpeg".toMediaType())
         val part = MultipartBody.Part.createFormData("file", "vehicle.jpg", requestBody)
-        apiCall { api.uploadVehiclePhoto(vehicleId, part) }.map { it.internalUrl.orEmpty() }
+        apiCall { api.uploadVehiclePhoto(vehicleId, part) }.map { dto ->
+            (BuildConfig.API_BASE_URL.trimEnd('/') + dto.internalUrl.orEmpty()).withCacheBust()
+        }
     } catch (e: Throwable) {
         Timber.e(e, "VehicleRepo › erro ao comprimir imagem")
         AppResult.Failure(AppError.Unknown(e))

@@ -134,13 +134,15 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = uploadProfilePicture(uri)) {
                 is AppResult.Success -> {
+                    // Usa a URL retornada pelo upload diretamente (já absoluta e com
+                    // cache-busting) — recarregar o perfil aqui reintroduziria a URL
+                    // "limpa" e o Coil voltaria a servir a foto antiga do cache.
                     _state.update {
                         current.copy(
                             isUploadingPhoto = false,
                             profile = current.profile.copy(profilePictureUrl = result.value),
                         )
                     }
-                    load()
                 }
                 is AppResult.Failure -> {
                     Timber.e("Profile › erro ao enviar foto: ${result.error}")
