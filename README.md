@@ -73,6 +73,15 @@ Busca de postos de combustível ou eletropostos nas proximidades via geolocaliza
 
 Mini-app dedicado (`feature/auto`) com login e um fluxo simplificado de 3 passos para registrar abastecimento direto do painel do carro, sem precisar pegar o celular.
 
+### Atualização automática
+
+Em builds de release, o app verifica em segundo plano se há uma versão mais nova publicada no GitHub Releases e avisa com um diálogo com a identidade visual do FlowFuel — sem changelog cru do GitHub. Ao confirmar, o download roda via `DownloadManager` com barra de progresso real (porcentagem e tamanho baixado), e a instalação é acionada automaticamente assim que o APK termina de baixar.
+
+<p align="center">
+  <img src="docs/screenshots/atualizacao_disponivel.png" width="220" alt="Nova versão disponível" />
+  <img src="docs/screenshots/atualizacao_download.png" width="220" alt="Baixando atualização" />
+</p>
+
 ## Stack
 
 - Kotlin + Jetpack Compose (Material 3)
