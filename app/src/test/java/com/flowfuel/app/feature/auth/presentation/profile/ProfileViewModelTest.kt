@@ -12,7 +12,7 @@ import com.flowfuel.app.feature.auth.domain.usecase.GetProfileUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.ProfileStats
 import com.flowfuel.app.feature.auth.domain.usecase.UploadProfilePictureUseCase
-import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
 import io.mockk.coVerifyOrder
@@ -22,7 +22,6 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -51,7 +50,6 @@ class ProfileViewModelTest {
     private val deleteAccount: DeleteAccountUseCase = mockk(relaxed = true)
     private val deviceTokenRepository: DeviceTokenRepository = mockk(relaxed = true)
     private val firebaseMessaging: FirebaseMessaging = mockk()
-    private val fcmTokenTask: Task<String> = mockk()
 
     private val photoUri: Uri = Uri.parse("content://media/test/photo.jpg")
 
@@ -84,22 +82,21 @@ class ProfileViewModelTest {
         Dispatchers.setMain(testDispatcher)
         // FirebaseMessaging.getInstance().token.await() is invoked internally by
         // ProfileViewModel.logout() (not injected) — see Task 8 brief. It's not mockable via
-        // a constructor-injected mock, so we stub the statics directly; this is scaffolding
+        // a constructor-injected mock, so we stub the static directly; this is scaffolding
         // not specified verbatim in the brief, added because the plain call throws in this
         // unit test environment and gets swallowed by runCatching, silently preventing
         // deviceTokenRepository.unregisterToken from ever being invoked.
+        // Tasks.forResult() returns an already-completed Task, which the real (unmocked)
+        // kotlinx.coroutines.tasks.await() extension resolves immediately.
         mockkStatic(FirebaseMessaging::class)
-        mockkStatic("kotlinx.coroutines.tasks.TasksKt")
         every { FirebaseMessaging.getInstance() } returns firebaseMessaging
-        every { firebaseMessaging.token } returns fcmTokenTask
-        coEvery { fcmTokenTask.await() } returns "fcm-token-abc"
+        every { firebaseMessaging.token } returns Tasks.forResult("fcm-token-abc")
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkStatic(FirebaseMessaging::class)
-        unmockkStatic("kotlinx.coroutines.tasks.TasksKt")
     }
 
     @Test

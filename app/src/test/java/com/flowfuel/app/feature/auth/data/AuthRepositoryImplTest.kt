@@ -9,7 +9,7 @@ import com.flowfuel.app.feature.auth.data.remote.AuthApi
 import com.flowfuel.app.feature.auth.data.remote.AuthResponseDto
 import com.flowfuel.app.feature.auth.data.remote.UserDto
 import com.flowfuel.app.feature.auth.data.remote.dto.UserResponseDto
-import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,7 +17,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -32,29 +31,27 @@ class AuthRepositoryImplTest {
     private val sessionStore: SessionStore = mockk(relaxed = true)
     private val deviceTokenRepository: DeviceTokenRepository = mockk(relaxed = true)
     private val firebaseMessaging: FirebaseMessaging = mockk()
-    private val fcmTokenTask: Task<String> = mockk()
     private lateinit var repository: AuthRepositoryImpl
 
     @Before
     fun setUp() {
         // FirebaseMessaging.getInstance().token.await() is a static/extension call that
         // AuthRepositoryImpl invokes internally (not injected) — see Task 8 brief. It's not
-        // mockable via a constructor-injected mock, so we stub the statics directly; this is
+        // mockable via a constructor-injected mock, so we stub the static directly; this is
         // scaffolding not specified verbatim in the brief, added because the plain call throws
         // in this non-Robolectric unit test and gets swallowed by runCatching, silently
         // preventing deviceTokenRepository.registerToken from ever being invoked.
+        // Tasks.forResult() returns an already-completed Task, which the real (unmocked)
+        // kotlinx.coroutines.tasks.await() extension resolves immediately.
         mockkStatic(FirebaseMessaging::class)
-        mockkStatic("kotlinx.coroutines.tasks.TasksKt")
         every { FirebaseMessaging.getInstance() } returns firebaseMessaging
-        every { firebaseMessaging.token } returns fcmTokenTask
-        coEvery { fcmTokenTask.await() } returns "fcm-token-abc"
+        every { firebaseMessaging.token } returns Tasks.forResult("fcm-token-abc")
         repository = AuthRepositoryImpl(api, sessionStore, deviceTokenRepository)
     }
 
     @After
     fun tearDown() {
         unmockkStatic(FirebaseMessaging::class)
-        unmockkStatic("kotlinx.coroutines.tasks.TasksKt")
     }
 
     private fun authResponse(userId: Long = 1L) = AuthResponseDto(
