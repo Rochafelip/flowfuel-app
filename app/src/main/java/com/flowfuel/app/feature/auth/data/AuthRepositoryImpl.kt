@@ -5,6 +5,7 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.network.apiCall
+import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
 import com.flowfuel.app.feature.auth.data.remote.ActivateAccountRequestDto
 import com.flowfuel.app.feature.auth.data.remote.AuthApi
 import com.flowfuel.app.feature.auth.data.remote.AuthResponseDto
@@ -15,7 +16,9 @@ import com.flowfuel.app.feature.auth.data.remote.ResendActivationRequestDto
 import com.flowfuel.app.feature.auth.data.remote.ResetPasswordRequestDto
 import com.flowfuel.app.feature.auth.data.remote.dto.ChangePasswordRequestDto
 import com.flowfuel.app.feature.auth.domain.AuthRepository
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +26,7 @@ import javax.inject.Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
     private val sessionStore: SessionStore,
+    private val deviceTokenRepository: DeviceTokenRepository,
 ) : AuthRepository {
 
     private suspend fun handleAuthSuccess(dto: AuthResponseDto): AppResult<Unit> {
@@ -35,6 +39,9 @@ class AuthRepositoryImpl @Inject constructor(
             userName     = dto.user?.name,
             userEmail    = dto.user?.email,
         )
+        runCatching { FirebaseMessaging.getInstance().token.await() }
+            .getOrNull()
+            ?.let { deviceTokenRepository.registerToken(it) }
         return AppResult.Success(Unit)
     }
 

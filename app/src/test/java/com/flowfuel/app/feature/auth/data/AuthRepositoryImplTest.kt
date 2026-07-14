@@ -3,15 +3,23 @@ package com.flowfuel.app.feature.auth.data
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
 import com.flowfuel.app.feature.auth.data.remote.ActivateAccountRequestDto
 import com.flowfuel.app.feature.auth.data.remote.AuthApi
 import com.flowfuel.app.feature.auth.data.remote.AuthResponseDto
 import com.flowfuel.app.feature.auth.data.remote.UserDto
 import com.flowfuel.app.feature.auth.data.remote.dto.UserResponseDto
+import com.google.android.gms.tasks.Task
+import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -22,11 +30,31 @@ class AuthRepositoryImplTest {
 
     private val api: AuthApi = mockk()
     private val sessionStore: SessionStore = mockk(relaxed = true)
+    private val deviceTokenRepository: DeviceTokenRepository = mockk(relaxed = true)
+    private val firebaseMessaging: FirebaseMessaging = mockk()
+    private val fcmTokenTask: Task<String> = mockk()
     private lateinit var repository: AuthRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = AuthRepositoryImpl(api, sessionStore)
+        // FirebaseMessaging.getInstance().token.await() is a static/extension call that
+        // AuthRepositoryImpl invokes internally (not injected) — see Task 8 brief. It's not
+        // mockable via a constructor-injected mock, so we stub the statics directly; this is
+        // scaffolding not specified verbatim in the brief, added because the plain call throws
+        // in this non-Robolectric unit test and gets swallowed by runCatching, silently
+        // preventing deviceTokenRepository.registerToken from ever being invoked.
+        mockkStatic(FirebaseMessaging::class)
+        mockkStatic("kotlinx.coroutines.tasks.TasksKt")
+        every { FirebaseMessaging.getInstance() } returns firebaseMessaging
+        every { firebaseMessaging.token } returns fcmTokenTask
+        coEvery { fcmTokenTask.await() } returns "fcm-token-abc"
+        repository = AuthRepositoryImpl(api, sessionStore, deviceTokenRepository)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkStatic(FirebaseMessaging::class)
+        unmockkStatic("kotlinx.coroutines.tasks.TasksKt")
     }
 
     private fun authResponse(userId: Long = 1L) = AuthResponseDto(
@@ -152,6 +180,16 @@ class AuthRepositoryImplTest {
         coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
     }
 
+    @Test
+    fun `login success registers current device token`() = runTest {
+        coEvery { api.login(any()) } returns authResponse()
+        coEvery { deviceTokenRepository.registerToken(any()) } returns AppResult.Success(Unit)
+
+        repository.login("user@example.com", "Senha@123")
+
+        coVerify { deviceTokenRepository.registerToken(any()) }
+    }
+
     // ── activate (autologin via deep link) ─────────────────────────────────────
 
     @Test
@@ -213,5 +251,15 @@ class AuthRepositoryImplTest {
 
         assertTrue(result is AppResult.Failure)
         coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `activate success registers current device token`() = runTest {
+        coEvery { api.activate(any()) } returns authResponse()
+        coEvery { deviceTokenRepository.registerToken(any()) } returns AppResult.Success(Unit)
+
+        repository.activate("plain-token")
+
+        coVerify { deviceTokenRepository.registerToken(any()) }
     }
 }
