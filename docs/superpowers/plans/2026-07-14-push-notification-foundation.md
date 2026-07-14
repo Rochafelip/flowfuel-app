@@ -15,7 +15,7 @@
 - Single notification channel, id `"general"` — no per-type channels or templates.
 - FCM messages are **data-only** (no `notification` key in the payload) so the client fully controls display. Payload shape: `{ "title": "...", "body": "...", "deepLink": "flowfuel://...", "type": "generic" }`. The `type` field is parsed and stored but not branched on yet.
 - Reuse the existing `flowfuel://<host>/<path>` deep link mechanism in `FlowFuelNavHost.kt` (lines 61-86) — it already accepts arbitrary routes beyond the `activate` special case. Do not add new navigation routes or a new deep-link parsing path.
-- Backend endpoints (`POST /devices`, `DELETE /devices/:token`, and the internal `sendPushToUser`) live in the separate `flowfuel` (Node/TypeScript) repository, **not present in this workspace**, and are **out of scope for this plan** — the client code in this plan assumes that contract exists. Until the backend ships it, `POST /devices` calls will fail with a network/HTTP error, which the app already treats as a non-fatal `AppResult.Failure` (no crash, no blocked login).
+- Backend endpoints (`POST /devices`, `DELETE /devices/:token`, and the internal `sendPushToUser`) live in the separate `flowfuel` (Spring Boot/Java, not Node/TypeScript as originally assumed) repository, **not present in this workspace**, and are **out of scope for this plan** — that contract is already implemented and live there (see `docs/superpowers/specs/2026-07-14-fcm-push-notification-foundation-design.md` in that repo). One contract detail matters for Task 5 below: the backend's `platform` field is a Java enum with a single value `ANDROID` (uppercase, case-sensitive Jackson deserialization) — sending `"android"` (lowercase) fails with a 400. `RegisterDeviceRequestDto` must default to `"ANDROID"`.
 - Firebase project + `google-services.json` do not exist yet in this repo and must be set up manually (Task 1) before any other task's Gradle changes will build.
 - `POST_NOTIFICATIONS` runtime permission is **already requested** unconditionally in `MainActivity.onCreate` (`MainActivity.kt:32-34`, no-op callback) — this supersedes the spec's phrasing ("solicitada no fluxo de login/onboarding"); no new permission-request code is needed anywhere in this plan.
 
@@ -330,7 +330,7 @@ git commit -m "feat: create general notification channel on app startup"
 - Create: `app/src/main/java/com/flowfuel/app/core/notification/data/remote/DeviceTokenApi.kt`
 
 **Interfaces:**
-- Produces: `DeviceTokenApi.registerDevice(body: RegisterDeviceRequestDto)`, `DeviceTokenApi.unregisterDevice(token: String)`, `RegisterDeviceRequestDto(token: String, platform: String = "android")` — consumed by Task 6 (`DeviceTokenRepositoryImpl`).
+- Produces: `DeviceTokenApi.registerDevice(body: RegisterDeviceRequestDto)`, `DeviceTokenApi.unregisterDevice(token: String)`, `RegisterDeviceRequestDto(token: String, platform: String = "ANDROID")` — consumed by Task 6 (`DeviceTokenRepositoryImpl`). The backend's `platform` field is a Java enum with a single value `ANDROID` (uppercase) — sending `"android"` fails deserialization with a 400.
 
 No standalone test for this file — it's a plain Retrofit interface declaration, matching the existing convention where `AuthApi.kt` has no dedicated test file either (verified via `AuthRepositoryImplTest.kt`, which tests the repository that calls the API, not the API interface itself). Task 6's repository test covers this indirectly via MockK.
 
@@ -350,7 +350,7 @@ import retrofit2.http.Path
 @Serializable
 data class RegisterDeviceRequestDto(
     val token: String,
-    val platform: String = "android",
+    val platform: String = "ANDROID",
 )
 
 interface DeviceTokenApi {
@@ -419,13 +419,13 @@ class DeviceTokenRepositoryImplTest {
     }
 
     @Test
-    fun `registerToken success sends token with android platform`() = runTest {
+    fun `registerToken success sends token with ANDROID platform`() = runTest {
         coEvery { api.registerDevice(any()) } returns Unit
 
         val result = repository.registerToken("fcm-token-123")
 
         assertEquals(AppResult.Success(Unit), result)
-        coVerify { api.registerDevice(RegisterDeviceRequestDto("fcm-token-123", "android")) }
+        coVerify { api.registerDevice(RegisterDeviceRequestDto("fcm-token-123", "ANDROID")) }
     }
 
     @Test
@@ -875,7 +875,7 @@ git commit -m "feat: unregister FCM device token on logout before session clear"
 
 **Files:** none (verification only)
 
-This is the "verificação manual ponta a ponta" the approved spec calls for — automating a real push round-trip isn't worth the setup cost at this scope. It requires the backend's `POST /devices` endpoint to exist and be reachable from the debug build's `API_BASE_URL` (`app/build.gradle.kts:51`, default `http://10.0.2.2:8090/api/v1/` for the emulator) — if the backend isn't deployed yet, Steps 2-3 below will only get you as far as confirming the token registration call fires (visible in Logcat/Chucker) and fails gracefully, not a real push round-trip.
+This is the "verificação manual ponta a ponta" the approved spec calls for — automating a real push round-trip isn't worth the setup cost at this scope. The backend's `POST /devices`/`DELETE /devices/{token}` endpoints and `sendPushToUser` are already implemented in the `flowfuel` (Spring Boot) repository — it just needs to be running and reachable from the debug build's `API_BASE_URL` (`app/build.gradle.kts:51`, default `http://10.0.2.2:8090/api/v1/` for the emulator) with `flowfuel.push.enabled=true` for a real push round-trip in Step 3.
 
 - [ ] **Step 1: Run the full test suite**
 
@@ -888,7 +888,7 @@ Build and install on an emulator or device with Google Play Services (`./gradlew
 
 - [ ] **Step 3: Send a test push and verify display + navigation**
 
-Once the backend's `sendPushToUser` (or a manual Firebase Console "Send test message" to the registered token, using a data-only payload matching `{title, body, deepLink, type}`) is available, send one targeting a known route, e.g. `deepLink = "flowfuel://vehicle/details/1"`. Verify:
+Trigger `sendPushToUser` from the backend (or a manual Firebase Console "Send test message" to the registered token, using a data-only payload matching `{title, body, deepLink, type}`), targeting a known route, e.g. `deepLink = "flowfuel://vehicle/details/1"`. Verify:
 - The notification appears in the shade with the correct channel ("Geral").
 - Tapping it opens the app directly on that vehicle's details screen (not just the app's default start screen).
 - With the app already in the foreground, the same push still shows in the shade without auto-navigating.

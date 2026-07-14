@@ -19,9 +19,17 @@ link de ativação de conta (`flowfuel://activate?token=...`). Esta spec estende
 esse mesmo mecanismo para ser o alvo de navegação de qualquer notificação push,
 em vez de construir um caminho de navegação novo.
 
-O backend (`flowfuel`, repositório separado, Node/TypeScript) também precisa de
-mudanças: endpoint para registrar/remover token de dispositivo e um serviço
-interno de envio via Firebase Admin SDK.
+O backend (`flowfuel`, repositório separado, Spring Boot/Java) também precisa
+de mudanças: endpoint para registrar/remover token de dispositivo e um serviço
+interno de envio via Firebase Admin SDK. **Atualização 2026-07-14:** essa parte
+já foi implementada no repositório backend (endpoints, migração `device_tokens`,
+`FirebasePushNotificationService`) — ver
+`docs/superpowers/specs/2026-07-14-fcm-push-notification-foundation-design.md`
+naquele repositório para o contrato completo. O contrato do payload (seção
+"Backend" abaixo) e as rotas batem com o que foi implementado, exceto o valor
+do campo `platform`, que o backend espera como `"ANDROID"` (maiúsculo, é um
+enum Java com um único valor) — o plano de implementação do cliente precisa
+enviar esse valor exato, não `"android"`.
 
 Fora de escopo: iOS (app é Android-only), sistema de tipos/templates de
 notificação por evento (ícones/ações diferentes por tipo) — reservamos um
@@ -85,7 +93,7 @@ flowfuel-app (Android):
   app/src/main/AndroidManifest.xml (registro do serviço FCM, permissão POST_NOTIFICATIONS)
   app/build.gradle.kts (dependência firebase-messaging)
 
-flowfuel (backend):
+flowfuel (backend) — já implementado, ver Atualização 2026-07-14 acima:
   device tokens: migração da tabela + endpoints POST /devices e DELETE /devices/:token
   serviço sendPushToUser(userId, payload) com Firebase Admin SDK
 ```
