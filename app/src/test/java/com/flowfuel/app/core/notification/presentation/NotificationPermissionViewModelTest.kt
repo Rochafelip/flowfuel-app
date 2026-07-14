@@ -4,16 +4,17 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.flowfuel.app.core.notification.data.NotificationPrefsStore
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,8 +27,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class NotificationPermissionViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
+    private val testDispatcher = UnconfinedTestDispatcher()
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private val prefsStore: NotificationPrefsStore = mockk()
 
     @Before
     fun setUp() {
@@ -47,10 +49,9 @@ class NotificationPermissionViewModelTest {
     @Test
     fun `shows rationale when notifications are disabled and never shown before`() = runTest {
         setNotificationsEnabled(false)
-        val prefsStore = NotificationPrefsStore(context)
+        coEvery { prefsStore.hasShownRationale() } returns false
 
         val vm = NotificationPermissionViewModel(context, prefsStore)
-        advanceUntilIdle()
 
         assertEquals(NotificationPermissionUiState.ShowRationale, vm.state.value)
     }
@@ -58,7 +59,6 @@ class NotificationPermissionViewModelTest {
     @Test
     fun `stays idle when notifications are already enabled`() = runTest {
         setNotificationsEnabled(true)
-        val prefsStore = NotificationPrefsStore(context)
 
         val vm = NotificationPermissionViewModel(context, prefsStore)
 
@@ -68,8 +68,7 @@ class NotificationPermissionViewModelTest {
     @Test
     fun `stays idle when the rationale was already shown before`() = runTest {
         setNotificationsEnabled(false)
-        val prefsStore = NotificationPrefsStore(context)
-        prefsStore.markRationaleShown()
+        coEvery { prefsStore.hasShownRationale() } returns true
 
         val vm = NotificationPermissionViewModel(context, prefsStore)
 
@@ -80,7 +79,6 @@ class NotificationPermissionViewModelTest {
     @Config(sdk = [30])
     fun `stays idle below Android 13 regardless of notification state`() = runTest {
         setNotificationsEnabled(false)
-        val prefsStore = NotificationPrefsStore(context)
 
         val vm = NotificationPermissionViewModel(context, prefsStore)
 
@@ -90,14 +88,13 @@ class NotificationPermissionViewModelTest {
     @Test
     fun `onRationaleShown transitions to Idle and persists the flag`() = runTest {
         setNotificationsEnabled(false)
-        val prefsStore = NotificationPrefsStore(context)
+        coEvery { prefsStore.hasShownRationale() } returns false
+        coEvery { prefsStore.markRationaleShown() } returns Unit
         val vm = NotificationPermissionViewModel(context, prefsStore)
-        advanceUntilIdle()
 
         vm.onRationaleShown()
-        advanceUntilIdle()
 
         assertEquals(NotificationPermissionUiState.Idle, vm.state.value)
-        assertTrue(prefsStore.hasShownRationale())
+        coVerify { prefsStore.markRationaleShown() }
     }
 }

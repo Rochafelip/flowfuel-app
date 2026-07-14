@@ -29,15 +29,9 @@ class NotificationPermissionViewModel @Inject constructor(
     val state: StateFlow<NotificationPermissionUiState> = _state.asStateFlow()
 
     init {
-        // Check synchronous conditions first (SDK 33 = TIRAMISU)
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled() &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-        ) {
-            // Only launch coroutine if needed to check the async preference
-            viewModelScope.launch {
-                if (!prefsStore.hasShownRationale()) {
-                    _state.value = NotificationPermissionUiState.ShowRationale
-                }
+        viewModelScope.launch {
+            if (shouldShowRationale()) {
+                _state.value = NotificationPermissionUiState.ShowRationale
             }
         }
     }
