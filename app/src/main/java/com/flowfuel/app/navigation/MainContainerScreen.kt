@@ -1,9 +1,12 @@
 package com.flowfuel.app.navigation
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -51,11 +54,15 @@ import androidx.navigation.compose.rememberNavController
 import com.flowfuel.app.core.designsystem.components.FFBottomBar
 import com.flowfuel.app.core.designsystem.components.FFBottomItem
 import com.flowfuel.app.core.designsystem.components.FFBottomSheet
+import com.flowfuel.app.core.designsystem.components.FFDialog
+import com.flowfuel.app.core.designsystem.components.FFDialogKind
 import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import com.flowfuel.app.core.notification.presentation.NotificationPermissionUiState
+import com.flowfuel.app.core.notification.presentation.NotificationPermissionViewModel
 import com.flowfuel.app.feature.auth.presentation.profile.ProfileScreen
 import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.home.presentation.HomeScreen
@@ -113,6 +120,7 @@ fun MainContainerScreen(
     onTabEventUpdatedConsumed: () -> Unit = {},
     quickRefuelViewModel: QuickRefuelViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel(),
+    notificationPermissionViewModel: NotificationPermissionViewModel = hiltViewModel(),
 ) {
     val innerNavController = rememberNavController()
     val backStackEntry by innerNavController.currentBackStackEntryAsState()
@@ -387,6 +395,26 @@ fun MainContainerScreen(
         }
 
         UpdateUiState.Idle -> Unit
+    }
+
+    val notificationPermissionState by notificationPermissionViewModel.state.collectAsState()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* sem-op — o status é reavaliado via NotificationManagerCompat quando o Perfil volta ao foreground (Task 4) */ }
+
+    if (notificationPermissionState is NotificationPermissionUiState.ShowRationale) {
+        FFDialog(
+            title       = "Ativar notificações?",
+            message     = "Avisamos sobre coisas importantes, como um convite de compartilhamento de veículo. Você pode mudar isso depois em Perfil > Notificações.",
+            confirmText = "Ativar",
+            dismissText = "Agora não",
+            kind        = FFDialogKind.Info,
+            onConfirm   = {
+                notificationPermissionViewModel.onRationaleShown()
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onDismiss   = notificationPermissionViewModel::onRationaleShown,
+        )
     }
 }
 
