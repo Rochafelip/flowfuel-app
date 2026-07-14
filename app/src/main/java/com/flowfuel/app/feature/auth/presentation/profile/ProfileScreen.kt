@@ -1,6 +1,8 @@
 package com.flowfuel.app.feature.auth.presentation.profile
 
+import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import com.flowfuel.app.core.designsystem.components.FFDialog
 import com.flowfuel.app.core.designsystem.components.FFDialogKind
@@ -38,6 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,11 +52,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flowfuel.app.core.common.DateFormatter
 import com.flowfuel.app.core.designsystem.components.FFBottomSheet
 import com.flowfuel.app.core.designsystem.components.FFButton
@@ -322,6 +331,8 @@ private fun ProfileContent(
             onClick = onChangePassword,
         )
         HorizontalDivider()
+        NotificationStatusRow()
+        HorizontalDivider()
 
         Spacer(Modifier.height(FFTheme.spacing.xl))
 
@@ -528,6 +539,7 @@ private fun ProfileActionRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
+    trailingText: String? = null,
 ) {
     Surface(onClick = onClick) {
         Row(
@@ -543,6 +555,13 @@ private fun ProfileActionRow(
                 style    = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
+            if (trailingText != null) {
+                Text(
+                    text  = trailingText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Icon(
                 imageVector        = Icons.Outlined.ChevronRight,
                 contentDescription = null,
@@ -550,6 +569,38 @@ private fun ProfileActionRow(
             )
         }
     }
+}
+
+@Composable
+private fun NotificationStatusRow() {
+    val context = LocalContext.current
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    ProfileActionRow(
+        icon         = Icons.Outlined.Notifications,
+        label        = "Notificações",
+        trailingText = if (notificationsEnabled) "Ativadas" else "Desativadas",
+        onClick = {
+            context.startActivity(
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                }
+            )
+        },
+    )
 }
 
 // ─── Estatísticas de uso ───────────────────────────────────────────────────────
