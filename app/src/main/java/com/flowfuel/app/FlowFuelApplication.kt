@@ -7,6 +7,7 @@ import androidx.work.Configuration
 import androidx.work.WorkManager
 import coil.Coil
 import coil.ImageLoader
+import com.flowfuel.app.core.notification.NotificationChannelSetup
 import com.flowfuel.app.core.observability.SentryTree
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.android.core.SentryAndroid
@@ -37,6 +38,8 @@ class FlowFuelApplication : Application() {
 
         // Initialize Coil with the authenticated OkHttp client
         Coil.setImageLoader(imageLoader)
+
+        NotificationChannelSetup.create(this)
 
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
