@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "606450028956",
+    "project_id": "flowfuel-app",
+    "storage_bucket": "flowfuel-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606450028956:android:3ff326c497b517f9a0f859",
+        "android_client_info": {
+          "package_name": "com.flowfuel.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3Amv0b00-THuMSAgtxldWFx54XIGj1AI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606450028956:android:11f3422be4226e30a0f859",
+        "android_client_info": {
+          "package_name": "com.flowfuel.app.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3Amv0b00-THuMSAgtxldWFx54XIGj1AI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
