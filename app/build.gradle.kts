@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -114,6 +115,10 @@ dependencies {
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.biometric)
     implementation(libs.play.services.location)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
