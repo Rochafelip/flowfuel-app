@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.auth.presentation.profile
 import android.net.Uri
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteAccountUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteProfilePictureUseCase
@@ -11,10 +12,17 @@ import com.flowfuel.app.feature.auth.domain.usecase.GetProfileUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.ProfileStats
 import com.flowfuel.app.feature.auth.domain.usecase.UploadProfilePictureUseCase
+import com.google.android.gms.tasks.Task
+import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
+import io.mockk.coVerifyOrder
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -41,6 +49,9 @@ class ProfileViewModelTest {
     private val uploadProfilePicture: UploadProfilePictureUseCase = mockk()
     private val deleteProfilePicture: DeleteProfilePictureUseCase = mockk()
     private val deleteAccount: DeleteAccountUseCase = mockk(relaxed = true)
+    private val deviceTokenRepository: DeviceTokenRepository = mockk(relaxed = true)
+    private val firebaseMessaging: FirebaseMessaging = mockk()
+    private val fcmTokenTask: Task<String> = mockk()
 
     private val photoUri: Uri = Uri.parse("content://media/test/photo.jpg")
 
@@ -64,17 +75,31 @@ class ProfileViewModelTest {
             uploadProfilePicture,
             deleteProfilePicture,
             deleteAccount,
+            deviceTokenRepository,
         )
     }
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        // FirebaseMessaging.getInstance().token.await() is invoked internally by
+        // ProfileViewModel.logout() (not injected) — see Task 8 brief. It's not mockable via
+        // a constructor-injected mock, so we stub the statics directly; this is scaffolding
+        // not specified verbatim in the brief, added because the plain call throws in this
+        // unit test environment and gets swallowed by runCatching, silently preventing
+        // deviceTokenRepository.unregisterToken from ever being invoked.
+        mockkStatic(FirebaseMessaging::class)
+        mockkStatic("kotlinx.coroutines.tasks.TasksKt")
+        every { FirebaseMessaging.getInstance() } returns firebaseMessaging
+        every { firebaseMessaging.token } returns fcmTokenTask
+        coEvery { fcmTokenTask.await() } returns "fcm-token-abc"
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkStatic(FirebaseMessaging::class)
+        unmockkStatic("kotlinx.coroutines.tasks.TasksKt")
     }
 
     @Test
@@ -88,5 +113,17 @@ class ProfileViewModelTest {
         val state = viewModel.state.value as ProfileUiState.Content
         assertEquals(bustedUrl, state.profile.profilePictureUrl)
         assertFalse(state.isUploadingPhoto)
+    }
+
+    @Test
+    fun `logout unregisters device token before clearing the session`() {
+        val viewModel = createViewModel()
+
+        viewModel.logout()
+
+        coVerifyOrder {
+            deviceTokenRepository.unregisterToken(any())
+            sessionStore.clear()
+        }
     }
 }

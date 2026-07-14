@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteAccountUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteProfilePictureUseCase
@@ -14,6 +15,7 @@ import com.flowfuel.app.feature.auth.domain.usecase.GetProfileUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.ProfileStats
 import com.flowfuel.app.feature.auth.domain.usecase.UploadProfilePictureUseCase
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -63,6 +66,7 @@ class ProfileViewModel @Inject constructor(
     private val uploadProfilePicture: UploadProfilePictureUseCase,
     private val deleteProfilePicture: DeleteProfilePictureUseCase,
     private val deleteAccount: DeleteAccountUseCase,
+    private val deviceTokenRepository: DeviceTokenRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
@@ -110,6 +114,9 @@ class ProfileViewModel @Inject constructor(
             _state.update { current.copy(isLoggingOut = true) }
         }
         viewModelScope.launch {
+            runCatching { FirebaseMessaging.getInstance().token.await() }
+                .getOrNull()
+                ?.let { deviceTokenRepository.unregisterToken(it) }
             sessionStore.clear()
             logoutUseCase()
             _effects.send(ProfileEffect.NavigateToLogin)
