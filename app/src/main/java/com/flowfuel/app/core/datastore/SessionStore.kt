@@ -28,6 +28,7 @@ class SessionStore @Inject constructor(
         val USER_EMAIL       = stringPreferencesKey("user_email")
         val ONBOARDED        = booleanPreferencesKey("onboarded")
         val ACTIVE_VEHICLE   = intPreferencesKey("active_vehicle_id")
+        val ACTIVE_VEHICLE_IS_GUEST = booleanPreferencesKey("active_vehicle_is_guest")
     }
 
     // ─── Sessão ───────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ class SessionStore @Inject constructor(
             it.remove(Keys.USER_NAME)
             it.remove(Keys.USER_EMAIL)
             it.remove(Keys.ACTIVE_VEHICLE)
+            it.remove(Keys.ACTIVE_VEHICLE_IS_GUEST)
         }
     }
 
@@ -100,12 +102,22 @@ class SessionStore @Inject constructor(
     /** ID do último veículo selecionado pelo usuário, ou null se ainda não houve seleção. */
     val activeVehicleIdFlow: Flow<Int?> = context.dataStore.data.map { it[Keys.ACTIVE_VEHICLE] }
 
-    suspend fun saveActiveVehicleId(id: Int) {
-        context.dataStore.edit { it[Keys.ACTIVE_VEHICLE] = id }
+    /** True quando o veículo ativo é emprestado (o usuário é convidado, não dono). */
+    val activeVehicleIsGuestFlow: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.ACTIVE_VEHICLE_IS_GUEST] ?: false }
+
+    suspend fun saveActiveVehicleId(id: Int, isGuest: Boolean = false) {
+        context.dataStore.edit {
+            it[Keys.ACTIVE_VEHICLE] = id
+            it[Keys.ACTIVE_VEHICLE_IS_GUEST] = isGuest
+        }
     }
 
     suspend fun clearActiveVehicleId() {
-        context.dataStore.edit { it.remove(Keys.ACTIVE_VEHICLE) }
+        context.dataStore.edit {
+            it.remove(Keys.ACTIVE_VEHICLE)
+            it.remove(Keys.ACTIVE_VEHICLE_IS_GUEST)
+        }
     }
 }
 
