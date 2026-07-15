@@ -99,6 +99,7 @@ fun MainContainerScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
     onNavigateToEventCreate: (vehicleId: Int) -> Unit = {},
+    onNavigateToGuestEventCreate: (vehicleId: Int) -> Unit = {},
     onNavigateToMaintenanceEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
@@ -264,10 +265,23 @@ fun MainContainerScreen(
                 val guestVehicle = containerState.guestVehicle
                 if (containerState.isGuestMode && guestVehicle != null) {
                     com.flowfuel.app.feature.vehicle.presentation.guest.GuestVehicleScreen(
-                        onNavigateToCreateEvent = { vehicleId -> onNavigateToEventCreate(vehicleId) },
+                        guestVehicle = guestVehicle,
+                        onNavigateToCreateEvent = { vehicleId -> onNavigateToGuestEventCreate(vehicleId) },
                         onNavigateToPicker = { onNavigateToVehiclePicker() },
                         onSwitchVehicleClicked = { onNavigateToVehiclePicker() },
                     )
+                } else if (containerState.isGuestMode) {
+                    // Modo convidado confirmado pela sessão, mas o VehicleShare
+                    // ainda não chegou (busca em andamento) ou falhou/não achou
+                    // correspondência em GetActiveSharedVehiclesUseCase. Nunca cair
+                    // para a HomeScreen do dono aqui — ela é a tela errada para o
+                    // convidado e pode tentar carregar dados que ele não tem acesso.
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 } else {
                     HomeScreen(
                         onNavigateToLogin      = onNavigateToLogin,

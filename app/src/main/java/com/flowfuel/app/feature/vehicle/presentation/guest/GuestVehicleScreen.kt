@@ -27,6 +27,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -37,11 +38,13 @@ private val ptBrFormatter: DateTimeFormatter =
 
 @Composable
 fun GuestVehicleScreen(
+    guestVehicle: VehicleShare,
     onNavigateToCreateEvent: (vehicleId: Int) -> Unit,
     onNavigateToPicker: (message: String?) -> Unit,
     onSwitchVehicleClicked: () -> Unit,
     viewModel: GuestVehicleViewModel = hiltViewModel(),
 ) {
+    viewModel.initialize(guestVehicle)
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

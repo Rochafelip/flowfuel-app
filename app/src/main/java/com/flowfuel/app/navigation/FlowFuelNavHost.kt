@@ -293,6 +293,15 @@ fun FlowFuelNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onNavigateToGuestVehicle = { _ ->
+                    // Veículo emprestado selecionado: mesmo destino de onNavigateToHome
+                    // — MainContainerViewModel deriva o modo convidado independentemente
+                    // via SessionStore/GetActiveSharedVehiclesUseCase, não precisa do
+                    // VehicleShare em si aqui.
+                    navController.navigate(Destinations.MAIN_CONTAINER) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onNavigateToLogin = {
                     // Token expirado: limpa toda a stack e volta para o login
                     navController.navigate(Destinations.LOGIN) {
@@ -696,6 +705,9 @@ fun FlowFuelNavHost(
                 onNavigateToEventCreate = { vehicleId ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId))
                 },
+                onNavigateToGuestEventCreate = { vehicleId ->
+                    navController.navigate(Destinations.vehicleEventCreate(vehicleId, guestMode = true))
+                },
                 onNavigateToMaintenanceEventCreate = { vehicleId, category ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId, category.name))
                 },
@@ -707,6 +719,15 @@ fun FlowFuelNavHost(
                 },
                 onNavigateToVehicles = {
                     navController.navigate(Destinations.VEHICLE_MANAGE)
+                },
+                onNavigateToVehiclePicker = {
+                    // Convidado trocando de veículo (ou voltando ao picker após
+                    // acesso revogado): mesmo padrão de limpeza de stack usado por
+                    // VehiclePickerScreen.onNavigateToHome/onNavigateToGuestVehicle,
+                    // garantindo uma única instância do picker na stack.
+                    navController.navigate(Destinations.VEHICLE_PICKER) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
                 onNavigateToShareInvite = { shareId -> navController.navigate(Destinations.vehicleShareInvite(shareId)) },
                 onNavigateToEditProfile = {

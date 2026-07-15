@@ -1,11 +1,11 @@
 package com.flowfuel.app.feature.vehicle.presentation.guest
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.feature.vehicle.domain.VehicleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -40,26 +40,50 @@ sealed interface GuestVehicleEffect {
  * convidado precisa. O `UpdateOdometerUseCase` existente não serve aqui pois
  * exige `currentKm` (fluxo do dono, com validação de regressão), estado que
  * esta tela não carrega.
+ *
+ * A identidade do veículo emprestado não vem de argumentos de navegação —
+ * [GuestVehicleScreen] é embutida diretamente na aba HOME de
+ * [com.flowfuel.app.navigation.MainContainerScreen] (rota sem argumentos), e
+ * já recebe o [VehicleShare] completo de
+ * [com.flowfuel.app.navigation.MainContainerViewModel]. Por isso a
+ * inicialização é feita via [initialize], chamada diretamente do corpo do
+ * composable (idempotente, ver kdoc do método).
  */
 @HiltViewModel
 class GuestVehicleViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     private val repository: VehicleRepository,
     private val sessionStore: SessionStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
         GuestVehicleUiState(
-            vehicleId = checkNotNull(savedStateHandle["vehicleId"]),
-            vehicleBrand = savedStateHandle["vehicleBrand"] ?: "",
-            vehicleModel = savedStateHandle["vehicleModel"] ?: "",
-            expiresAt = savedStateHandle["expiresAt"],
+            vehicleId = UNINITIALIZED_VEHICLE_ID,
+            vehicleBrand = "",
+            vehicleModel = "",
+            expiresAt = null,
         ),
     )
     val state: StateFlow<GuestVehicleUiState> = _state.asStateFlow()
 
     private val _effects = Channel<GuestVehicleEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    /**
+     * Popula o estado a partir do [VehicleShare] recebido como parâmetro do
+     * composable. Idempotente: recompor com o mesmo `vehicleId` é um no-op,
+     * preservando `odometerInput`/etc. em progresso. Seguro para chamar
+     * diretamente no corpo do composable (fora de `LaunchedEffect`) — evita um
+     * frame com estado vazio antes do primeiro efeito rodar.
+     */
+    fun initialize(guestVehicle: VehicleShare) {
+        if (_state.value.vehicleId == guestVehicle.vehicleId) return
+        _state.value = GuestVehicleUiState(
+            vehicleId = guestVehicle.vehicleId,
+            vehicleBrand = guestVehicle.vehicleBrand,
+            vehicleModel = guestVehicle.vehicleModel,
+            expiresAt = guestVehicle.expiresAt,
+        )
+    }
 
     fun onOdometerChange(value: String) =
         _state.update { it.copy(odometerInput = value, odometerError = null) }
@@ -97,5 +121,9 @@ class GuestVehicleViewModel @Inject constructor(
         } else {
             _state.update { it.copy(odometerError = error.message ?: "Erro ao atualizar odômetro") }
         }
+    }
+
+    private companion object {
+        const val UNINITIALIZED_VEHICLE_ID = -1
     }
 }

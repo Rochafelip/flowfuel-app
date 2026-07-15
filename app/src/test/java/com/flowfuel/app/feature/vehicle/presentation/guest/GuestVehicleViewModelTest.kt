@@ -1,10 +1,11 @@
 package com.flowfuel.app.feature.vehicle.presentation.guest
 
-import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
 import com.flowfuel.app.feature.vehicle.domain.VehicleRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,18 +34,57 @@ class GuestVehicleViewModelTest {
     private val repository: VehicleRepository = mockk()
     private val sessionStore: SessionStore = mockk(relaxed = true)
 
-    private fun createViewModel(vehicleId: Int = 99, brand: String = "Fiat", model: String = "Uno", expiresAt: String? = "2026-07-20T00:00:00") =
-        GuestVehicleViewModel(
-            SavedStateHandle(mapOf("vehicleId" to vehicleId, "vehicleBrand" to brand, "vehicleModel" to model, "expiresAt" to expiresAt)),
-            repository,
-            sessionStore,
+    private fun testShare(vehicleId: Int = 99, brand: String = "Fiat", model: String = "Uno", expiresAt: String? = "2026-07-20T00:00:00") =
+        VehicleShare(
+            id = 1,
+            vehicleId = vehicleId,
+            vehicleBrand = brand,
+            vehicleModel = model,
+            ownerId = 1,
+            ownerName = "Dono",
+            guestId = 2,
+            guestName = "Convidado",
+            status = VehicleShareStatus.ACTIVE,
+            createdAt = "2026-06-01T00:00:00",
+            respondedAt = "2026-06-01T00:00:00",
+            expiresAt = expiresAt,
         )
+
+    private fun createViewModel(vehicleId: Int = 99, brand: String = "Fiat", model: String = "Uno", expiresAt: String? = "2026-07-20T00:00:00") =
+        GuestVehicleViewModel(repository, sessionStore).apply {
+            initialize(testShare(vehicleId = vehicleId, brand = brand, model = model, expiresAt = expiresAt))
+        }
 
     @Before
     fun setUp() { Dispatchers.setMain(testDispatcher) }
 
     @After
     fun tearDown() { Dispatchers.resetMain() }
+
+    @Test
+    fun initialize_populaEstadoComDadosDoVehicleShare() = runTest {
+        val viewModel = GuestVehicleViewModel(repository, sessionStore)
+        viewModel.initialize(testShare(vehicleId = 42, brand = "Toyota", model = "Corolla", expiresAt = "2026-08-01T00:00:00"))
+
+        val state = viewModel.state.value
+        assertEquals(42, state.vehicleId)
+        assertEquals("Toyota", state.vehicleBrand)
+        assertEquals("Corolla", state.vehicleModel)
+        assertEquals("2026-08-01T00:00:00", state.expiresAt)
+    }
+
+    @Test
+    fun initialize_mesmoVehicleId_naoReinicializaEPreservaInputEmProgresso() = runTest {
+        val viewModel = GuestVehicleViewModel(repository, sessionStore)
+        viewModel.initialize(testShare(vehicleId = 42))
+        viewModel.onOdometerChange("1234")
+
+        viewModel.initialize(testShare(vehicleId = 42, brand = "Outra marca"))
+
+        val state = viewModel.state.value
+        assertEquals("1234", state.odometerInput)
+        assertEquals("Fiat", state.vehicleBrand)
+    }
 
     @Test
     fun confirmOdometer_sucesso_mostraSnackbarDeSucesso() = runTest {
