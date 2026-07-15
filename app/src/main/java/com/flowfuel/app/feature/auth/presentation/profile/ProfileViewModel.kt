@@ -7,6 +7,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
+import com.flowfuel.app.core.vehicleshare.domain.usecase.GetPendingVehicleSharesUseCase
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteAccountUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteProfilePictureUseCase
@@ -40,6 +41,7 @@ sealed interface ProfileUiState {
         val isDeletingPhoto: Boolean = false,
         val showDeleteDialog: Boolean = false,
         val isDeletingAccount: Boolean = false,
+        val pendingShareCount: Int = 0,
     ) : ProfileUiState
     data class Error(val message: String) : ProfileUiState
 }
@@ -53,6 +55,12 @@ sealed interface ProfileEffect {
     data object NavigateToVehicles : ProfileEffect
     data object ShowUploadError : ProfileEffect
     data object ShowDeleteError : ProfileEffect
+    /**
+     * Navega direto pro convite (sem tela de lista intermediária): com um único
+     * compartilhamento ativo por vez no backend, `GetPendingVehicleSharesUseCase`
+     * normalmente devolve 0 ou 1 item, então basta o id do primeiro.
+     */
+    data class NavigateToShareInvite(val shareId: Int) : ProfileEffect
 }
 
 // ─── ViewModel ─────────────────────────────────────────────────────────────────
@@ -67,6 +75,7 @@ class ProfileViewModel @Inject constructor(
     private val deleteProfilePicture: DeleteProfilePictureUseCase,
     private val deleteAccount: DeleteAccountUseCase,
     private val deviceTokenRepository: DeviceTokenRepository,
+    private val getPendingVehicleShares: GetPendingVehicleSharesUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
@@ -74,6 +83,10 @@ class ProfileViewModel @Inject constructor(
 
     private val _effects = Channel<ProfileEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    // Id do primeiro compartilhamento pendente já buscado por [loadPendingShares],
+    // reaproveitado por [onPendingSharesClicked] pra não buscar de novo.
+    private var firstPendingShareId: Int? = null
 
     init {
         load()
@@ -88,6 +101,7 @@ class ProfileViewModel @Inject constructor(
                     Timber.d("Profile › perfil recebido: ${result.value.email}")
                     _state.update { ProfileUiState.Content(result.value) }
                     loadStats()
+                    loadPendingShares()
                 }
                 is AppResult.Failure -> {
                     Timber.e("Profile › erro ao buscar perfil: ${result.error}")
@@ -106,6 +120,22 @@ class ProfileViewModel @Inject constructor(
                 (current as? ProfileUiState.Content)?.copy(stats = stats) ?: current
             }
         }
+    }
+
+    private fun loadPendingShares() {
+        viewModelScope.launch {
+            val result = getPendingVehicleShares()
+            val pending = (result as? AppResult.Success)?.value.orEmpty()
+            firstPendingShareId = pending.firstOrNull()?.id
+            _state.update { current ->
+                (current as? ProfileUiState.Content)?.copy(pendingShareCount = pending.size) ?: current
+            }
+        }
+    }
+
+    fun onPendingSharesClicked() {
+        val shareId = firstPendingShareId ?: return
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToShareInvite(shareId)) }
     }
 
     fun logout() {

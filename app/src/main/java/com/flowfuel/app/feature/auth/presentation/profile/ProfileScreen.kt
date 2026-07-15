@@ -89,6 +89,7 @@ fun ProfileScreen(
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
+    onNavigateToShareInvite: (shareId: Int) -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedConsumed: () -> Unit = {},
     profileUpdated: Boolean = false,
@@ -112,6 +113,7 @@ fun ProfileScreen(
                 ProfileEffect.ShowDeleteError          -> snackbarHostState.showSnackbar(
                     FFSnackbarVisuals("Não foi possível remover a foto", FFSnackbarKind.Error)
                 )
+                is ProfileEffect.NavigateToShareInvite -> onNavigateToShareInvite(effect.shareId)
             }
         }
     }
@@ -167,11 +169,13 @@ fun ProfileScreen(
                     isUploadingPhoto      = s.isUploadingPhoto,
                     isDeletingPhoto       = s.isDeletingPhoto,
                     isDeletingAccount     = s.isDeletingAccount,
+                    pendingShareCount     = s.pendingShareCount,
                     onPickImage           = viewModel::onPickImage,
                     onDeletePicture       = viewModel::onDeletePicture,
                     onEditProfile         = viewModel::onEditProfile,
                     onChangePassword      = viewModel::onChangePassword,
                     onManageVehicles      = viewModel::onManageVehicles,
+                    onPendingSharesClicked = viewModel::onPendingSharesClicked,
                     onLogoutRequest       = { showLogoutDialog = true },
                     onDeleteAccountRequest = viewModel::onShowDeleteDialog,
                 )
@@ -208,11 +212,13 @@ private fun ProfileContent(
     isUploadingPhoto: Boolean,
     isDeletingPhoto: Boolean,
     isDeletingAccount: Boolean,
+    pendingShareCount: Int,
     onPickImage: (Uri) -> Unit,
     onDeletePicture: () -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
     onManageVehicles: () -> Unit,
+    onPendingSharesClicked: () -> Unit,
     onLogoutRequest: () -> Unit,
     onDeleteAccountRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -335,6 +341,22 @@ private fun ProfileContent(
         HorizontalDivider()
 
         Spacer(Modifier.height(FFTheme.spacing.xl))
+
+        // ── Convites de veículo pendentes ───────────────────────────────────────
+        // Descoberta sem depender de push: accept/reject/revoke não disparam
+        // notificação, então o convidado precisa de um jeito de achar o convite
+        // por aqui. Com um único compartilhamento ativo por vez no backend,
+        // pendingShareCount normalmente é 0 ou 1.
+        if (pendingShareCount > 0) {
+            FFButton(
+                text     = "Convites de veículo pendentes ($pendingShareCount)",
+                onClick  = onPendingSharesClicked,
+                variant  = FFButtonVariant.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.md))
+        }
 
         FFButton(
             text        = if (isLoggingOut) "Saindo…" else "Sair",

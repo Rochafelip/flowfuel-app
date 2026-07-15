@@ -708,6 +708,7 @@ fun FlowFuelNavHost(
                 onNavigateToVehicles = {
                     navController.navigate(Destinations.VEHICLE_MANAGE)
                 },
+                onNavigateToShareInvite = { shareId -> navController.navigate(Destinations.vehicleShareInvite(shareId)) },
                 onNavigateToEditProfile = {
                     navController.navigate(Destinations.EDIT_PROFILE)
                 },

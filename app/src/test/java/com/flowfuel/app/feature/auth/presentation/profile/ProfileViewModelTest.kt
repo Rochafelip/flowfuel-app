@@ -1,9 +1,14 @@
 package com.flowfuel.app.feature.auth.presentation.profile
 
 import android.net.Uri
+import app.cash.turbine.test
 import com.flowfuel.app.core.datastore.SessionStore
+import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.notification.domain.DeviceTokenRepository
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
+import com.flowfuel.app.core.vehicleshare.domain.usecase.GetPendingVehicleSharesUseCase
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteAccountUseCase
 import com.flowfuel.app.feature.auth.domain.usecase.DeleteProfilePictureUseCase
@@ -49,6 +54,7 @@ class ProfileViewModelTest {
     private val deleteProfilePicture: DeleteProfilePictureUseCase = mockk()
     private val deleteAccount: DeleteAccountUseCase = mockk(relaxed = true)
     private val deviceTokenRepository: DeviceTokenRepository = mockk(relaxed = true)
+    private val getPendingVehicleShares: GetPendingVehicleSharesUseCase = mockk()
     private val firebaseMessaging: FirebaseMessaging = mockk()
 
     private val photoUri: Uri = Uri.parse("content://media/test/photo.jpg")
@@ -62,6 +68,34 @@ class ProfileViewModelTest {
         createdAt = null,
     )
 
+    private val fixtureShare = VehicleShare(
+        id = 7,
+        vehicleId = 1,
+        vehicleBrand = "Fiat",
+        vehicleModel = "Argo",
+        ownerId = 2,
+        ownerName = "Dono",
+        guestId = 1,
+        guestName = "Fulano",
+        status = VehicleShareStatus.PENDING,
+        createdAt = null,
+        respondedAt = null,
+        expiresAt = null,
+    )
+
+    /**
+     * `getPendingVehicleShares()` é chamado a partir de `init { load() }`, então
+     * precisa de stub antes de qualquer `createViewModel()`. Testes que não se
+     * importam com convites pendentes usam este default (sem convites); os que
+     * se importam (ver `load_comConvitesPendentes_expoePendingShareCount`)
+     * registram o próprio `coEvery` antes de chamar `createViewModel()` — como o
+     * MockK usa o stub mais recentemente registrado, o `coEvery` do teste
+     * (registrado por último) prevalece sobre este default.
+     */
+    private fun stubNoPendingShares() {
+        coEvery { getPendingVehicleShares() } returns AppResult.Success(emptyList())
+    }
+
     private fun createViewModel(): ProfileViewModel {
         coEvery { getProfile() } returns AppResult.Success(fixtureProfile)
         coEvery { getProfileStats() } returns ProfileStats(vehiclesCount = 0, refuelsCount = 0, eventsCount = 0)
@@ -74,6 +108,7 @@ class ProfileViewModelTest {
             deleteProfilePicture,
             deleteAccount,
             deviceTokenRepository,
+            getPendingVehicleShares,
         )
     }
 
@@ -101,6 +136,7 @@ class ProfileViewModelTest {
 
     @Test
     fun `onPickImage success updates profilePictureUrl with the freshly uploaded URL, not a reloaded one`() {
+        stubNoPendingShares()
         val viewModel = createViewModel()
         val bustedUrl = "https://api.example.com/auth/1/profile-picture?cb=999999"
         coEvery { uploadProfilePicture(photoUri) } returns AppResult.Success(bustedUrl)
@@ -114,6 +150,7 @@ class ProfileViewModelTest {
 
     @Test
     fun `logout unregisters device token before clearing the session`() {
+        stubNoPendingShares()
         val viewModel = createViewModel()
 
         viewModel.logout()
@@ -121,6 +158,49 @@ class ProfileViewModelTest {
         coVerifyOrder {
             deviceTokenRepository.unregisterToken(any())
             sessionStore.clear()
+        }
+    }
+
+    @Test
+    fun load_comConvitesPendentes_expoePendingShareCount() {
+        coEvery { getProfile() } returns AppResult.Success(fixtureProfile)
+        coEvery { getProfileStats() } returns ProfileStats(vehiclesCount = 0, refuelsCount = 0, eventsCount = 0)
+        coEvery { getPendingVehicleShares() } returns AppResult.Success(listOf(fixtureShare))
+
+        val viewModel = createViewModel()
+
+        val content = viewModel.state.value as ProfileUiState.Content
+        assertEquals(1, content.pendingShareCount)
+    }
+
+    @Test
+    fun load_semConvitesPendentes_mantemPendingShareCountZero() {
+        stubNoPendingShares()
+
+        val viewModel = createViewModel()
+
+        val content = viewModel.state.value as ProfileUiState.Content
+        assertEquals(0, content.pendingShareCount)
+    }
+
+    @Test
+    fun load_falhaAoBuscarConvitesPendentes_mantemPendingShareCountZero() {
+        coEvery { getPendingVehicleShares() } returns AppResult.Failure(AppError.Network)
+
+        val viewModel = createViewModel()
+
+        val content = viewModel.state.value as ProfileUiState.Content
+        assertEquals(0, content.pendingShareCount)
+    }
+
+    @Test
+    fun onPendingSharesClicked_comConvitePendente_emiteNavigateToShareInviteComIdDoPrimeiroItem() = runTest {
+        coEvery { getPendingVehicleShares() } returns AppResult.Success(listOf(fixtureShare))
+        val viewModel = createViewModel()
+
+        viewModel.effects.test {
+            viewModel.onPendingSharesClicked()
+            assertEquals(ProfileEffect.NavigateToShareInvite(fixtureShare.id), awaitItem())
         }
     }
 }
