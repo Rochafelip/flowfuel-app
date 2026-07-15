@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.vehicle.presentation.guest
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
@@ -15,6 +16,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,7 +52,10 @@ class GuestVehicleViewModelTest {
         val viewModel = createViewModel()
         viewModel.onOdometerChange("1050")
 
-        viewModel.confirmOdometer()
+        viewModel.effects.test {
+            viewModel.confirmOdometer()
+            assertEquals(GuestVehicleEffect.OdometerUpdated, awaitItem())
+        }
 
         coVerify { repository.updateOdometer(99, 1050) }
     }
@@ -60,8 +66,46 @@ class GuestVehicleViewModelTest {
         val viewModel = createViewModel()
         viewModel.onOdometerChange("1050")
 
-        viewModel.confirmOdometer()
+        viewModel.effects.test {
+            viewModel.confirmOdometer()
+            val effect = awaitItem()
+            assertEquals(GuestVehicleEffect.NavigateToPicker::class, effect::class)
+            assertNotNull((effect as GuestVehicleEffect.NavigateToPicker).message)
+        }
 
         coVerify { sessionStore.clearActiveVehicleId() }
+    }
+
+    @Test
+    fun confirmOdometer_inputEmBranco_naoChamaRepositorioEMostraErro() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onOdometerChange("")
+
+        viewModel.confirmOdometer()
+
+        assertNotNull(viewModel.state.value.odometerError)
+        coVerify(exactly = 0) { repository.updateOdometer(any(), any()) }
+    }
+
+    @Test
+    fun confirmOdometer_zero_naoChamaRepositorioEMostraErro() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onOdometerChange("0")
+
+        viewModel.confirmOdometer()
+
+        assertNotNull(viewModel.state.value.odometerError)
+        coVerify(exactly = 0) { repository.updateOdometer(any(), any()) }
+    }
+
+    @Test
+    fun confirmOdometer_negativo_naoChamaRepositorioEMostraErro() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onOdometerChange("-10")
+
+        viewModel.confirmOdometer()
+
+        assertNotNull(viewModel.state.value.odometerError)
+        coVerify(exactly = 0) { repository.updateOdometer(any(), any()) }
     }
 }
