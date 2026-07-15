@@ -153,6 +153,7 @@ fun CreateVehicleEventScreen(
                 selected = state.category,
                 onSelect = viewModel::onCategoryChange,
                 enabled = !state.isSubmitting,
+                categories = state.availableCategories,
             )
 
             Spacer(Modifier.height(FFTheme.spacing.lg))

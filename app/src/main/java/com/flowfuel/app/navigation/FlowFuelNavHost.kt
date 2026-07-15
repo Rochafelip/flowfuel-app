@@ -522,6 +522,7 @@ fun FlowFuelNavHost(
             arguments = listOf(
                 navArgument("vehicleId") { type = NavType.IntType },
                 navArgument("category") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("guestMode") { type = NavType.StringType; nullable = true; defaultValue = null },
             ),
         ) {
             CreateVehicleEventScreen(

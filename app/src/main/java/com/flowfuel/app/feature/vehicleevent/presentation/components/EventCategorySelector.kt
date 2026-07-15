@@ -34,13 +34,14 @@ fun EventCategorySelector(
     onSelect: (EventCategory) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    categories: List<EventCategory> = EventCategory.entries,
 ) {
     LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
-        items(EventCategory.entries) { category ->
+        items(categories) { category ->
             val isSelected = category == selected
             FilterChip(
                 selected = isSelected,

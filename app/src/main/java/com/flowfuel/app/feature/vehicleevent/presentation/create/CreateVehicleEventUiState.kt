@@ -5,6 +5,7 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 
 data class CreateVehicleEventUiState(
     val category: EventCategory = EventCategory.OTHER,
+    val availableCategories: List<EventCategory> = EventCategory.entries,
     val title: String = "",
     val description: String = "",
     val amount: String = "",

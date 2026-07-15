@@ -29,12 +29,22 @@ class CreateVehicleEventViewModel @Inject constructor(
 
     private val vehicleId: Int = checkNotNull(savedStateHandle["vehicleId"])
 
+    private val guestMode: Boolean = savedStateHandle.get<String>("guestMode")?.toBoolean() ?: false
+    private val availableCategories: List<EventCategory> =
+        if (guestMode) listOf(EventCategory.FUEL, EventCategory.WASH, EventCategory.TIRES, EventCategory.OTHER)
+        else EventCategory.entries
+
     private val initialCategory: EventCategory = savedStateHandle.get<String>("category")
         ?.let { raw -> EventCategory.entries.firstOrNull { it.name == raw } }
+        ?.takeIf { it in availableCategories }
         ?: EventCategory.OTHER
 
     private val _state = MutableStateFlow(
-        CreateVehicleEventUiState(category = initialCategory, eventDate = LocalDate.now().toString()),
+        CreateVehicleEventUiState(
+            category = initialCategory,
+            availableCategories = availableCategories,
+            eventDate = LocalDate.now().toString(),
+        ),
     )
     val state: StateFlow<CreateVehicleEventUiState> = _state.asStateFlow()
 
