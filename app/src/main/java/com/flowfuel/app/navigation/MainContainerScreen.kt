@@ -81,9 +81,10 @@ import kotlinx.coroutines.flow.collectLatest
  * Container principal autenticado.
  *
  * Responsável por:
- * - Exibir a [FFBottomBar] com as 5 abas do app e o FAB global docado
- *   (contextual: "Registrar abastecimento" em Home/Histórico/Postos/Perfil,
- *   "Novo evento" em Eventos).
+ * - Exibir a [FFBottomBar] com as 5 abas do app (3 em modo convidado: Home/
+ *   Postos/Perfil) e o FAB global docado (contextual: "Registrar
+ *   abastecimento" em Home/Histórico/Postos/Perfil, "Novo evento" em Eventos;
+ *   oculto em modo convidado, ver [MainContainerViewModel]).
  * - Hospedar o [NavHost] aninhado das abas.
  * - Hospedar o [QuickRefuelBottomSheet] (via [QuickRefuelViewModel]), para que
  *   o FAB abra o sheet a partir de qualquer aba, sem trocar de aba.
