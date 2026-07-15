@@ -28,6 +28,9 @@ object Destinations {
     const val VEHICLE_EVENT_DETAILS = "vehicle/events/details/{eventId}"
     const val VEHICLE_EVENT_EDIT    = "vehicle/events/edit/{eventId}"
 
+    const val VEHICLE_SHARE         = "vehicle/share/{vehicleId}"
+    const val VEHICLE_SHARE_INVITE  = "vehicle-share/{shareId}"
+
     fun checkEmail(email: String, token: String? = null): String {
         val base = "auth/check-email/${java.net.URLEncoder.encode(email, "UTF-8")}"
         return if (token.isNullOrBlank()) base
@@ -50,6 +53,8 @@ object Destinations {
     }
     fun vehicleEventDetails(eventId: Int)          = "vehicle/events/details/$eventId"
     fun vehicleEventEdit(eventId: Int)             = "vehicle/events/edit/$eventId"
+    fun vehicleShare(vehicleId: Int)               = "vehicle/share/$vehicleId"
+    fun vehicleShareInvite(shareId: Int)           = "vehicle-share/$shareId"
 }
 
 /** Rotas do NavHost aninhado dentro de MainContainerScreen. */

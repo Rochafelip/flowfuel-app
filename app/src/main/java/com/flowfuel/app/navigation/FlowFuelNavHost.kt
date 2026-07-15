@@ -42,6 +42,8 @@ import com.flowfuel.app.feature.vehicle.presentation.edit.EditVehicleScreen
 import com.flowfuel.app.feature.vehicle.presentation.list.VehiclePickerScreen
 import com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesScreen
 import com.flowfuel.app.feature.vehicle.presentation.odometer.UpdateOdometerScreen
+import com.flowfuel.app.feature.vehicle.presentation.share.ShareInviteScreen
+import com.flowfuel.app.feature.vehicle.presentation.share.ShareVehicleScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.create.CreateVehicleEventScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.details.VehicleEventDetailsScreen
 import com.flowfuel.app.feature.vehicleevent.presentation.edit.EditVehicleEventScreen
@@ -347,6 +349,9 @@ fun FlowFuelNavHost(
                 onNavigateToEvents = { vehicleId ->
                     navController.navigate(Destinations.vehicleEvents(vehicleId))
                 },
+                onNavigateToShare = { vehicleId ->
+                    navController.navigate(Destinations.vehicleShare(vehicleId))
+                },
                 odometerUpdated = odometerUpdated,
                 onOdometerUpdatedConsumed = {
                     entry.savedStateHandle["odometer_updated"] = false
@@ -632,6 +637,26 @@ fun FlowFuelNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+            )
+        }
+
+        // ── Compartilhar veículo (dono) ─────────────────────────────────────
+        composable(
+            route = Destinations.VEHICLE_SHARE,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.IntType }),
+        ) {
+            ShareVehicleScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Convite de compartilhamento (convidado) ─────────────────────────
+        composable(
+            route = Destinations.VEHICLE_SHARE_INVITE,
+            arguments = listOf(navArgument("shareId") { type = NavType.IntType }),
+        ) {
+            ShareInviteScreen(
+                onBack = { navController.popBackStack() },
             )
         }
 
