@@ -102,6 +102,7 @@ fun MainContainerScreen(
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
+    onNavigateToVehiclePicker: () -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
     passwordChanged: Boolean = false,
@@ -121,11 +122,13 @@ fun MainContainerScreen(
     quickRefuelViewModel: QuickRefuelViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel(),
     notificationPermissionViewModel: NotificationPermissionViewModel = hiltViewModel(),
+    mainContainerViewModel: MainContainerViewModel = hiltViewModel(),
 ) {
     val innerNavController = rememberNavController()
     val backStackEntry by innerNavController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    val containerState by mainContainerViewModel.state.collectAsState()
     val quickRefuelState by quickRefuelViewModel.state.collectAsState()
     val updateState by updateViewModel.state.collectAsState()
     val context = LocalContext.current
@@ -156,32 +159,38 @@ fun MainContainerScreen(
         }
     }
 
-    val tabs = remember {
-        listOf(
+    val tabs = remember(containerState.isGuestMode) {
+        val base = listOf(
             FFBottomItem(
                 route        = MainDestinations.HOME,
                 label        = "Home",
                 icon         = Icons.Outlined.Home,
                 selectedIcon = Icons.Filled.Home,
             ),
+        )
+        val ownerOnlyBeforeStations = if (containerState.isGuestMode) emptyList() else listOf(
             FFBottomItem(
                 route        = MainDestinations.HISTORY,
                 label        = "Histórico",
                 icon         = Icons.Outlined.History,
                 selectedIcon = Icons.Filled.History,
             ),
+        )
+        val stationsAndBeyond = listOf(
             FFBottomItem(
                 route        = MainDestinations.STATIONS,
                 label        = "Postos",
                 icon         = Icons.Outlined.LocalGasStation,
                 selectedIcon = Icons.Filled.LocalGasStation,
             ),
+        ) + (if (containerState.isGuestMode) emptyList() else listOf(
             FFBottomItem(
                 route        = MainDestinations.EVENTS,
                 label        = "Eventos",
                 icon         = Icons.AutoMirrored.Outlined.Assignment,
                 selectedIcon = Icons.AutoMirrored.Filled.Assignment,
             ),
+        )) + listOf(
             FFBottomItem(
                 route        = MainDestinations.PROFILE,
                 label        = "Perfil",
@@ -189,6 +198,7 @@ fun MainContainerScreen(
                 selectedIcon = Icons.Filled.Person,
             ),
         )
+        base + ownerOnlyBeforeStations + stationsAndBeyond
     }
 
     Scaffold(
@@ -214,7 +224,9 @@ fun MainContainerScreen(
                     }
                 },
                 floatingActionButton = {
-                    if (currentRoute == MainDestinations.EVENTS) {
+                    if (containerState.isGuestMode) {
+                        // sem FAB — GuestVehicleScreen tem os próprios botões de ação
+                    } else if (currentRoute == MainDestinations.EVENTS) {
                         FFFab(
                             icon               = Icons.Default.Add,
                             contentDescription = "Novo evento",
@@ -247,17 +259,26 @@ fun MainContainerScreen(
         ) {
             // ── Home ──────────────────────────────────────────────────────────
             composable(MainDestinations.HOME) {
-                HomeScreen(
-                    onNavigateToLogin      = onNavigateToLogin,
-                    onNavigateToAddVehicle = onNavigateToAddVehicle,
-                    onNavigateToMaintenanceEventCreate = onNavigateToMaintenanceEventCreate,
-                    onOpenRefuelSheet      = quickRefuelViewModel::openSheet,
-                    refreshTrigger         = homeNeedsRefresh || homeRefuelPending,
-                    onRefreshConsumed      = {
-                        onHomeRefreshConsumed()
-                        homeRefuelPending = false
-                    },
-                )
+                val guestVehicle = containerState.guestVehicle
+                if (containerState.isGuestMode && guestVehicle != null) {
+                    com.flowfuel.app.feature.vehicle.presentation.guest.GuestVehicleScreen(
+                        onNavigateToCreateEvent = { vehicleId -> onNavigateToEventCreate(vehicleId) },
+                        onNavigateToPicker = { onNavigateToVehiclePicker() },
+                        onSwitchVehicleClicked = { onNavigateToVehiclePicker() },
+                    )
+                } else {
+                    HomeScreen(
+                        onNavigateToLogin      = onNavigateToLogin,
+                        onNavigateToAddVehicle = onNavigateToAddVehicle,
+                        onNavigateToMaintenanceEventCreate = onNavigateToMaintenanceEventCreate,
+                        onOpenRefuelSheet      = quickRefuelViewModel::openSheet,
+                        refreshTrigger         = homeNeedsRefresh || homeRefuelPending,
+                        onRefreshConsumed      = {
+                            onHomeRefreshConsumed()
+                            homeRefuelPending = false
+                        },
+                    )
+                }
             }
 
             // ── Histórico ─────────────────────────────────────────────────────
