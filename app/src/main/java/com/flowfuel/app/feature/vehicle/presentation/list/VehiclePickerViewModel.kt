@@ -6,8 +6,11 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.pagination.PaginationState
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
+import com.flowfuel.app.core.vehicleshare.domain.usecase.GetActiveSharedVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesPageUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveGuestVehicleUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -21,10 +24,15 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
+sealed interface VehiclePickerItem {
+    data class Owned(val vehicle: Vehicle) : VehiclePickerItem
+    data class Borrowed(val share: VehicleShare) : VehiclePickerItem
+}
+
 sealed interface VehiclePickerUiState {
     data object Loading : VehiclePickerUiState
     data class Success(
-        val vehicles: List<Vehicle>,
+        val items: List<VehiclePickerItem>,
         /** ID do veículo atualmente ativo (último usado); null se nenhum ainda. */
         val activeVehicleId: Int?,
     ) : VehiclePickerUiState
@@ -36,6 +44,8 @@ sealed interface VehiclePickerEffect {
     data object NavigateToAddVehicle : VehiclePickerEffect
     /** Usuário selecionou um veículo */
     data class NavigateToHome(val vehicle: Vehicle) : VehiclePickerEffect
+    /** Usuário selecionou um veículo emprestado (compartilhado com ele) */
+    data class NavigateToGuestVehicle(val share: VehicleShare) : VehiclePickerEffect
     /** Token inválido/expirado — redirecionar para login */
     data object NavigateToLogin : VehiclePickerEffect
 }
@@ -45,6 +55,8 @@ class VehiclePickerViewModel @Inject constructor(
     private val getVehiclesPage: GetVehiclesPageUseCase,
     private val setActiveVehicle: SetActiveVehicleUseCase,
     private val sessionStore: SessionStore,
+    private val getActiveSharedVehicles: GetActiveSharedVehiclesUseCase,
+    private val setActiveGuestVehicle: SetActiveGuestVehicleUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<VehiclePickerUiState>(VehiclePickerUiState.Loading)
@@ -78,11 +90,15 @@ class VehiclePickerViewModel @Inject constructor(
                 is AppResult.Success -> {
                     val paged = result.value
                     Timber.d("VehiclePicker: ${paged.items.size} veículo(s), ativo=$activeVehicleId")
-                    if (paged.items.isEmpty()) {
+                    val sharedResult = getActiveSharedVehicles()
+                    val borrowedItems = (sharedResult as? AppResult.Success)?.value
+                        ?.map { VehiclePickerItem.Borrowed(it) } ?: emptyList()
+                    if (paged.items.isEmpty() && borrowedItems.isEmpty()) {
                         _effects.send(VehiclePickerEffect.NavigateToAddVehicle)
                     } else {
                         accumulatedVehicles = paged.items
-                        _state.value = VehiclePickerUiState.Success(accumulatedVehicles, activeVehicleId)
+                        val ownedItems = accumulatedVehicles.map { VehiclePickerItem.Owned(it) }
+                        _state.value = VehiclePickerUiState.Success(ownedItems + borrowedItems, activeVehicleId)
                         _pagination.value = PaginationState(currentPage = 0, hasMore = paged.hasMore)
                     }
                 }
@@ -116,7 +132,10 @@ class VehiclePickerViewModel @Inject constructor(
 
                     val current = _state.value
                     if (current is VehiclePickerUiState.Success) {
-                        _state.value = current.copy(vehicles = accumulatedVehicles)
+                        val borrowedItems = current.items.filterIsInstance<VehiclePickerItem.Borrowed>()
+                        _state.value = current.copy(
+                            items = accumulatedVehicles.map { VehiclePickerItem.Owned(it) } + borrowedItems,
+                        )
                     }
                     _pagination.update {
                         it.copy(
@@ -134,12 +153,20 @@ class VehiclePickerViewModel @Inject constructor(
         }
     }
 
-    fun onVehicleSelected(vehicle: Vehicle) {
+    fun onItemSelected(item: VehiclePickerItem) {
         viewModelScope.launch {
-            // 1. Salva localmente e chama API (SetActiveVehicleUseCase faz as duas coisas)
-            setActiveVehicle(vehicle.id)
-            // 2. Navega imediatamente (otimista)
-            _effects.send(VehiclePickerEffect.NavigateToHome(vehicle))
+            when (item) {
+                is VehiclePickerItem.Owned -> {
+                    // 1. Salva localmente e chama API (SetActiveVehicleUseCase faz as duas coisas)
+                    setActiveVehicle(item.vehicle.id)
+                    // 2. Navega imediatamente (otimista)
+                    _effects.send(VehiclePickerEffect.NavigateToHome(item.vehicle))
+                }
+                is VehiclePickerItem.Borrowed -> {
+                    setActiveGuestVehicle(item.share.vehicleId)
+                    _effects.send(VehiclePickerEffect.NavigateToGuestVehicle(item.share))
+                }
+            }
         }
     }
 
