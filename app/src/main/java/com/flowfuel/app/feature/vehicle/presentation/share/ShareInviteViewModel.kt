@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.vehicle.presentation.share
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.core.vehicleshare.domain.usecase.AcceptVehicleShareUseCase
@@ -19,7 +20,11 @@ import javax.inject.Inject
 
 sealed interface ShareInviteUiState {
     data object Loading : ShareInviteUiState
-    data class Content(val share: VehicleShare, val isSubmitting: Boolean = false) : ShareInviteUiState
+    data class Content(
+        val share: VehicleShare,
+        val isSubmitting: Boolean = false,
+        val error: String? = null,
+    ) : ShareInviteUiState
     data class NotFound(val message: String = "Convite não encontrado ou já respondido") : ShareInviteUiState
 }
 
@@ -68,10 +73,22 @@ class ShareInviteViewModel @Inject constructor(
 
     private fun respond(action: suspend () -> AppResult<VehicleShare>) {
         val current = _state.value as? ShareInviteUiState.Content ?: return
-        _state.value = current.copy(isSubmitting = true)
+        if (current.isSubmitting) return
+        _state.value = current.copy(isSubmitting = true, error = null)
         viewModelScope.launch {
-            action()
-            _effects.send(ShareInviteEffect.NavigateBack)
+            when (val result = action()) {
+                is AppResult.Success -> _effects.send(ShareInviteEffect.NavigateBack)
+                is AppResult.Failure ->
+                    _state.value = current.copy(isSubmitting = false, error = mapErrorMessage(result.error))
+            }
         }
+    }
+
+    private fun mapErrorMessage(error: AppError): String = when {
+        error is AppError.Api && error.code == "RESOURCE_NOT_FOUND" -> "Esse convite não existe mais"
+        error is AppError.Api && error.code == "CONFLICT" -> "Esse convite já foi respondido"
+        error is AppError.Api && error.code == "BUSINESS_RULE_VIOLATED" -> error.message ?: "Não foi possível responder ao convite"
+        error is AppError.Network -> "Sem conexão. Verifique sua internet."
+        else -> "Erro inesperado. Tente novamente."
     }
 }

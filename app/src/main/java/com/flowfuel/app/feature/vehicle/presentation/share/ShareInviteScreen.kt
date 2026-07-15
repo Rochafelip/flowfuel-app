@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +50,7 @@ fun ShareInviteScreen(
                 is ShareInviteUiState.NotFound -> Text(s.message)
                 is ShareInviteUiState.Content -> {
                     Text("${s.share.ownerName} quer compartilhar o ${s.share.vehicleBrand} ${s.share.vehicleModel} com você.")
+                    s.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     FFButton(
                         text = "Aceitar",
                         onClick = viewModel::accept,
