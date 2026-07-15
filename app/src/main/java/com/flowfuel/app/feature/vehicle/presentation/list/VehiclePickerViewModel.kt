@@ -48,6 +48,8 @@ sealed interface VehiclePickerEffect {
     data class NavigateToGuestVehicle(val share: VehicleShare) : VehiclePickerEffect
     /** Token inválido/expirado — redirecionar para login */
     data object NavigateToLogin : VehiclePickerEffect
+    /** Mensagem de saída forçada do modo convidado (ex: dono revogou o compartilhamento) */
+    data class ShowMessage(val message: String) : VehiclePickerEffect
 }
 
 @HiltViewModel
@@ -77,7 +79,16 @@ class VehiclePickerViewModel @Inject constructor(
     var savedScrollOffset: Int = 0
         private set
 
-    init { load() }
+    init {
+        load()
+        // Mensagem de saída forçada do modo convidado (ex: dono revogou o
+        // compartilhamento) — setada no SessionStore por GuestVehicleViewModel
+        // antes de navegar de volta pra cá, pois o popUpTo(0) da navegação
+        // destrói o NavBackStackEntry que o padrão savedStateHandle usaria.
+        sessionStore.consumeGuestAccessEndedMessage()?.let { message ->
+            viewModelScope.launch { _effects.send(VehiclePickerEffect.ShowMessage(message)) }
+        }
+    }
 
     fun load() {
         _state.value = VehiclePickerUiState.Loading

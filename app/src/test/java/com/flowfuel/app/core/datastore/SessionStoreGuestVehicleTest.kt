@@ -50,4 +50,20 @@ class SessionStoreGuestVehicleTest {
         assertEquals(null, sessionStore.activeVehicleIdFlow.first())
         assertFalse(sessionStore.activeVehicleIsGuestFlow.first())
     }
+
+    @Test
+    fun consumeGuestAccessEndedMessage_semMensagemSetada_retornaNull() {
+        assertEquals(null, sessionStore.consumeGuestAccessEndedMessage())
+    }
+
+    @Test
+    fun setGuestAccessEndedMessage_consumeGuestAccessEndedMessage_retornaUmaVezSoDepoisLimpaNull() {
+        sessionStore.setGuestAccessEndedMessage("Esse veículo não está mais compartilhado com você")
+
+        val first = sessionStore.consumeGuestAccessEndedMessage()
+        val second = sessionStore.consumeGuestAccessEndedMessage()
+
+        assertEquals("Esse veículo não está mais compartilhado com você", first)
+        assertEquals(null, second)
+    }
 }

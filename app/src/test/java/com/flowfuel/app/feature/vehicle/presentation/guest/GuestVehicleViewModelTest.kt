@@ -10,6 +10,7 @@ import com.flowfuel.app.feature.vehicle.domain.VehicleRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -114,6 +115,17 @@ class GuestVehicleViewModelTest {
         }
 
         coVerify { sessionStore.clearActiveVehicleId() }
+    }
+
+    @Test
+    fun confirmOdometer_erro403_salvaMensagemNoSessionStoreParaOPickerSobreviverAoPopUpTo() = runTest {
+        coEvery { repository.updateOdometer(99, 1050) } returns AppResult.Failure(AppError.Api("FORBIDDEN_OPERATION", "sem acesso"))
+        val viewModel = createViewModel()
+        viewModel.onOdometerChange("1050")
+
+        viewModel.confirmOdometer()
+
+        verify { sessionStore.setGuestAccessEndedMessage("Esse veículo não está mais compartilhado com você") }
     }
 
     @Test

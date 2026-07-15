@@ -13,8 +13,10 @@ import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesPageUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveGuestVehicleUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
+import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -167,5 +169,43 @@ class VehiclePickerViewModelTest {
 
         coVerify { setActiveGuestVehicle(99) }
         coVerify(exactly = 0) { setActiveVehicle(any()) }
+    }
+
+    @Test
+    fun init_comMensagemDeAcessoEncerradoNoSessionStore_emiteEfeitoShowMessage() = runTest {
+        coEvery { sessionStore.activeVehicleIdFlow } returns flowOf(null)
+        coEvery { getVehiclesPage(0) } returns AppResult.Success(
+            PagedVehicles(items = listOf(fixtureVehicle), currentPage = 0, totalPages = 1, totalElements = 1),
+        )
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(emptyList())
+        every { sessionStore.consumeGuestAccessEndedMessage() } returns "Esse veículo não está mais compartilhado com você"
+
+        val viewModel = createViewModel()
+
+        viewModel.effects.test {
+            assertEquals(
+                VehiclePickerEffect.ShowMessage("Esse veículo não está mais compartilhado com você"),
+                awaitItem(),
+            )
+        }
+    }
+
+    @Test
+    fun init_semMensagemNoSessionStore_naoEmiteShowMessage() = runTest {
+        coEvery { sessionStore.activeVehicleIdFlow } returns flowOf(null)
+        coEvery { getVehiclesPage(0) } returns AppResult.Success(
+            PagedVehicles(items = emptyList(), currentPage = 0, totalPages = 1, totalElements = 0),
+        )
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(emptyList())
+        every { sessionStore.consumeGuestAccessEndedMessage() } returns null
+
+        val viewModel = createViewModel()
+
+        // Lista vazia (owned + borrowed) dispara NavigateToAddVehicle; se
+        // ShowMessage também tivesse sido enviado por engano, seria o
+        // próximo item no canal em vez do teste terminar limpo aqui.
+        viewModel.effects.test {
+            assertEquals(VehiclePickerEffect.NavigateToAddVehicle, awaitItem())
+        }
     }
 }

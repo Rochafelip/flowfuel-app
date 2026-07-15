@@ -6,6 +6,7 @@ import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
 import com.flowfuel.app.core.vehicleshare.domain.usecase.GetActiveSharedVehiclesUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -65,5 +68,51 @@ class MainContainerViewModelTest {
         val viewModel = MainContainerViewModel(sessionStore, getActiveSharedVehicles)
 
         assertTrue(viewModel.state.value.isGuestMode)
+    }
+
+    @Test
+    fun state_veiculoEmprestadoSemMatchNaListaAtiva_marcaGuestVehicleLoadFailed() = runTest {
+        every { sessionStore.activeVehicleIsGuestFlow } returns flowOf(true)
+        every { sessionStore.activeVehicleIdFlow } returns flowOf(99)
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(emptyList())
+
+        val viewModel = MainContainerViewModel(sessionStore, getActiveSharedVehicles)
+
+        assertTrue(viewModel.state.value.isGuestMode)
+        assertTrue(viewModel.state.value.guestVehicleLoadFailed)
+        assertNull(viewModel.state.value.guestVehicle)
+    }
+
+    @Test
+    fun retryLoadGuestVehicle_apósFalha_reexecutaBuscaEPodeResolverComSucesso() = runTest {
+        val share = VehicleShare(
+            id = 100, vehicleId = 99, vehicleBrand = "Fiat", vehicleModel = "Uno",
+            ownerId = 5, ownerName = "Dono", guestId = 1, guestName = "Eu",
+            status = VehicleShareStatus.ACTIVE, createdAt = null, respondedAt = null,
+            expiresAt = "2026-07-20T00:00:00",
+        )
+        every { sessionStore.activeVehicleIsGuestFlow } returns flowOf(true)
+        every { sessionStore.activeVehicleIdFlow } returns flowOf(99)
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(emptyList()) andThen AppResult.Success(listOf(share))
+
+        val viewModel = MainContainerViewModel(sessionStore, getActiveSharedVehicles)
+        assertTrue(viewModel.state.value.guestVehicleLoadFailed)
+
+        viewModel.retryLoadGuestVehicle()
+
+        assertFalse(viewModel.state.value.guestVehicleLoadFailed)
+        assertEquals(share, viewModel.state.value.guestVehicle)
+    }
+
+    @Test
+    fun retryLoadGuestVehicle_foraDoModoConvidado_naoRefazBusca() = runTest {
+        every { sessionStore.activeVehicleIsGuestFlow } returns flowOf(false)
+        every { sessionStore.activeVehicleIdFlow } returns flowOf(1)
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(emptyList())
+
+        val viewModel = MainContainerViewModel(sessionStore, getActiveSharedVehicles)
+        viewModel.retryLoadGuestVehicle()
+
+        coVerify(exactly = 0) { getActiveSharedVehicles() }
     }
 }

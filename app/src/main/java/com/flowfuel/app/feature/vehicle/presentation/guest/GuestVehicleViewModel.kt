@@ -116,8 +116,14 @@ class GuestVehicleViewModel @Inject constructor(
         _state.update { it.copy(isSavingOdometer = false) }
         val isForbidden = (error as? AppError.Api)?.code == "FORBIDDEN_OPERATION"
         if (isForbidden) {
+            val message = "Esse veículo não está mais compartilhado com você"
             sessionStore.clearActiveVehicleId()
-            _effects.send(GuestVehicleEffect.NavigateToPicker("Esse veículo não está mais compartilhado com você"))
+            // Salva no SessionStore (em memória) em vez de confiar só no efeito:
+            // a navegação de volta ao picker usa popUpTo(0), que destrói o
+            // NavBackStackEntry que o padrão savedStateHandle normalmente usaria
+            // pra repassar essa mensagem — o SessionStore sobrevive a isso.
+            sessionStore.setGuestAccessEndedMessage(message)
+            _effects.send(GuestVehicleEffect.NavigateToPicker(message))
         } else {
             _state.update { it.copy(odometerError = error.message ?: "Erro ao atualizar odômetro") }
         }

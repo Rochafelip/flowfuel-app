@@ -10,10 +10,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -28,9 +32,11 @@ import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -54,6 +61,8 @@ import androidx.navigation.compose.rememberNavController
 import com.flowfuel.app.core.designsystem.components.FFBottomBar
 import com.flowfuel.app.core.designsystem.components.FFBottomItem
 import com.flowfuel.app.core.designsystem.components.FFBottomSheet
+import com.flowfuel.app.core.designsystem.components.FFButton
+import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFDialog
 import com.flowfuel.app.core.designsystem.components.FFDialogKind
 import com.flowfuel.app.core.designsystem.components.FFFab
@@ -270,11 +279,41 @@ fun MainContainerScreen(
                         onNavigateToPicker = { onNavigateToVehiclePicker() },
                         onSwitchVehicleClicked = { onNavigateToVehiclePicker() },
                     )
+                } else if (containerState.isGuestMode && containerState.guestVehicleLoadFailed) {
+                    // Busca do VehicleShare falhou ou não achou correspondência
+                    // (GetActiveSharedVehiclesUseCase) — sem isso o convidado
+                    // ficaria preso num spinner infinito, já que o ViewModel só
+                    // reage a mudanças no SessionStore, não a falhas de rede.
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(FFTheme.spacing.lg),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = "Não foi possível carregar o veículo emprestado.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(Modifier.height(FFTheme.spacing.md))
+                        FFButton(
+                            text = "Tentar novamente",
+                            onClick = mainContainerViewModel::retryLoadGuestVehicle,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(FFTheme.spacing.sm))
+                        FFButton(
+                            text = "Voltar",
+                            onClick = onNavigateToVehiclePicker,
+                            variant = FFButtonVariant.Text,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 } else if (containerState.isGuestMode) {
-                    // Modo convidado confirmado pela sessão, mas o VehicleShare
-                    // ainda não chegou (busca em andamento) ou falhou/não achou
-                    // correspondência em GetActiveSharedVehiclesUseCase. Nunca cair
-                    // para a HomeScreen do dono aqui — ela é a tela errada para o
+                    // Modo convidado confirmado pela sessão, VehicleShare ainda
+                    // não chegou (primeira busca em andamento). Nunca cair para a
+                    // HomeScreen do dono aqui — ela é a tela errada para o
                     // convidado e pode tentar carregar dados que ele não tem acesso.
                     Box(
                         modifier = Modifier.fillMaxSize(),

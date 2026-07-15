@@ -119,6 +119,24 @@ class SessionStore @Inject constructor(
             it.remove(Keys.ACTIVE_VEHICLE_IS_GUEST)
         }
     }
+
+    // ─── Motivo de saída forçada do modo convidado ──────────────────────────
+    // Sinal efêmero (em memória, não persistido) lido uma única vez pela tela
+    // de seleção de veículo para explicar por que o convidado foi devolvido a
+    // ela (ex: dono revogou o compartilhamento). Setado por
+    // GuestVehicleViewModel antes de navegar de volta — sobrevive ao
+    // popUpTo(0) da navegação porque não depende de NavBackStackEntry, mesmo
+    // padrão de forcedLogoutReason acima.
+
+    private val _guestAccessEndedMessage = MutableStateFlow<String?>(null)
+
+    fun setGuestAccessEndedMessage(message: String) {
+        _guestAccessEndedMessage.value = message
+    }
+
+    /** Lê e limpa a mensagem de saída forçada do modo convidado (consumo único). */
+    fun consumeGuestAccessEndedMessage(): String? =
+        _guestAccessEndedMessage.value.also { _guestAccessEndedMessage.value = null }
 }
 
 data class Session(

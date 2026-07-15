@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +40,9 @@ import com.flowfuel.app.core.designsystem.components.FFErrorState
 import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.components.FFSkeletonBlock
 import com.flowfuel.app.core.designsystem.components.FFSkeletonList
+import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
+import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
+import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.components.FFVehicleCard
 import com.flowfuel.app.core.designsystem.theme.FFTheme
@@ -61,6 +65,7 @@ fun VehiclePickerScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val paginationState by viewModel.paginationState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Reage a efeitos de navegação emitidos pelo ViewModel
     LaunchedEffect(viewModel) {
@@ -70,6 +75,8 @@ fun VehiclePickerScreen(
                 is VehiclePickerEffect.NavigateToHome       -> onNavigateToHome(effect.vehicle)
                 is VehiclePickerEffect.NavigateToGuestVehicle -> onNavigateToGuestVehicle(effect.share)
                 VehiclePickerEffect.NavigateToLogin         -> onNavigateToLogin()
+                is VehiclePickerEffect.ShowMessage ->
+                    snackbarHostState.showSnackbar(FFSnackbarVisuals(effect.message, FFSnackbarKind.Info))
             }
         }
     }
@@ -117,6 +124,7 @@ fun VehiclePickerScreen(
                 onClick = viewModel::onAddVehicleClicked,
             )
         },
+        snackbarHost = { FFSnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(
             modifier = Modifier
