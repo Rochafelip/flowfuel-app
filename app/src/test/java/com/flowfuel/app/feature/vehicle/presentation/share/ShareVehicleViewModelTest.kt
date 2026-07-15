@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.vehicle.presentation.share
 
 import androidx.lifecycle.SavedStateHandle
+import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
@@ -17,6 +18,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -73,5 +76,32 @@ class ShareVehicleViewModelTest {
         viewModel.sendInvite()
 
         coVerify { invite(10, "guest@test.com", 3) }
+    }
+
+    @Test
+    fun revokeShare_sucesso_voltaParaNoShare() = runTest {
+        coEvery { getForVehicle(10) } returns AppResult.Success(share(VehicleShareStatus.PENDING))
+        coEvery { revoke(100) } returns AppResult.Success(Unit)
+        val viewModel = ShareVehicleViewModel(SavedStateHandle(mapOf("vehicleId" to 10)), invite, revoke, getForVehicle)
+
+        viewModel.revokeShare()
+
+        coVerify { revoke(100) }
+        assertTrue(viewModel.state.value is ShareVehicleUiState.NoShare)
+    }
+
+    @Test
+    fun revokeShare_falha_mantemPendingComErroEResetaIsRevoking() = runTest {
+        coEvery { getForVehicle(10) } returns AppResult.Success(share(VehicleShareStatus.PENDING))
+        coEvery { revoke(100) } returns AppResult.Failure(AppError.Network)
+        val viewModel = ShareVehicleViewModel(SavedStateHandle(mapOf("vehicleId" to 10)), invite, revoke, getForVehicle)
+
+        viewModel.revokeShare()
+
+        val state = viewModel.state.value
+        assertTrue(state is ShareVehicleUiState.Pending)
+        state as ShareVehicleUiState.Pending
+        assertFalse(state.isRevoking)
+        assertEquals("Sem conexão. Verifique sua internet.", state.error)
     }
 }

@@ -25,8 +25,16 @@ sealed interface ShareVehicleUiState {
         val isSubmitting: Boolean = false,
         val error: String? = null,
     ) : ShareVehicleUiState
-    data class Pending(val share: VehicleShare, val isRevoking: Boolean = false) : ShareVehicleUiState
-    data class Active(val share: VehicleShare, val isRevoking: Boolean = false) : ShareVehicleUiState
+    data class Pending(
+        val share: VehicleShare,
+        val isRevoking: Boolean = false,
+        val error: String? = null,
+    ) : ShareVehicleUiState
+    data class Active(
+        val share: VehicleShare,
+        val isRevoking: Boolean = false,
+        val error: String? = null,
+    ) : ShareVehicleUiState
     data class Error(val message: String) : ShareVehicleUiState
 }
 
@@ -93,14 +101,29 @@ class ShareVehicleViewModel @Inject constructor(
 
     fun revokeShare() {
         val shareId = when (val s = _state.value) {
-            is ShareVehicleUiState.Pending -> s.share.id
-            is ShareVehicleUiState.Active -> s.share.id
+            is ShareVehicleUiState.Pending -> {
+                if (s.isRevoking) return
+                _state.value = s.copy(isRevoking = true, error = null)
+                s.share.id
+            }
+            is ShareVehicleUiState.Active -> {
+                if (s.isRevoking) return
+                _state.value = s.copy(isRevoking = true, error = null)
+                s.share.id
+            }
             else -> return
         }
         viewModelScope.launch {
-            when (revoke(shareId)) {
+            when (val result = revoke(shareId)) {
                 is AppResult.Success -> _state.value = ShareVehicleUiState.NoShare()
-                is AppResult.Failure -> load()
+                is AppResult.Failure -> {
+                    val message = mapErrorMessage(result.error)
+                    _state.value = when (val s = _state.value) {
+                        is ShareVehicleUiState.Pending -> s.copy(isRevoking = false, error = message)
+                        is ShareVehicleUiState.Active -> s.copy(isRevoking = false, error = message)
+                        else -> s
+                    }
+                }
             }
         }
     }

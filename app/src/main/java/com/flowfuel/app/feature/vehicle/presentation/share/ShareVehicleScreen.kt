@@ -19,6 +19,12 @@ import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFTextField
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val ptBrFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
 
 @Composable
 fun ShareVehicleScreen(
@@ -70,20 +76,29 @@ fun ShareVehicleScreen(
 
                 is ShareVehicleUiState.Pending -> {
                     Text("Convite enviado para ${s.share.guestName.ifBlank { "o convidado" }}, aguardando resposta.")
+                    s.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     FFButton(
                         text = "Cancelar convite",
                         onClick = viewModel::revokeShare,
                         variant = FFButtonVariant.Destructive,
+                        enabled = !s.isRevoking,
+                        loading = s.isRevoking,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
                 is ShareVehicleUiState.Active -> {
-                    Text("Compartilhado com ${s.share.guestName} até ${s.share.expiresAt.orEmpty()}")
+                    val expiresLabel = s.share.expiresAt?.let {
+                        runCatching { LocalDate.parse(it.take(10)).format(ptBrFormatter) }.getOrNull()
+                    }
+                    Text("Compartilhado com ${s.share.guestName}" + (expiresLabel?.let { " até $it" } ?: ""))
+                    s.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     FFButton(
                         text = "Encerrar compartilhamento",
                         onClick = viewModel::revokeShare,
                         variant = FFButtonVariant.Destructive,
+                        enabled = !s.isRevoking,
+                        loading = s.isRevoking,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
