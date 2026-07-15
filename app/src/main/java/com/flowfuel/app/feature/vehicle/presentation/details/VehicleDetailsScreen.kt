@@ -74,6 +74,7 @@ fun VehicleDetailsScreen(
     onNavigateToEdit: (vehicleId: Int) -> Unit,
     onNavigateToUpdateOdometer: (vehicleId: Int, currentKm: Int) -> Unit,
     onNavigateToEvents: (vehicleId: Int) -> Unit,
+    onNavigateToShare: (vehicleId: Int) -> Unit = {},
     odometerUpdated: Boolean = false,
     onOdometerUpdatedConsumed: () -> Unit = {},
     viewModel: VehicleDetailsViewModel = hiltViewModel(),
@@ -137,6 +138,7 @@ fun VehicleDetailsScreen(
                         vehicle = s.vehicle,
                         onUpdateOdometerClick = viewModel::onUpdateOdometerClick,
                         onViewEventsClick = viewModel::onViewEventsClick,
+                        onShareClick = { onNavigateToShare(s.vehicle.id) },
                     )
                 }
 
@@ -171,6 +173,7 @@ private fun VehicleDetailsContent(
     vehicle: Vehicle,
     onUpdateOdometerClick: () -> Unit,
     onViewEventsClick: () -> Unit,
+    onShareClick: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -310,6 +313,15 @@ private fun VehicleDetailsContent(
                 onClick = onViewEventsClick,
                 variant = FFButtonVariant.Secondary,
                 leadingIcon = Icons.Default.CalendarMonth,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        item {
+            FFButton(
+                text = "Compartilhar veículo",
+                onClick = onShareClick,
+                variant = FFButtonVariant.Secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
