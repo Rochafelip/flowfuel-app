@@ -3,12 +3,17 @@ package com.flowfuel.app.navigation
 import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -16,6 +21,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.flowfuel.app.core.datastore.SessionStore
+import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
+import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
+import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.flowfuel.app.feature.auth.presentation.changepassword.ChangePasswordScreen
@@ -46,11 +54,14 @@ import kotlinx.coroutines.launch
 fun FlowFuelNavHost(
     onSplashReady: () -> Unit,
     deepLinkUri: Uri? = null,
+    notificationTitle: String? = null,
+    notificationBody: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val splashVm: SplashViewModel = hiltViewModel()
     val start by splashVm.start.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Trata deep links flowfuel://<rota> (ex.: flowfuel://vehicle/details/1).
     // Caso especial: flowfuel://activate?token=... (magic link de ativação de
@@ -81,7 +92,15 @@ fun FlowFuelNavHost(
             .joinToString("/")
         if (path.isNotBlank()) {
             navController.currentBackStackEntryFlow.first { it.destination.route == Destinations.MAIN_CONTAINER }
-            runCatching { navController.navigate(path) }
+            val navigated = runCatching { navController.navigate(path) }.isSuccess
+            if (navigated && !notificationTitle.isNullOrBlank()) {
+                snackbarHostState.showSnackbar(
+                    FFSnackbarVisuals(
+                        message = listOfNotNull(notificationTitle, notificationBody).joinToString(" — "),
+                        kind = FFSnackbarKind.Info,
+                    )
+                )
+            }
         }
         onDeepLinkConsumed()
     }
@@ -122,9 +141,14 @@ fun FlowFuelNavHost(
         }
     }
 
+    Scaffold(
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { FFSnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
     NavHost(
         navController = navController,
         startDestination = Destinations.SPLASH,
+        modifier = Modifier.padding(innerPadding),
         enterTransition = { defaultEnter() },
         exitTransition = { defaultExit() },
         popEnterTransition = { defaultEnter() },
@@ -725,6 +749,7 @@ fun FlowFuelNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+    }
     }
 }
 

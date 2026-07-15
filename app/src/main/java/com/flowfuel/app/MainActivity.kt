@@ -18,12 +18,14 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
+    private var notificationTitle by mutableStateOf<String?>(null)
+    private var notificationBody by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        deepLinkUri = intent.data
+        applyIntentExtras(intent)
         var keepSplash = true
         splash.setKeepOnScreenCondition { keepSplash }
         setContent {
@@ -31,7 +33,13 @@ class MainActivity : ComponentActivity() {
                 FlowFuelNavHost(
                     onSplashReady = { keepSplash = false },
                     deepLinkUri = deepLinkUri,
-                    onDeepLinkConsumed = { deepLinkUri = null },
+                    notificationTitle = notificationTitle,
+                    notificationBody = notificationBody,
+                    onDeepLinkConsumed = {
+                        deepLinkUri = null
+                        notificationTitle = null
+                        notificationBody = null
+                    },
                 )
             }
         }
@@ -40,6 +48,17 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        applyIntentExtras(intent)
+    }
+
+    private fun applyIntentExtras(intent: Intent) {
         deepLinkUri = intent.data
+        notificationTitle = intent.getStringExtra(EXTRA_NOTIFICATION_TITLE)
+        notificationBody = intent.getStringExtra(EXTRA_NOTIFICATION_BODY)
+    }
+
+    companion object {
+        const val EXTRA_NOTIFICATION_TITLE = "notification_title"
+        const val EXTRA_NOTIFICATION_BODY = "notification_body"
     }
 }

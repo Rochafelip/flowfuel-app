@@ -41,6 +41,8 @@ class FlowFuelFcmService : FirebaseMessagingService() {
                 action = Intent.ACTION_VIEW
                 data = Uri.parse(payload.deepLink)
             }
+            putExtra(MainActivity.EXTRA_NOTIFICATION_TITLE, payload.title)
+            putExtra(MainActivity.EXTRA_NOTIFICATION_BODY, payload.body)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val pendingIntent = PendingIntent.getActivity(
