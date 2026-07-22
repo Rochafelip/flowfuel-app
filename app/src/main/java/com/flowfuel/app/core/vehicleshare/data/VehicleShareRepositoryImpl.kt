@@ -8,6 +8,7 @@ import com.flowfuel.app.core.vehicleshare.data.remote.VehicleShareResponseDto
 import com.flowfuel.app.core.vehicleshare.domain.VehicleShareRepository
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,7 +45,11 @@ class VehicleShareRepositoryImpl @Inject constructor(
         apiCall { api.revokeShare(shareId) }
 
     override suspend fun getForVehicle(vehicleId: Int): AppResult<VehicleShare?> =
-        apiCall { api.getShareForVehicle(vehicleId)?.toDomain() }
+        apiCall {
+            val response = api.getShareForVehicle(vehicleId)
+            if (!response.isSuccessful) throw HttpException(response)
+            response.body()?.toDomain()
+        }
 
     override suspend fun getPending(): AppResult<List<VehicleShare>> =
         apiCall { api.getPending().map { it.toDomain() } }

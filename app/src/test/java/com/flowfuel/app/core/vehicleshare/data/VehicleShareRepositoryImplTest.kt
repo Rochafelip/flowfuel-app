@@ -12,6 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.Response
 
 class VehicleShareRepositoryImplTest {
 
@@ -57,12 +58,22 @@ class VehicleShareRepositoryImplTest {
 
     @Test
     fun getForVehicle_semShareAtivo_retornaNull() = runTest {
-        coEvery { api.getShareForVehicle(10) } returns null
+        coEvery { api.getShareForVehicle(10) } returns Response.success<VehicleShareResponseDto>(204, null)
 
         val result = repository.getForVehicle(10)
 
         assertTrue(result is AppResult.Success)
         assertNull((result as AppResult.Success).value)
+    }
+
+    @Test
+    fun getForVehicle_comShareAtivo_mapeiaParaDominio() = runTest {
+        coEvery { api.getShareForVehicle(10) } returns Response.success(dto(status = "ACTIVE"))
+
+        val result = repository.getForVehicle(10)
+
+        assertTrue(result is AppResult.Success)
+        assertEquals(VehicleShareStatus.ACTIVE, (result as AppResult.Success).value?.status)
     }
 
     @Test
