@@ -29,7 +29,7 @@
 
 Este task é um refactor puro (move código, sem mudar comportamento): o card `BorrowedVehicleCard` hoje é privado dentro de `VehiclePickerScreen.kt` (nome/modelo + badge pill "Emprestado" + "até {data de expiração}"). Vira um composable público reutilizável.
 
-- [ ] **Step 1: Criar o componente compartilhado**
+- [x] **Step 1: Criar o componente compartilhado**
 
 Criar `app/src/main/java/com/flowfuel/app/core/designsystem/components/FFBorrowedVehicleCard.kt`:
 
@@ -106,7 +106,7 @@ private fun String.formatShareExpiry(): String =
     runCatching { LocalDate.parse(take(10)).format(shareExpiryFormatter) }.getOrDefault(this)
 ```
 
-- [ ] **Step 2: Atualizar `VehiclePickerScreen.kt` para usar o componente extraído**
+- [x] **Step 2: Atualizar `VehiclePickerScreen.kt` para usar o componente extraído**
 
 Remover do arquivo (não existem mais depois deste step):
 - O composable privado `BorrowedVehicleCard` (linhas 236-276 do arquivo atual).
@@ -131,12 +131,12 @@ No branch `is VehiclePickerItem.Borrowed ->` dentro do `when (item)` da `LazyCol
 
 (Mantém `java.util.Locale` importado — ainda é usado pelo card `Owned`, em `String.format(Locale("pt", "BR"), "%,d", vehicle.odometerKm)`.)
 
-- [ ] **Step 3: Rodar a suíte de testes do picker pra garantir que o refactor não quebrou nada**
+- [x] **Step 3: Rodar a suíte de testes do picker pra garantir que o refactor não quebrou nada**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.presentation.list.VehiclePickerViewModelTest"`
 Expected: BUILD SUCCESSFUL (isso também força a compilação de `VehiclePickerScreen.kt` e do novo `FFBorrowedVehicleCard.kt` — se houver erro de sintaxe/import em qualquer um dos dois, o build falha aqui)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/core/designsystem/components/FFBorrowedVehicleCard.kt app/src/main/java/com/flowfuel/app/feature/vehicle/presentation/list/VehiclePickerScreen.kt
@@ -156,7 +156,7 @@ git commit -m "refactor(vehicle): extract FFBorrowedVehicleCard from VehiclePick
 - Consumes: `GetActiveSharedVehiclesUseCase.invoke(): AppResult<List<VehicleShare>>` (existente), `SetActiveGuestVehicleUseCase.invoke(vehicleId: Int)` (existente), `VehicleShare` (existente).
 - Produces: `VehiclesScreenState.Success(ownedItems: List<Vehicle>, borrowedItems: List<VehicleShare>)`; `VehiclesEffect.NavigateToGuestVehicle(share: VehicleShare)`; `VehiclesViewModel.onBorrowedSelected(share: VehicleShare)` — usados por Task 3.
 
-- [ ] **Step 1: Escrever os testes (vão falhar — `ownedItems`/`borrowedItems`/`onBorrowedSelected` não existem ainda)**
+- [x] **Step 1: Escrever os testes (vão falhar — `ownedItems`/`borrowedItems`/`onBorrowedSelected` não existem ainda)**
 
 Criar `app/src/test/java/com/flowfuel/app/feature/vehicle/presentation/manage/VehiclesViewModelTest.kt`:
 
@@ -335,12 +335,12 @@ class VehiclesViewModelTest {
 }
 ```
 
-- [ ] **Step 2: Rodar o teste pra confirmar que falha**
+- [x] **Step 2: Rodar o teste pra confirmar que falha**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesViewModelTest"`
 Expected: FAIL (erro de compilação — `ownedItems`, `borrowedItems`, `NavigateToGuestVehicle`, `onBorrowedSelected` e o construtor de 6 argumentos ainda não existem)
 
-- [ ] **Step 3: Alterar `VehiclesUiState.kt`**
+- [x] **Step 3: Alterar `VehiclesUiState.kt`**
 
 Conteúdo completo do arquivo:
 
@@ -383,7 +383,7 @@ sealed interface VehiclesEffect {
 }
 ```
 
-- [ ] **Step 4: Alterar `VehiclesViewModel.kt`**
+- [x] **Step 4: Alterar `VehiclesViewModel.kt`**
 
 Adicionar aos imports:
 ```kotlin
@@ -468,12 +468,12 @@ Adicionar um novo método, próximo de `onSetActive` (seção "Troca de veículo
     }
 ```
 
-- [ ] **Step 5: Rodar o teste pra confirmar que passa**
+- [x] **Step 5: Rodar o teste pra confirmar que passa**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesViewModelTest"`
 Expected: PASS (5 testes)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/vehicle/presentation/manage/VehiclesUiState.kt app/src/main/java/com/flowfuel/app/feature/vehicle/presentation/manage/VehiclesViewModel.kt app/src/test/java/com/flowfuel/app/feature/vehicle/presentation/manage/VehiclesViewModelTest.kt
@@ -493,7 +493,7 @@ git commit -m "feat(vehicle): VehiclesViewModel separa veículos próprios e com
 
 Sem teste automatizado dedicado (não há testes de UI Compose neste projeto). A verificação é: build limpo (Step 3, forçado ao rodar a suíte de testes do módulo) + verificação manual ao final do plano.
 
-- [ ] **Step 1: Adicionar imports necessários**
+- [x] **Step 1: Adicionar imports necessários**
 
 No topo de `VehiclesScreen.kt`, adicionar:
 ```kotlin
@@ -502,14 +502,14 @@ import com.flowfuel.app.core.designsystem.components.FFBorrowedVehicleCard
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 ```
 
-- [ ] **Step 2: Adicionar o novo parâmetro à assinatura de `VehiclesScreen`**
+- [x] **Step 2: Adicionar o novo parâmetro à assinatura de `VehiclesScreen`**
 
 Depois de `onNavigateToVehicleEvents: (vehicleId: Int) -> Unit = {},`, adicionar:
 ```kotlin
     onNavigateToGuestVehicle: (VehicleShare) -> Unit = {},
 ```
 
-- [ ] **Step 3: Tratar o novo efeito**
+- [x] **Step 3: Tratar o novo efeito**
 
 No `LaunchedEffect(viewModel) { viewModel.effects.collectLatest { effect -> when (effect) { ... } } }`, adicionar o novo branch:
 ```kotlin
@@ -519,7 +519,7 @@ No `LaunchedEffect(viewModel) { viewModel.effects.collectLatest { effect -> when
             }
 ```
 
-- [ ] **Step 4: Renderizar as duas seções na `LazyColumn`**
+- [x] **Step 4: Renderizar as duas seções na `LazyColumn`**
 
 Substituir o corpo do branch `is VehiclesScreenState.Success -> LazyColumn(...) { ... }` (hoje itera `s.vehicles` com `itemsIndexed`) por:
 
@@ -605,12 +605,12 @@ Substituir o corpo do branch `is VehiclesScreenState.Success -> LazyColumn(...) 
 
 (A seção "Meus veículos" some se `ownedItems` estiver vazio, e "Compartilhados comigo" some se `borrowedItems` estiver vazio — nunca mostra um cabeçalho de seção sem itens embaixo.)
 
-- [ ] **Step 5: Rodar a suíte de testes do módulo vehicle pra garantir que compila e nada quebrou**
+- [x] **Step 5: Rodar a suíte de testes do módulo vehicle pra garantir que compila e nada quebrou**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.*"`
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/vehicle/presentation/manage/VehiclesScreen.kt
@@ -627,7 +627,7 @@ git commit -m "feat(vehicle): VehiclesScreen exibe veículos compartilhados em s
 **Interfaces:**
 - Consumes: `VehiclesScreen(..., onNavigateToGuestVehicle: (VehicleShare) -> Unit)` (Task 3), `Destinations.MAIN_CONTAINER`, `Destinations.VEHICLE_MANAGE` (existentes).
 
-- [ ] **Step 1: Adicionar o callback na composable de `Destinations.VEHICLE_MANAGE`**
+- [x] **Step 1: Adicionar o callback na composable de `Destinations.VEHICLE_MANAGE`**
 
 No bloco `composable(Destinations.VEHICLE_MANAGE) { entry -> ... VehiclesScreen(...) }`, depois de `onNavigateToVehicleEvents = { vehicleId -> navController.navigate(Destinations.vehicleEvents(vehicleId)) },`, adicionar:
 
@@ -642,12 +642,12 @@ No bloco `composable(Destinations.VEHICLE_MANAGE) { entry -> ... VehiclesScreen(
                 },
 ```
 
-- [ ] **Step 2: Rodar a suíte completa do app pra garantir que nada quebrou**
+- [x] **Step 2: Rodar a suíte completa do app pra garantir que nada quebrou**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest`
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/navigation/FlowFuelNavHost.kt
