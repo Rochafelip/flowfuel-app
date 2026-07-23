@@ -6,9 +6,12 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.pagination.PaginationState
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
+import com.flowfuel.app.core.vehicleshare.domain.usecase.GetActiveSharedVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.usecase.DeleteVehicleUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesPageUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveGuestVehicleUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -28,6 +31,8 @@ class VehiclesViewModel @Inject constructor(
     private val setActiveVehicle: SetActiveVehicleUseCase,
     private val deleteVehicle: DeleteVehicleUseCase,
     private val sessionStore: SessionStore,
+    private val getActiveSharedVehicles: GetActiveSharedVehiclesUseCase,
+    private val setActiveGuestVehicle: SetActiveGuestVehicleUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(VehiclesUiState())
@@ -63,11 +68,15 @@ class VehiclesViewModel @Inject constructor(
                 is AppResult.Success -> {
                     val paged = result.value
                     accumulatedVehicles = paged.items
+                    val sharedResult = getActiveSharedVehicles()
+                    val borrowedItems = (sharedResult as? AppResult.Success)?.value ?: emptyList()
                     _state.update {
                         it.copy(
                             activeVehicleId = activeId,
-                            screenState = if (paged.items.isEmpty()) VehiclesScreenState.Empty
-                                          else VehiclesScreenState.Success(accumulatedVehicles),
+                            screenState = if (paged.items.isEmpty() && borrowedItems.isEmpty())
+                                VehiclesScreenState.Empty
+                            else
+                                VehiclesScreenState.Success(accumulatedVehicles, borrowedItems),
                         )
                     }
                     _pagination.value = PaginationState(currentPage = 0, hasMore = paged.hasMore)
@@ -95,8 +104,10 @@ class VehiclesViewModel @Inject constructor(
                     val deduped = result.value.items.filter { it.id !in existingIds }
                     accumulatedVehicles = accumulatedVehicles + deduped
 
+                    val currentBorrowed = (_state.value.screenState as? VehiclesScreenState.Success)
+                        ?.borrowedItems ?: emptyList()
                     _state.update {
-                        it.copy(screenState = VehiclesScreenState.Success(accumulatedVehicles))
+                        it.copy(screenState = VehiclesScreenState.Success(accumulatedVehicles, currentBorrowed))
                     }
                     _pagination.update {
                         it.copy(
@@ -125,6 +136,14 @@ class VehiclesViewModel @Inject constructor(
         _state.update { it.copy(activeVehicleId = vehicle.id) }
         viewModelScope.launch {
             setActiveVehicle(vehicle.id)
+        }
+    }
+
+    /** Define [share] como veículo ativo em modo convidado e navega para sua Home mínima. */
+    fun onBorrowedSelected(share: VehicleShare) {
+        viewModelScope.launch {
+            setActiveGuestVehicle(share.vehicleId)
+            _effects.send(VehiclesEffect.NavigateToGuestVehicle(share))
         }
     }
 

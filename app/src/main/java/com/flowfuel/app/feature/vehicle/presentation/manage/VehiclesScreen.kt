@@ -82,6 +82,7 @@ fun VehiclesScreen(
         viewModel.effects.collectLatest { effect ->
             when (effect) {
                 VehiclesEffect.NavigateToLogin -> onNavigateToLogin()
+                is VehiclesEffect.NavigateToGuestVehicle -> {} // Task 3
             }
         }
     }
@@ -176,7 +177,7 @@ fun VehiclesScreen(
                     verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
                 ) {
                     itemsIndexed(
-                        items = s.vehicles,
+                        items = s.ownedItems,
                         key   = { _, v -> v.id },
                     ) { _, vehicle ->
                         VehicleManageItem(

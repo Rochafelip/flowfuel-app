@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.vehicle.presentation.manage
 
 import com.flowfuel.app.core.domain.AppError
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 
 // ─── Estado da tela ───────────────────────────────────────────────────────────
@@ -9,7 +10,10 @@ sealed interface VehiclesScreenState {
     data object Loading : VehiclesScreenState
     data object Empty : VehiclesScreenState
     data class Error(val error: AppError) : VehiclesScreenState
-    data class Success(val vehicles: List<Vehicle>) : VehiclesScreenState
+    data class Success(
+        val ownedItems: List<Vehicle>,
+        val borrowedItems: List<VehicleShare>,
+    ) : VehiclesScreenState
 }
 
 // ─── Estado global ────────────────────────────────────────────────────────────
@@ -28,4 +32,5 @@ data class VehiclesUiState(
 
 sealed interface VehiclesEffect {
     data object NavigateToLogin : VehiclesEffect
+    data class NavigateToGuestVehicle(val share: VehicleShare) : VehiclesEffect
 }
