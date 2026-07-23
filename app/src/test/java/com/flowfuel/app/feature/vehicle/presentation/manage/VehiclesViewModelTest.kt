@@ -169,4 +169,37 @@ class VehiclesViewModelTest {
         }
         coVerify { setActiveGuestVehicle(99) }
     }
+
+    @Test
+    fun loadNextPage_preservesBorrowedItemsWhilePaginatingOwnedItems() = runTest {
+        coEvery { sessionStore.activeVehicleIdFlow } returns flowOf(null)
+
+        // Page 0: owned vehicle + borrowed items with hasMore=true
+        val vehicle1 = fixtureVehicle.copy(id = 1)
+        coEvery { getVehiclesPage(0) } returns AppResult.Success(
+            PagedVehicles(items = listOf(vehicle1), currentPage = 0, totalPages = 2, totalElements = 2),
+        )
+        coEvery { getActiveSharedVehicles() } returns AppResult.Success(listOf(fixtureShare))
+
+        val viewModel = createViewModel()
+
+        // Verify initial state has both owned and borrowed items
+        val initialState = viewModel.state.value.screenState as VehiclesScreenState.Success
+        assertEquals(listOf(vehicle1), initialState.ownedItems)
+        assertEquals(listOf(fixtureShare), initialState.borrowedItems)
+
+        // Page 1: additional owned vehicle
+        val vehicle2 = fixtureVehicle.copy(id = 2, brand = "Honda", model = "Civic")
+        coEvery { getVehiclesPage(1) } returns AppResult.Success(
+            PagedVehicles(items = listOf(vehicle2), currentPage = 1, totalPages = 2, totalElements = 2),
+        )
+
+        // Load next page
+        viewModel.loadNextPage()
+
+        // Verify borrowed items preserved and owned items accumulated
+        val finalState = viewModel.state.value.screenState as VehiclesScreenState.Success
+        assertEquals(listOf(vehicle1, vehicle2), finalState.ownedItems)
+        assertEquals(listOf(fixtureShare), finalState.borrowedItems)
+    }
 }
