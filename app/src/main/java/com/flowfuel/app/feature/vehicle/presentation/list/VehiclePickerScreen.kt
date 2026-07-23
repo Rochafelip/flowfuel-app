@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,11 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flowfuel.app.R
-import com.flowfuel.app.core.designsystem.components.FFCard
-import com.flowfuel.app.core.designsystem.components.FFCardVariant
+import com.flowfuel.app.core.designsystem.components.FFBorrowedVehicleCard
 import com.flowfuel.app.core.designsystem.components.FFErrorState
 import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.components.FFSkeletonBlock
@@ -50,8 +46,6 @@ import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import kotlinx.coroutines.flow.collectLatest
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -197,7 +191,7 @@ fun VehiclePickerScreen(
                                         )
                                     }
                                     is VehiclePickerItem.Borrowed -> {
-                                        BorrowedVehicleCard(
+                                        FFBorrowedVehicleCard(
                                             share = item.share,
                                             modifier = Modifier.fillMaxWidth(),
                                             onClick = { viewModel.onItemSelected(item) },
@@ -232,54 +226,6 @@ fun VehiclePickerScreen(
         }
     }
 }
-
-@Composable
-private fun BorrowedVehicleCard(
-    share: VehicleShare,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    FFCard(modifier = modifier, variant = FFCardVariant.Flat, onClick = onClick) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
-        ) {
-            Text(
-                text = "${share.vehicleBrand} ${share.vehicleModel}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            Surface(
-                color = FFTheme.semanticColors.info,
-                contentColor = FFTheme.semanticColors.onInfo,
-                shape = FFTheme.extraShapes.pill,
-            ) {
-                Text(
-                    text = "Emprestado",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(
-                        start = FFTheme.spacing.sm,
-                        end = FFTheme.spacing.sm,
-                        top = 2.dp,
-                        bottom = 2.dp,
-                    ),
-                )
-            }
-        }
-        Text(
-            text = "até ${share.expiresAt?.formatShareExpiry() ?: "—"}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-private val shareExpiryFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
-
-private fun String.formatShareExpiry(): String =
-    runCatching { LocalDate.parse(take(10)).format(shareExpiryFormatter) }.getOrDefault(this)
 
 @Composable
 private fun PaginationErrorRetry(
