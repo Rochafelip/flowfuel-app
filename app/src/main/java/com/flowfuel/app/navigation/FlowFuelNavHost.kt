@@ -414,6 +414,14 @@ fun FlowFuelNavHost(
                 onNavigateToVehicleEvents = { vehicleId ->
                     navController.navigate(Destinations.vehicleEvents(vehicleId))
                 },
+                onNavigateToGuestVehicle = { _ ->
+                    // Mesmo padrão já usado na rota do picker (Destinations.VEHICLE_PICKER):
+                    // entrar em modo convidado sempre reseta a navegação pra raiz,
+                    // mesmo vindo de "Meus Veículos" empilhada sobre o Perfil.
+                    navController.navigate(Destinations.MAIN_CONTAINER) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 vehicleUpdated = vehicleUpdated,
                 onVehicleUpdatedConsumed = { entry.savedStateHandle["vehicle_updated"] = false },
             )
