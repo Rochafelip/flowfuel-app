@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.flowfuel.app.core.designsystem.components.FFBorrowedVehicleCard
 import com.flowfuel.app.core.designsystem.components.FFDialog
 import com.flowfuel.app.core.designsystem.components.FFDialogKind
 import com.flowfuel.app.core.designsystem.components.FFEmptyState
@@ -50,6 +52,7 @@ import com.flowfuel.app.core.designsystem.components.FFVehicleCard
 import com.flowfuel.app.core.designsystem.components.FFFab
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
+import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import kotlinx.coroutines.flow.collectLatest
 import java.util.Locale
@@ -64,6 +67,7 @@ fun VehiclesScreen(
     onNavigateToVehicleDetails: (vehicleId: Int) -> Unit = {},
     onNavigateToEditVehicle: (vehicleId: Int) -> Unit = {},
     onNavigateToVehicleEvents: (vehicleId: Int) -> Unit = {},
+    onNavigateToGuestVehicle: (VehicleShare) -> Unit = {},
     vehicleUpdated: Boolean = false,
     onVehicleUpdatedConsumed: () -> Unit = {},
     viewModel: VehiclesViewModel = hiltViewModel(),
@@ -82,7 +86,7 @@ fun VehiclesScreen(
         viewModel.effects.collectLatest { effect ->
             when (effect) {
                 VehiclesEffect.NavigateToLogin -> onNavigateToLogin()
-                is VehiclesEffect.NavigateToGuestVehicle -> {} // Task 3
+                is VehiclesEffect.NavigateToGuestVehicle -> onNavigateToGuestVehicle(effect.share)
             }
         }
     }
@@ -176,6 +180,16 @@ fun VehiclesScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
                 ) {
+                    if (s.ownedItems.isNotEmpty()) {
+                        item(key = "owned_header") {
+                            Text(
+                                text = "Meus veículos",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
                     itemsIndexed(
                         items = s.ownedItems,
                         key   = { _, v -> v.id },
@@ -205,6 +219,28 @@ fun VehiclesScreen(
                                 message = error.userMessage(),
                                 onRetry = viewModel::loadNextPage,
                                 modifier = Modifier.padding(top = FFTheme.spacing.sm),
+                            )
+                        }
+                    }
+
+                    if (s.borrowedItems.isNotEmpty()) {
+                        item(key = "borrowed_header") {
+                            Text(
+                                text = "Compartilhados comigo",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = FFTheme.spacing.sm),
+                            )
+                        }
+
+                        items(
+                            items = s.borrowedItems,
+                            key   = { share -> "borrowed_${share.id}" },
+                        ) { share ->
+                            FFBorrowedVehicleCard(
+                                share    = share,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick  = { viewModel.onBorrowedSelected(share) },
                             )
                         }
                     }
