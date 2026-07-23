@@ -28,7 +28,7 @@
 
 Este task é puramente visual: não há lógica nova, então não há teste unitário a escrever. A verificação é por compilação forçada (Step 2 e 3) e checagem visual manual (Step 4).
 
-- [ ] **Step 1: Substituir o conteúdo de `FFBorrowedVehicleCard.kt`**
+- [x] **Step 1: Substituir o conteúdo de `FFBorrowedVehicleCard.kt`**
 
 Conteúdo completo do arquivo (substitui o arquivo inteiro):
 
@@ -132,17 +132,17 @@ O que mudou em relação ao arquivo anterior:
 - Docstring do componente ganhou uma segunda frase explicando a limitação
   do ícone genérico.
 
-- [ ] **Step 2: Rodar a suíte de testes do picker pra forçar a compilação**
+- [x] **Step 2: Rodar a suíte de testes do picker pra forçar a compilação**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.presentation.list.VehiclePickerViewModelTest"`
 Expected: BUILD SUCCESSFUL (força a compilação de `VehiclePickerScreen.kt`, que consome `FFBorrowedVehicleCard` — se houver erro de sintaxe/import/tipo no componente, o build falha aqui)
 
-- [ ] **Step 3: Rodar a suíte de testes de `VehiclesViewModel` pra forçar a compilação da segunda tela**
+- [x] **Step 3: Rodar a suíte de testes de `VehiclesViewModel` pra forçar a compilação da segunda tela**
 
 Run: `.\gradlew.bat :app:testDebugUnitTest --tests "com.flowfuel.app.feature.vehicle.presentation.manage.VehiclesViewModelTest"`
 Expected: BUILD SUCCESSFUL (força a compilação de `VehiclesScreen.kt`, a outra consumidora de `FFBorrowedVehicleCard`)
 
-- [ ] **Step 4: Checagem visual manual no emulador**
+- [x] **Step 4: Checagem visual manual no emulador**
 
 Pré-requisito: precisa de uma conta logada com pelo menos 1 compartilhamento
 ativo aceito como convidado (ver [[project_qa_test_account]] e
@@ -164,7 +164,7 @@ picker de veículos, se houver troca de veículo em andamento) e confirmar:
 3. Tocar no card continua levando ao modo convidado normalmente (nenhuma
    mudança de comportamento, só visual).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/core/designsystem/components/FFBorrowedVehicleCard.kt
