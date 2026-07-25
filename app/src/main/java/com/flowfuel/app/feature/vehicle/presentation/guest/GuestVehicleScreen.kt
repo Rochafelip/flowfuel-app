@@ -61,7 +61,12 @@ fun GuestVehicleScreen(
     }
 
     Scaffold(
-        topBar = { FFTopBar(title = "${state.vehicleBrand} ${state.vehicleModel}") },
+        topBar = {
+            FFTopBar(
+                title = "${state.vehicleBrand} ${state.vehicleModel}",
+                onTitleClick = onSwitchVehicleClicked,
+            )
+        },
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -94,6 +99,7 @@ fun GuestVehicleScreen(
                 onClick = viewModel::confirmOdometer,
                 enabled = !state.isSavingOdometer,
                 loading = state.isSavingOdometer,
+                variant = FFButtonVariant.Secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -110,15 +116,6 @@ fun GuestVehicleScreen(
             FFButton(
                 text = "Registrar despesa",
                 onClick = viewModel::onExpenseClicked,
-                variant = FFButtonVariant.Text,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.xl))
-
-            FFButton(
-                text = "Trocar de veículo",
-                onClick = onSwitchVehicleClicked,
                 variant = FFButtonVariant.Text,
                 modifier = Modifier.fillMaxWidth(),
             )
