@@ -201,6 +201,15 @@ fun AddVehicleScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+                    if (state.currentStep == 4 && state.photoUri == null) {
+                        FFButton(
+                            text = stringResource(R.string.vehicle_photo_skip),
+                            onClick = viewModel::onSkipPhoto,
+                            enabled = !state.isSubmitting,
+                            variant = FFButtonVariant.Text,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },

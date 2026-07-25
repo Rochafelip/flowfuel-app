@@ -151,6 +151,7 @@
     <string name="vehicle_photo_content_description">Foto do veículo</string>
     <string name="vehicle_photo_upload_error">Não foi possível enviar a foto. Tente novamente.</string>
     <string name="vehicle_photo_retry">Tentar novamente</string>
+    <string name="vehicle_photo_skip">Pular</string>
 
     <!-- Vehicle — Seções -->
     <string name="vehicle_section_info">Informações principais</string>

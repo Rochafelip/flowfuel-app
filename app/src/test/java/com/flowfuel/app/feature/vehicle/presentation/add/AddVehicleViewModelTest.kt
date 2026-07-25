@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.FieldError
+import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
@@ -13,7 +14,9 @@ import com.flowfuel.app.feature.vehicle.domain.usecase.CreateVehicleUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.UploadVehiclePhotoUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -40,9 +43,11 @@ class AddVehicleViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val createVehicle: CreateVehicleUseCase = mockk()
     private val uploadVehiclePhoto: UploadVehiclePhotoUseCase = mockk()
+    private val imagePickerHelper: ImagePickerHelper = mockk()
     private lateinit var viewModel: AddVehicleViewModel
 
     private val photoUri: Uri = Uri.parse("content://media/test/photo.jpg")
+    private val templateUri: Uri = Uri.parse("file:///cache/photo_templates/template_1.jpg")
 
     private val fixtureVehicle = Vehicle(
         id = 42,
@@ -64,7 +69,7 @@ class AddVehicleViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = AddVehicleViewModel(createVehicle, uploadVehiclePhoto)
+        viewModel = AddVehicleViewModel(createVehicle, uploadVehiclePhoto, imagePickerHelper)
     }
 
     @After
@@ -149,6 +154,28 @@ class AddVehicleViewModelTest {
 
         assertEquals(photoUri, viewModel.state.value.photoUri)
         assertNull(viewModel.state.value.photoUploadError)
+    }
+
+    // ── onSkipPhoto ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `onSkipPhoto sets photoUri to a generated template and enables canSubmit`() {
+        every { imagePickerHelper.createTemplatePhoto(VehicleType.Car) } returns templateUri
+
+        viewModel.onSkipPhoto()
+
+        assertEquals(templateUri, viewModel.state.value.photoUri)
+        assertTrue(viewModel.state.value.canSubmit)
+    }
+
+    @Test
+    fun `onSkipPhoto uses the vehicleType currently selected in step 2`() {
+        every { imagePickerHelper.createTemplatePhoto(VehicleType.Motorcycle) } returns templateUri
+        viewModel.onVehicleTypeChange(VehicleType.Motorcycle)
+
+        viewModel.onSkipPhoto()
+
+        verify(exactly = 1) { imagePickerHelper.createTemplatePhoto(VehicleType.Motorcycle) }
     }
 
     // ── submit — guard ────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
+import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -182,6 +183,28 @@ class ImagePickerHelperTest {
         assertTrue(firstFile.exists())
 
         val secondFile = File(requireNotNull(helper.cropToCache(bitmap, cropRect).path))
+
+        assertFalse(firstFile.exists())
+        assertTrue(secondFile.exists())
+    }
+
+    @Test
+    fun `createTemplatePhoto writes a square jpeg with the requested output size`() {
+        val resultUri = helper.createTemplatePhoto(VehicleType.Car, outputSizePx = 200)
+
+        val outFile = File(requireNotNull(resultUri.path))
+        assertTrue(outFile.exists())
+        val decoded = android.graphics.BitmapFactory.decodeFile(outFile.absolutePath)
+        assertEquals(200, decoded.width)
+        assertEquals(200, decoded.height)
+    }
+
+    @Test
+    fun `createTemplatePhoto deletes the previously cached template file`() {
+        val firstFile = File(requireNotNull(helper.createTemplatePhoto(VehicleType.Car).path))
+        assertTrue(firstFile.exists())
+
+        val secondFile = File(requireNotNull(helper.createTemplatePhoto(VehicleType.Motorcycle).path))
 
         assertFalse(firstFile.exists())
         assertTrue(secondFile.exists())

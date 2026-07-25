@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.FieldError
+import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
@@ -85,6 +86,7 @@ sealed interface AddVehicleEffect {
 class AddVehicleViewModel @Inject constructor(
     private val createVehicle: CreateVehicleUseCase,
     private val uploadVehiclePhoto: UploadVehiclePhotoUseCase,
+    private val imagePickerHelper: ImagePickerHelper,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddVehicleUiState())
@@ -140,6 +142,12 @@ class AddVehicleViewModel @Inject constructor(
     // — Etapa 4
     fun onPhotoPicked(uri: Uri) =
         _state.update { it.copy(photoUri = uri, photoUploadError = null) }
+
+    /** Usa uma foto padrão gerada localmente em vez de exigir que o usuário escolha uma — ver [ImagePickerHelper.createTemplatePhoto]. */
+    fun onSkipPhoto() {
+        val templateUri = imagePickerHelper.createTemplatePhoto(_state.value.vehicleType)
+        _state.update { it.copy(photoUri = templateUri, photoUploadError = null) }
+    }
 
     fun clearError() = _state.update { it.copy(error = null) }
 
