@@ -108,7 +108,7 @@ fun MainContainerScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAddVehicle: () -> Unit,
     onNavigateToEventCreate: (vehicleId: Int) -> Unit = {},
-    onNavigateToGuestEventCreate: (vehicleId: Int) -> Unit = {},
+    onNavigateToGuestEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
     onNavigateToMaintenanceEventCreate: (vehicleId: Int, category: EventCategory) -> Unit = { _, _ -> },
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
@@ -275,7 +275,7 @@ fun MainContainerScreen(
                 if (containerState.isGuestMode && guestVehicle != null) {
                     com.flowfuel.app.feature.vehicle.presentation.guest.GuestVehicleScreen(
                         guestVehicle = guestVehicle,
-                        onNavigateToCreateEvent = { vehicleId -> onNavigateToGuestEventCreate(vehicleId) },
+                        onNavigateToCreateEvent = { vehicleId, category -> onNavigateToGuestEventCreate(vehicleId, category) },
                         onNavigateToPicker = { onNavigateToVehiclePicker() },
                         onSwitchVehicleClicked = { onNavigateToVehiclePicker() },
                     )

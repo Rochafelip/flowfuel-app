@@ -6,6 +6,7 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShareStatus
+import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicle.domain.VehicleRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -159,5 +160,25 @@ class GuestVehicleViewModelTest {
 
         assertNotNull(viewModel.state.value.odometerError)
         coVerify(exactly = 0) { repository.updateOdometer(any(), any()) }
+    }
+
+    @Test
+    fun onRefuelClicked_emiteNavigateToCreateEventComCategoriaFuel() = runTest {
+        val viewModel = createViewModel(vehicleId = 42)
+
+        viewModel.effects.test {
+            viewModel.onRefuelClicked()
+            assertEquals(GuestVehicleEffect.NavigateToCreateEvent(42, EventCategory.FUEL), awaitItem())
+        }
+    }
+
+    @Test
+    fun onExpenseClicked_emiteNavigateToCreateEventComCategoriaOther() = runTest {
+        val viewModel = createViewModel(vehicleId = 42)
+
+        viewModel.effects.test {
+            viewModel.onExpenseClicked()
+            assertEquals(GuestVehicleEffect.NavigateToCreateEvent(42, EventCategory.OTHER), awaitItem())
+        }
     }
 }

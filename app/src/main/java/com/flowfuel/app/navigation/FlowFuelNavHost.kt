@@ -713,8 +713,8 @@ fun FlowFuelNavHost(
                 onNavigateToEventCreate = { vehicleId ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId))
                 },
-                onNavigateToGuestEventCreate = { vehicleId ->
-                    navController.navigate(Destinations.vehicleEventCreate(vehicleId, guestMode = true))
+                onNavigateToGuestEventCreate = { vehicleId, category ->
+                    navController.navigate(Destinations.vehicleEventCreate(vehicleId, category.name, guestMode = true))
                 },
                 onNavigateToMaintenanceEventCreate = { vehicleId, category ->
                     navController.navigate(Destinations.vehicleEventCreate(vehicleId, category.name))

@@ -27,6 +27,7 @@ import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
 import com.flowfuel.app.core.designsystem.components.FFTopBar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
@@ -39,7 +40,7 @@ private val ptBrFormatter: DateTimeFormatter =
 @Composable
 fun GuestVehicleScreen(
     guestVehicle: VehicleShare,
-    onNavigateToCreateEvent: (vehicleId: Int) -> Unit,
+    onNavigateToCreateEvent: (vehicleId: Int, category: EventCategory) -> Unit,
     onNavigateToPicker: (message: String?) -> Unit,
     onSwitchVehicleClicked: () -> Unit,
     viewModel: GuestVehicleViewModel = hiltViewModel(),
@@ -53,7 +54,7 @@ fun GuestVehicleScreen(
             when (effect) {
                 GuestVehicleEffect.OdometerUpdated ->
                     snackbarHostState.showSnackbar(FFSnackbarVisuals("Odômetro atualizado", FFSnackbarKind.Success))
-                is GuestVehicleEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.vehicleId)
+                is GuestVehicleEffect.NavigateToCreateEvent -> onNavigateToCreateEvent(effect.vehicleId, effect.category)
                 is GuestVehicleEffect.NavigateToPicker -> onNavigateToPicker(effect.message)
             }
         }
@@ -99,8 +100,17 @@ fun GuestVehicleScreen(
             Spacer(Modifier.height(FFTheme.spacing.md))
 
             FFButton(
-                text = "Registrar abastecimento/despesa",
-                onClick = viewModel::onCreateEventClicked,
+                text = "Abastecer",
+                onClick = viewModel::onRefuelClicked,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.sm))
+
+            FFButton(
+                text = "Registrar despesa",
+                onClick = viewModel::onExpenseClicked,
+                variant = FFButtonVariant.Text,
                 modifier = Modifier.fillMaxWidth(),
             )
 

@@ -7,6 +7,7 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.vehicleshare.domain.model.VehicleShare
 import com.flowfuel.app.feature.vehicle.domain.VehicleRepository
+import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,7 @@ data class GuestVehicleUiState(
 
 sealed interface GuestVehicleEffect {
     data object OdometerUpdated : GuestVehicleEffect
-    data class NavigateToCreateEvent(val vehicleId: Int) : GuestVehicleEffect
+    data class NavigateToCreateEvent(val vehicleId: Int, val category: EventCategory) : GuestVehicleEffect
     data class NavigateToPicker(val message: String?) : GuestVehicleEffect
 }
 
@@ -106,9 +107,15 @@ class GuestVehicleViewModel @Inject constructor(
         }
     }
 
-    fun onCreateEventClicked() {
+    fun onRefuelClicked() {
         viewModelScope.launch {
-            _effects.send(GuestVehicleEffect.NavigateToCreateEvent(_state.value.vehicleId))
+            _effects.send(GuestVehicleEffect.NavigateToCreateEvent(_state.value.vehicleId, EventCategory.FUEL))
+        }
+    }
+
+    fun onExpenseClicked() {
+        viewModelScope.launch {
+            _effects.send(GuestVehicleEffect.NavigateToCreateEvent(_state.value.vehicleId, EventCategory.OTHER))
         }
     }
 
