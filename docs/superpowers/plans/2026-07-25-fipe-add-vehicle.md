@@ -1204,6 +1204,19 @@ git commit -m "feat(vehicle): dropdowns FIPE no Step 1 do cadastro, com fallback
 
 **Files:** nenhum (só verificação; sem mudança de código).
 
+**Concluído em 2026-07-26** (contra produção, `flowfuel-api.fly.dev`, conta
+`yhe66@web-library.net`): Steps 1-5 verificados com sucesso — seletor
+Tipo no topo, Marca populada ao abrir, cascata completa Marca→Modelo→Ano
+(ex.: Asia Motors → Hi-Topic STD Diesel → 1995), "Ano de fabricação"
+preenchido automaticamente e permanecendo editável, troca de Tipo
+(Carro→Moto) limpa a seleção e recarrega marcas específicas de moto
+(ADLY, AGRALE, AMAZONAS... distintas das de carro), fallback "Não
+encontrei meu veículo" reversível (vira Marca/Modelo texto livre +
+Ano fabricação/Ano modelo lado a lado, botão vira "Usar busca FIPE").
+Steps 6 (erro de rede) e 7 (submissão completa) **não executados** de
+propósito — evitar criar veículo de teste fictício na conta real de
+produção do usuário. Sem bugs encontrados.
+
 - [ ] **Step 1: Build e instalação**
 
 ```bash
