@@ -8,9 +8,13 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
+import com.flowfuel.app.feature.vehicle.domain.model.FipeOption
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.CreateVehicleUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeBrandsUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeModelsUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeYearsUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.UploadVehiclePhotoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -28,6 +32,19 @@ data class AddVehicleUiState(
     val model: String = "",
     val manufactureYear: String = "",
     val modelYear: String = "",
+    // — Etapa 1: Busca FIPE
+    val useFipeSearch: Boolean = true,
+    val fipeBrands: List<FipeOption> = emptyList(),
+    val fipeModels: List<FipeOption> = emptyList(),
+    val fipeYears: List<FipeOption> = emptyList(),
+    val selectedFipeBrandCode: String? = null,
+    val selectedFipeModelCode: String? = null,
+    val fipeBrandsLoading: Boolean = false,
+    val fipeModelsLoading: Boolean = false,
+    val fipeYearsLoading: Boolean = false,
+    val fipeBrandsError: Boolean = false,
+    val fipeModelsError: Boolean = false,
+    val fipeYearsError: Boolean = false,
     // — Etapa 2: Classificação
     val vehicleType: VehicleType = VehicleType.Car,
     val energyType: EnergyType = EnergyType.Combustion,
@@ -87,6 +104,9 @@ class AddVehicleViewModel @Inject constructor(
     private val createVehicle: CreateVehicleUseCase,
     private val uploadVehiclePhoto: UploadVehiclePhotoUseCase,
     private val imagePickerHelper: ImagePickerHelper,
+    private val getFipeBrands: GetFipeBrandsUseCase,
+    private val getFipeModels: GetFipeModelsUseCase,
+    private val getFipeYears: GetFipeYearsUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddVehicleUiState())
@@ -122,8 +142,120 @@ class AddVehicleViewModel @Inject constructor(
             )
         }
 
+    // — Etapa 1: Busca FIPE
+    fun loadFipeBrandsIfNeeded() {
+        val s = _state.value
+        if (s.fipeBrands.isNotEmpty() || s.fipeBrandsLoading) return
+        loadFipeBrands()
+    }
+
+    fun onRetryLoadFipeBrands() = loadFipeBrands()
+    fun onRetryLoadFipeModels() = loadFipeModels()
+    fun onRetryLoadFipeYears() = loadFipeYears()
+
+    fun onFipeBrandSelected(option: FipeOption) {
+        _state.update {
+            it.copy(
+                brand = option.name,
+                brandError = false,
+                selectedFipeBrandCode = option.code,
+                model = "",
+                modelError = false,
+                selectedFipeModelCode = null,
+                fipeModels = emptyList(),
+                fipeModelsError = false,
+                modelYear = "",
+                modelYearError = false,
+                fipeYears = emptyList(),
+                fipeYearsError = false,
+                error = null,
+                serverErrors = null,
+            )
+        }
+        loadFipeModels()
+    }
+
+    fun onFipeModelSelected(option: FipeOption) {
+        _state.update {
+            it.copy(
+                model = option.name,
+                modelError = false,
+                selectedFipeModelCode = option.code,
+                modelYear = "",
+                modelYearError = false,
+                fipeYears = emptyList(),
+                fipeYearsError = false,
+                error = null,
+                serverErrors = null,
+            )
+        }
+        loadFipeYears()
+    }
+
+    fun onFipeYearSelected(option: FipeOption) {
+        val year = parseFipeYear(option) ?: return
+        _state.update {
+            it.copy(
+                modelYear = year.toString(),
+                modelYearError = false,
+                manufactureYear = year.toString(),
+                manufactureYearError = false,
+                error = null,
+                serverErrors = null,
+            )
+        }
+    }
+
+    fun onToggleManualEntry() = _state.update { it.copy(useFipeSearch = !it.useFipeSearch) }
+
+    private fun loadFipeBrands() {
+        _state.update { it.copy(fipeBrandsLoading = true, fipeBrandsError = false) }
+        viewModelScope.launch {
+            when (val result = getFipeBrands(_state.value.vehicleType)) {
+                is AppResult.Success -> _state.update { it.copy(fipeBrands = result.value, fipeBrandsLoading = false) }
+                is AppResult.Failure -> _state.update { it.copy(fipeBrandsLoading = false, fipeBrandsError = true) }
+            }
+        }
+    }
+
+    private fun loadFipeModels() {
+        val brandCode = _state.value.selectedFipeBrandCode ?: return
+        _state.update { it.copy(fipeModelsLoading = true, fipeModelsError = false) }
+        viewModelScope.launch {
+            when (val result = getFipeModels(_state.value.vehicleType, brandCode)) {
+                is AppResult.Success -> _state.update { it.copy(fipeModels = result.value, fipeModelsLoading = false) }
+                is AppResult.Failure -> _state.update { it.copy(fipeModelsLoading = false, fipeModelsError = true) }
+            }
+        }
+    }
+
+    private fun loadFipeYears() {
+        val s = _state.value
+        val brandCode = s.selectedFipeBrandCode ?: return
+        val modelCode = s.selectedFipeModelCode ?: return
+        _state.update { it.copy(fipeYearsLoading = true, fipeYearsError = false) }
+        viewModelScope.launch {
+            when (val result = getFipeYears(s.vehicleType, brandCode, modelCode)) {
+                is AppResult.Success -> _state.update { it.copy(fipeYears = result.value, fipeYearsLoading = false) }
+                is AppResult.Failure -> _state.update { it.copy(fipeYearsLoading = false, fipeYearsError = true) }
+            }
+        }
+    }
+
     // — Etapa 2
-    fun onVehicleTypeChange(v: VehicleType) = _state.update { it.copy(vehicleType = v) }
+    fun onVehicleTypeChange(v: VehicleType) {
+        if (v == _state.value.vehicleType) return
+        _state.update {
+            it.copy(
+                vehicleType = v,
+                brand = "", brandError = false, selectedFipeBrandCode = null, fipeBrands = emptyList(), fipeBrandsError = false,
+                model = "", modelError = false, selectedFipeModelCode = null, fipeModels = emptyList(), fipeModelsError = false,
+                manufactureYear = "", manufactureYearError = false,
+                modelYear = "", modelYearError = false, fipeYears = emptyList(), fipeYearsError = false,
+            )
+        }
+        loadFipeBrands()
+    }
     fun onEnergyTypeChange(v: EnergyType)   = _state.update { it.copy(energyType = v) }
     fun onFuelTypeChange(v: FuelType)       = _state.update { it.copy(fuelType = v) }
 
@@ -263,3 +395,8 @@ class AddVehicleViewModel @Inject constructor(
         }
     }
 }
+
+/** Extrai o ano de um item de "Ano do modelo" da FIPE (código "2016-1" ou nome "2016 Gasolina"). */
+private fun parseFipeYear(option: FipeOption): Int? =
+    option.code.substringBefore("-").toIntOrNull()
+        ?: option.name.take(4).toIntOrNull()

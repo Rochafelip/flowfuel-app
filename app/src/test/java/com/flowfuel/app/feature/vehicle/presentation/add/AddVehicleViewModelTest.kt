@@ -7,10 +7,14 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.FieldError
 import com.flowfuel.app.core.media.ImagePickerHelper
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
+import com.flowfuel.app.feature.vehicle.domain.model.FipeOption
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import com.flowfuel.app.feature.vehicle.domain.usecase.CreateVehicleUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeBrandsUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeModelsUseCase
+import com.flowfuel.app.feature.vehicle.domain.usecase.GetFipeYearsUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.UploadVehiclePhotoUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -44,6 +48,9 @@ class AddVehicleViewModelTest {
     private val createVehicle: CreateVehicleUseCase = mockk()
     private val uploadVehiclePhoto: UploadVehiclePhotoUseCase = mockk()
     private val imagePickerHelper: ImagePickerHelper = mockk()
+    private val getFipeBrands: GetFipeBrandsUseCase = mockk()
+    private val getFipeModels: GetFipeModelsUseCase = mockk()
+    private val getFipeYears: GetFipeYearsUseCase = mockk()
     private lateinit var viewModel: AddVehicleViewModel
 
     private val photoUri: Uri = Uri.parse("content://media/test/photo.jpg")
@@ -69,7 +76,13 @@ class AddVehicleViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = AddVehicleViewModel(createVehicle, uploadVehiclePhoto, imagePickerHelper)
+        coEvery { getFipeBrands(any()) } returns AppResult.Success(emptyList())
+        coEvery { getFipeModels(any(), any()) } returns AppResult.Success(emptyList())
+        coEvery { getFipeYears(any(), any(), any()) } returns AppResult.Success(emptyList())
+        viewModel = AddVehicleViewModel(
+            createVehicle, uploadVehiclePhoto, imagePickerHelper,
+            getFipeBrands, getFipeModels, getFipeYears,
+        )
     }
 
     @After
@@ -286,5 +299,128 @@ class AddVehicleViewModelTest {
 
         coVerify(exactly = 1) { createVehicle(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) }
         coVerify(exactly = 2) { uploadVehiclePhoto(42, photoUri) }
+    }
+
+    // ── Cascata FIPE ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `loadFipeBrandsIfNeeded loads brands once and does not reload if already loaded`() = runTest {
+        coEvery { getFipeBrands(VehicleType.Car) } returns AppResult.Success(listOf(FipeOption("21", "Fiat")))
+
+        viewModel.loadFipeBrandsIfNeeded()
+        viewModel.loadFipeBrandsIfNeeded()
+
+        assertEquals(listOf(FipeOption("21", "Fiat")), viewModel.state.value.fipeBrands)
+        coVerify(exactly = 1) { getFipeBrands(VehicleType.Car) }
+    }
+
+    @Test
+    fun `loadFipeBrandsIfNeeded sets fipeBrandsError on failure`() = runTest {
+        coEvery { getFipeBrands(VehicleType.Car) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.loadFipeBrandsIfNeeded()
+
+        assertTrue(viewModel.state.value.fipeBrandsError)
+        assertFalse(viewModel.state.value.fipeBrandsLoading)
+    }
+
+    @Test
+    fun `onRetryLoadFipeBrands retries and clears fipeBrandsError on success`() = runTest {
+        coEvery { getFipeBrands(VehicleType.Car) } returns AppResult.Failure(AppError.Network)
+        viewModel.loadFipeBrandsIfNeeded()
+        assertTrue(viewModel.state.value.fipeBrandsError)
+
+        coEvery { getFipeBrands(VehicleType.Car) } returns AppResult.Success(listOf(FipeOption("21", "Fiat")))
+        viewModel.onRetryLoadFipeBrands()
+
+        assertFalse(viewModel.state.value.fipeBrandsError)
+        assertEquals(listOf(FipeOption("21", "Fiat")), viewModel.state.value.fipeBrands)
+    }
+
+    @Test
+    fun `onFipeBrandSelected sets brand fields and triggers loadFipeModels`() = runTest {
+        coEvery { getFipeModels(VehicleType.Car, "21") } returns AppResult.Success(listOf(FipeOption("1004", "Uno")))
+
+        viewModel.onFipeBrandSelected(FipeOption("21", "Fiat"))
+
+        val state = viewModel.state.value
+        assertEquals("Fiat", state.brand)
+        assertEquals("21", state.selectedFipeBrandCode)
+        assertEquals(listOf(FipeOption("1004", "Uno")), state.fipeModels)
+        coVerify(exactly = 1) { getFipeModels(VehicleType.Car, "21") }
+    }
+
+    @Test
+    fun `onFipeModelSelected sets model fields and triggers loadFipeYears`() = runTest {
+        viewModel.onFipeBrandSelected(FipeOption("21", "Fiat"))
+        coEvery { getFipeYears(VehicleType.Car, "21", "1004") } returns
+            AppResult.Success(listOf(FipeOption("2016-1", "2016 Gasolina")))
+
+        viewModel.onFipeModelSelected(FipeOption("1004", "Uno"))
+
+        val state = viewModel.state.value
+        assertEquals("Uno", state.model)
+        assertEquals("1004", state.selectedFipeModelCode)
+        assertEquals(listOf(FipeOption("2016-1", "2016 Gasolina")), state.fipeYears)
+    }
+
+    @Test
+    fun `onFipeYearSelected fills manufactureYear and modelYear with the same parsed year`() {
+        viewModel.onFipeYearSelected(FipeOption("2016-1", "2016 Gasolina"))
+
+        val state = viewModel.state.value
+        assertEquals("2016", state.modelYear)
+        assertEquals("2016", state.manufactureYear)
+    }
+
+    @Test
+    fun `onFipeYearSelected does not change years when the fipe code is unparseable`() {
+        viewModel.onManufactureYearChange("2020")
+        viewModel.onModelYearChange("2021")
+
+        viewModel.onFipeYearSelected(FipeOption("", ""))
+
+        val state = viewModel.state.value
+        assertEquals("2020", state.manufactureYear)
+        assertEquals("2021", state.modelYear)
+    }
+
+    @Test
+    fun `onVehicleTypeChange to Motorcycle clears previous selection and reloads brands for motos`() = runTest {
+        coEvery { getFipeModels(any(), any()) } returns AppResult.Success(emptyList())
+        coEvery { getFipeBrands(VehicleType.Motorcycle) } returns AppResult.Success(listOf(FipeOption("80", "Honda")))
+        viewModel.onFipeBrandSelected(FipeOption("21", "Fiat"))
+
+        viewModel.onVehicleTypeChange(VehicleType.Motorcycle)
+
+        val state = viewModel.state.value
+        assertEquals(VehicleType.Motorcycle, state.vehicleType)
+        assertEquals("", state.brand)
+        assertNull(state.selectedFipeBrandCode)
+        assertEquals(listOf(FipeOption("80", "Honda")), state.fipeBrands)
+    }
+
+    @Test
+    fun `onVehicleTypeChange to the same type does not reload brands`() = runTest {
+        viewModel.loadFipeBrandsIfNeeded() // Car (default)
+
+        viewModel.onVehicleTypeChange(VehicleType.Car)
+
+        coVerify(exactly = 1) { getFipeBrands(VehicleType.Car) }
+    }
+
+    @Test
+    fun `onToggleManualEntry flips useFipeSearch without touching other fields`() {
+        assertTrue(viewModel.state.value.useFipeSearch)
+        viewModel.onFipeBrandSelected(FipeOption("21", "Fiat"))
+
+        viewModel.onToggleManualEntry()
+
+        val state = viewModel.state.value
+        assertFalse(state.useFipeSearch)
+        assertEquals("Fiat", state.brand)
+
+        viewModel.onToggleManualEntry()
+        assertTrue(viewModel.state.value.useFipeSearch)
     }
 }
