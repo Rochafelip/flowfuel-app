@@ -165,6 +165,9 @@
     <string name="vehicle_model">Modelo</string>
     <string name="vehicle_manufacture_year">Ano de fabricação</string>
     <string name="vehicle_model_year">Ano do modelo</string>
+    <string name="vehicle_fipe_not_found">Não encontrei meu veículo</string>
+    <string name="vehicle_fipe_use_search">Usar busca FIPE</string>
+    <string name="vehicle_fipe_load_error">Não foi possível carregar. Toque para tentar novamente.</string>
     <string name="vehicle_plate">Placa</string>
     <string name="vehicle_color">Cor (opcional)</string>
     <string name="vehicle_odometer">Odômetro atual (km)</string>

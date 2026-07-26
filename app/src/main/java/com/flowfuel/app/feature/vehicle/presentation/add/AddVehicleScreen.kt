@@ -91,6 +91,8 @@ import com.flowfuel.app.R
 import com.flowfuel.app.core.designsystem.components.FFButton
 import com.flowfuel.app.core.designsystem.components.FFButtonVariant
 import com.flowfuel.app.core.designsystem.components.FFChip
+import com.flowfuel.app.core.designsystem.components.FFDropdownField
+import com.flowfuel.app.core.designsystem.components.FFDropdownOption
 import com.flowfuel.app.core.designsystem.components.FFNumberField
 import com.flowfuel.app.core.designsystem.components.FFNumberKind
 import com.flowfuel.app.core.designsystem.components.PhotoCropDialog
@@ -103,6 +105,7 @@ import com.flowfuel.app.core.designsystem.preview.FFPreviewBox
 import com.flowfuel.app.core.designsystem.preview.FFThemePreviews
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
+import com.flowfuel.app.feature.vehicle.domain.model.FipeOption
 import com.flowfuel.app.feature.vehicle.domain.model.FuelType
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import kotlinx.coroutines.flow.collectLatest
@@ -260,22 +263,13 @@ private fun Step1Content(
     state: AddVehicleUiState,
     viewModel: AddVehicleViewModel,
 ) {
-    val focusBrand           = remember { FocusRequester() }
-    val focusModel           = remember { FocusRequester() }
     val focusManufactureYear = remember { FocusRequester() }
-    val focusModelYear       = remember { FocusRequester() }
     val focusManager         = LocalFocusManager.current
 
-    LaunchedEffect(Unit) { focusBrand.requestFocus() }
+    LaunchedEffect(Unit) { viewModel.loadFipeBrandsIfNeeded() }
 
     LaunchedEffect(state.stepAttempt) {
-        if (state.stepAttempt == 0) return@LaunchedEffect
-        when {
-            state.brandError           -> focusBrand.requestFocus()
-            state.modelError           -> focusModel.requestFocus()
-            state.manufactureYearError -> focusManufactureYear.requestFocus()
-            state.modelYearError       -> focusModelYear.requestFocus()
-        }
+        if (state.stepAttempt != 0 && state.manufactureYearError) focusManufactureYear.requestFocus()
     }
 
     Column(
@@ -286,63 +280,164 @@ private fun Step1Content(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FFTextField(
-            value = state.brand,
-            onValueChange = viewModel::onBrandChange,
-            label = stringResource(R.string.vehicle_brand),
-            imeAction = ImeAction.Next,
-            keyboardActions = KeyboardActions(onNext = { focusModel.requestFocus() }),
-            errorText = if (state.brandError) stringResource(R.string.error_required)
-                        else state.serverErrors?.firstOrNull { it.field == "brand" }?.message,
+        VehicleTypeSelector(
+            selected = state.vehicleType,
+            onSelect = viewModel::onVehicleTypeChange,
             enabled = !state.isSubmitting,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusBrand),
         )
 
-        FFTextField(
-            value = state.model,
-            onValueChange = viewModel::onModelChange,
-            label = stringResource(R.string.vehicle_model),
-            imeAction = ImeAction.Next,
-            keyboardActions = KeyboardActions(onNext = { focusManufactureYear.requestFocus() }),
-            errorText = if (state.modelError) stringResource(R.string.error_required)
-                        else state.serverErrors?.firstOrNull { it.field == "model" }?.message,
-            enabled = !state.isSubmitting,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusModel),
-        )
+        if (state.useFipeSearch) {
+            FFDropdownField(
+                label = stringResource(R.string.vehicle_brand),
+                selectedLabel = state.brand.takeIf { it.isNotBlank() },
+                options = state.fipeBrands.map { FFDropdownOption(it.code, it.name) },
+                onOptionSelected = { viewModel.onFipeBrandSelected(FipeOption(it.code, it.label)) },
+                loading = state.fipeBrandsLoading,
+                errorText = when {
+                    state.fipeBrandsError -> stringResource(R.string.vehicle_fipe_load_error)
+                    state.brandError      -> stringResource(R.string.error_required)
+                    else                  -> state.serverErrors?.firstOrNull { it.field == "brand" }?.message
+                },
+                onRetry = viewModel::onRetryLoadFipeBrands,
+                enabled = !state.isSubmitting,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FFDropdownField(
+                label = stringResource(R.string.vehicle_model),
+                selectedLabel = state.model.takeIf { it.isNotBlank() },
+                options = state.fipeModels.map { FFDropdownOption(it.code, it.name) },
+                onOptionSelected = { viewModel.onFipeModelSelected(FipeOption(it.code, it.label)) },
+                loading = state.fipeModelsLoading,
+                errorText = when {
+                    state.fipeModelsError -> stringResource(R.string.vehicle_fipe_load_error)
+                    state.modelError      -> stringResource(R.string.error_required)
+                    else                  -> state.serverErrors?.firstOrNull { it.field == "model" }?.message
+                },
+                onRetry = viewModel::onRetryLoadFipeModels,
+                enabled = !state.isSubmitting && state.selectedFipeBrandCode != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            FFDropdownField(
+                label = stringResource(R.string.vehicle_model_year),
+                selectedLabel = state.modelYear.takeIf { it.isNotBlank() },
+                options = state.fipeYears.map { FFDropdownOption(it.code, it.name) },
+                onOptionSelected = { viewModel.onFipeYearSelected(FipeOption(it.code, it.label)) },
+                loading = state.fipeYearsLoading,
+                errorText = when {
+                    state.fipeYearsError -> stringResource(R.string.vehicle_fipe_load_error)
+                    state.modelYearError -> stringResource(R.string.error_model_year_invalid)
+                    else                 -> state.serverErrors?.firstOrNull { it.field == "modelYear" }?.message
+                },
+                onRetry = viewModel::onRetryLoadFipeYears,
+                enabled = !state.isSubmitting && state.selectedFipeModelCode != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             FFTextField(
                 value = state.manufactureYear,
                 onValueChange = viewModel::onManufactureYearChange,
                 label = stringResource(R.string.vehicle_manufacture_year),
                 keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next,
-                keyboardActions = KeyboardActions(onNext = { focusModelYear.requestFocus() }),
+                imeAction = ImeAction.Done,
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 errorText = if (state.manufactureYearError) stringResource(R.string.error_year_invalid)
                             else state.serverErrors?.firstOrNull { it.field == "manufactureYear" }?.message,
                 enabled = !state.isSubmitting,
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .focusRequester(focusManufactureYear),
             )
 
+            FFButton(
+                text = stringResource(R.string.vehicle_fipe_not_found),
+                onClick = viewModel::onToggleManualEntry,
+                variant = FFButtonVariant.Text,
+                enabled = !state.isSubmitting,
+            )
+        } else {
+            val focusBrand     = remember { FocusRequester() }
+            val focusModel     = remember { FocusRequester() }
+            val focusModelYear = remember { FocusRequester() }
+
+            LaunchedEffect(Unit) { focusBrand.requestFocus() }
+
+            LaunchedEffect(state.stepAttempt) {
+                if (state.stepAttempt == 0) return@LaunchedEffect
+                when {
+                    state.brandError           -> focusBrand.requestFocus()
+                    state.modelError           -> focusModel.requestFocus()
+                    state.manufactureYearError -> focusManufactureYear.requestFocus()
+                    state.modelYearError       -> focusModelYear.requestFocus()
+                }
+            }
+
             FFTextField(
-                value = state.modelYear,
-                onValueChange = viewModel::onModelYearChange,
-                label = stringResource(R.string.vehicle_model_year),
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done,
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                errorText = if (state.modelYearError) stringResource(R.string.error_model_year_invalid)
-                            else state.serverErrors?.firstOrNull { it.field == "modelYear" }?.message,
+                value = state.brand,
+                onValueChange = viewModel::onBrandChange,
+                label = stringResource(R.string.vehicle_brand),
+                imeAction = ImeAction.Next,
+                keyboardActions = KeyboardActions(onNext = { focusModel.requestFocus() }),
+                errorText = if (state.brandError) stringResource(R.string.error_required)
+                            else state.serverErrors?.firstOrNull { it.field == "brand" }?.message,
                 enabled = !state.isSubmitting,
                 modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusModelYear),
+                    .fillMaxWidth()
+                    .focusRequester(focusBrand),
+            )
+
+            FFTextField(
+                value = state.model,
+                onValueChange = viewModel::onModelChange,
+                label = stringResource(R.string.vehicle_model),
+                imeAction = ImeAction.Next,
+                keyboardActions = KeyboardActions(onNext = { focusManufactureYear.requestFocus() }),
+                errorText = if (state.modelError) stringResource(R.string.error_required)
+                            else state.serverErrors?.firstOrNull { it.field == "model" }?.message,
+                enabled = !state.isSubmitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusModel),
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FFTextField(
+                    value = state.manufactureYear,
+                    onValueChange = viewModel::onManufactureYearChange,
+                    label = stringResource(R.string.vehicle_manufacture_year),
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                    keyboardActions = KeyboardActions(onNext = { focusModelYear.requestFocus() }),
+                    errorText = if (state.manufactureYearError) stringResource(R.string.error_year_invalid)
+                                else state.serverErrors?.firstOrNull { it.field == "manufactureYear" }?.message,
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusManufactureYear),
+                )
+
+                FFTextField(
+                    value = state.modelYear,
+                    onValueChange = viewModel::onModelYearChange,
+                    label = stringResource(R.string.vehicle_model_year),
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    errorText = if (state.modelYearError) stringResource(R.string.error_model_year_invalid)
+                                else state.serverErrors?.firstOrNull { it.field == "modelYear" }?.message,
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusModelYear),
+                )
+            }
+
+            FFButton(
+                text = stringResource(R.string.vehicle_fipe_use_search),
+                onClick = viewModel::onToggleManualEntry,
+                variant = FFButtonVariant.Text,
+                enabled = !state.isSubmitting,
             )
         }
     }
@@ -360,16 +455,6 @@ private fun Step2Content(
             .padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        FormSection(title = stringResource(R.string.vehicle_section_type)) {
-            VehicleTypeSelector(
-                selected = state.vehicleType,
-                onSelect = viewModel::onVehicleTypeChange,
-                enabled = !state.isSubmitting,
-            )
-        }
-
-        SectionDivider()
-
         FormSection(title = stringResource(R.string.vehicle_section_energy)) {
             EnergyTypeSelector(
                 selected = state.energyType,
