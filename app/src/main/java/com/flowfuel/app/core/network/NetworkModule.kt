@@ -84,6 +84,37 @@ object NetworkModule {
             .build()
     }
 
+    /**
+     * Cliente HTTP para a API pública da tabela FIPE (parallelum.com.br) — sem
+     * autenticação. Timeout mais curto por ser uma dependência externa fora do
+     * nosso controle; não deve travar o wizard de cadastro de veículo.
+     */
+    @Provides @Singleton @Named("fipe")
+    fun provideFipeOkHttp(
+        logging: HttpLoggingInterceptor,
+        chucker: ChuckerInterceptor,
+    ): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .addInterceptor(chucker)
+        .addInterceptor(logging)
+        .build()
+
+    /** Retrofit exclusivo para a API pública da tabela FIPE. */
+    @Provides @Singleton @Named("fipe")
+    fun provideFipeRetrofit(
+        @Named("fipe") client: OkHttpClient,
+        json: Json,
+    ): Retrofit {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl("https://parallelum.com.br/fipe/api/v1/")
+            .client(client)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+    }
+
     /** Cliente HTTP principal com autenticação e refresh automático. */
     @Provides @Singleton
     fun provideOkHttp(
