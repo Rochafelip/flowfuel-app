@@ -234,7 +234,6 @@ private fun HomeContent(
                     consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
                     averagePrice = IndicatorItem("Preço médio", averagePrice?.let(::formatBrl) ?: "—"),
                     odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
-                    lastRefuel = IndicatorItem("Último abastecimento", shortDaysSinceLabel(daysSince)),
                 )
             }
         }
@@ -326,11 +325,4 @@ private fun daysSinceRefuel(lastRefuelDate: String?): Int? {
         }
         ((today.timeInMillis - refuel.timeInMillis) / 86_400_000L).toInt()
     }.getOrNull()
-}
-
-private fun shortDaysSinceLabel(days: Int?): String = when {
-    days == null -> "—"
-    days == 0 -> "Hoje"
-    days == 1 -> "Ontem"
-    else -> "Há $days dias"
 }
