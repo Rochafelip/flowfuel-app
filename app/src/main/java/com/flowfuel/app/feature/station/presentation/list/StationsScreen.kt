@@ -122,7 +122,9 @@ fun StationsScreen(
                 StationTypeFilterRow(
                     selectedType = selectedType,
                     onSelect = viewModel::onTypeSelected,
-                    modifier = Modifier.padding(top = FFTheme.spacing.sm),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = FFTheme.spacing.sm),
                 )
                 StationDistanceFilterRow(
                     selectedRadiusMeters = radiusMeters,

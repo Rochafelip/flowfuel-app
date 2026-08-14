@@ -9,6 +9,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flowfuel.app.feature.station.domain.model.STATION_RADIUS_PRESETS_METERS
@@ -26,7 +27,7 @@ fun StationDistanceFilterRow(
 ) {
     LazyRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
         items(STATION_RADIUS_PRESETS_METERS) { radiusMeters ->
