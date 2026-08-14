@@ -71,6 +71,28 @@ class SpendBreakdownTest {
     }
 
     @Test
+    fun `orders named slices by fixed category order, not by amount`() {
+        // Imposto (TAX) é o maior valor, mas Combustível deve continuar
+        // aparecendo primeiro — cor e ordem seguem identidade da categoria,
+        // não o ranking de valor (ver design doc).
+        val events = listOf(
+            event(EventCategory.TAX, 858.90),
+            event(EventCategory.DOCUMENTS, 0.01),
+        )
+
+        val breakdown = buildSpendBreakdown(fuelSpent = 148.42, events = events)
+
+        assertEquals(
+            listOf(
+                SpendSlice("Combustível", 148.42),
+                SpendSlice("Imposto", 858.90),
+                SpendSlice("Documentos", 0.01),
+            ),
+            breakdown.slices,
+        )
+    }
+
+    @Test
     fun `returns a single Combustível slice when there are no events`() {
         val breakdown = buildSpendBreakdown(fuelSpent = 148.42, events = emptyList())
 
