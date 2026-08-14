@@ -3,10 +3,12 @@ package com.flowfuel.app.feature.station.data
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.core.domain.map
 import com.flowfuel.app.core.network.apiCall
+import com.flowfuel.app.feature.station.data.remote.GeocodeResultDto
 import com.flowfuel.app.feature.station.data.remote.StationApi
 import com.flowfuel.app.feature.station.data.remote.StationResponseDto
 import com.flowfuel.app.feature.station.domain.StationRepository
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
+import com.flowfuel.app.feature.station.domain.model.GeocodeResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
 import javax.inject.Inject
@@ -25,6 +27,14 @@ class StationRepositoryImpl @Inject constructor(
                 radiusMeters = radiusMeters,
             )
         }.map { list -> list.map { it.toDomain() }.sortedBy { it.distanceMeters } }
+
+    override suspend fun geocode(query: String): AppResult<List<GeocodeResult>> =
+        apiCall { api.getGeocode(query) }.map { list -> list.map { it.toDomain() } }
+
+    private fun GeocodeResultDto.toDomain(): GeocodeResult = GeocodeResult(
+        displayName = displayName,
+        location = GeoLocation(latitude = latitude, longitude = longitude),
+    )
 
     private fun StationResponseDto.toDomain(): Station = Station(
         placeId = placeId,

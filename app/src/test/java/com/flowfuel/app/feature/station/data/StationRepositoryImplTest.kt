@@ -2,6 +2,7 @@ package com.flowfuel.app.feature.station.data
 
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
+import com.flowfuel.app.feature.station.data.remote.GeocodeResultDto
 import com.flowfuel.app.feature.station.data.remote.StationApi
 import com.flowfuel.app.feature.station.data.remote.StationResponseDto
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
@@ -115,5 +116,49 @@ class StationRepositoryImplTest {
         val station = (result as AppResult.Success).value.single()
         assertNull(station.street)
         assertNull(station.houseNumber)
+    }
+
+    @Test
+    fun `geocode maps dtos to domain`() = runTest {
+        coEvery { api.getGeocode(any()) } returns listOf(
+            GeocodeResultDto(displayName = "Boa Viagem, Recife, Pernambuco, Brasil", latitude = -8.12, longitude = -34.90),
+        )
+
+        val result = repository.geocode("Boa Viagem, Recife")
+
+        assertTrue(result is AppResult.Success)
+        val results = (result as AppResult.Success).value
+        assertEquals(1, results.size)
+        assertEquals("Boa Viagem, Recife, Pernambuco, Brasil", results[0].displayName)
+        assertEquals(GeoLocation(-8.12, -34.90), results[0].location)
+    }
+
+    @Test
+    fun `geocode returns empty list when backend has no matches`() = runTest {
+        coEvery { api.getGeocode(any()) } returns emptyList()
+
+        val result = repository.geocode("lugarquenaoexiste")
+
+        assertTrue(result is AppResult.Success)
+        assertEquals(emptyList<Any>(), (result as AppResult.Success).value)
+    }
+
+    @Test
+    fun `geocode maps network failure to AppError-Network`() = runTest {
+        coEvery { api.getGeocode(any()) } throws IOException("no network")
+
+        val result = repository.geocode("Boa Viagem")
+
+        assertTrue(result is AppResult.Failure)
+        assertEquals(AppError.Network, (result as AppResult.Failure).error)
+    }
+
+    @Test
+    fun `geocode forwards query to the API unchanged`() = runTest {
+        coEvery { api.getGeocode(any()) } returns emptyList()
+
+        repository.geocode("Boa Viagem, Recife")
+
+        coVerify { api.getGeocode("Boa Viagem, Recife") }
     }
 }

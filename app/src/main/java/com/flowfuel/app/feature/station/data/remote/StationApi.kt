@@ -18,6 +18,13 @@ data class StationResponseDto(
     val houseNumber: String? = null,
 )
 
+@Serializable
+data class GeocodeResultDto(
+    val displayName: String,
+    val latitude: Double,
+    val longitude: Double,
+)
+
 interface StationApi {
     /** Backend próprio, que proxeia OSM Overpass (postos de combustível) e Open Charge Map (recarga elétrica). */
     @GET("stations/nearby")
@@ -26,4 +33,7 @@ interface StationApi {
         @Query("lng") lng: Double,
         @Query("radius") radiusMeters: Int = 5000,
     ): List<StationResponseDto>
+
+    @GET("stations/geocode")
+    suspend fun getGeocode(@Query("query") query: String): List<GeocodeResultDto>
 }
