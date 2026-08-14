@@ -47,7 +47,7 @@ class AutoDashboardScreenTest {
     )
     private val testDashboard = DashboardData(
         averageConsumption = 8.4, consumptionUnit = "km/L",
-        totalSpent = 1240.0, totalRefuels = 5,
+        totalSpent = 1240.0, fuelSpent = 1240.0, totalRefuels = 5,
         lastRefuelDate = "2026-06-15", lastRefuelEnergyAmount = 42.0,
         lastRefuelAmount = 289.90, lastRefuelEnergyUnit = "L",
     )

@@ -89,6 +89,7 @@ class HomeViewModelTest {
         averageConsumption = null,
         consumptionUnit = null,
         totalSpent = 0.0,
+        fuelSpent = 0.0,
         totalRefuels = 1,
         lastRefuelDate = null,
         lastRefuelEnergyAmount = null,
@@ -117,6 +118,20 @@ class HomeViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    // ── Dashboard (gasto combinado vs. combustível) ────────────────────────────
+
+    @Test
+    fun `fetchDashboardWithEventsTotal combines totalSpent with events but leaves fuelSpent untouched`() = runTest {
+        coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard.copy(totalSpent = 200.0, fuelSpent = 200.0))
+        coEvery { getVehicleEventsTotal(any()) } returns AppResult.Success(50.0)
+
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(250.0, success.dashboard.totalSpent, 0.001)
+        assertEquals(200.0, success.dashboard.fuelSpent, 0.001)
     }
 
     // ── Estações (prefetch) ────────────────────────────────────────────────────

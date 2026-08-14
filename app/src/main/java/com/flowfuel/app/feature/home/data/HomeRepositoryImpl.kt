@@ -57,6 +57,7 @@ class HomeRepositoryImpl @Inject constructor(
         averageConsumption     = dto.averageConsumption,
         consumptionUnit        = dto.consumptionUnit,
         totalSpent              = dto.totalSpent ?: 0.0,
+        fuelSpent                = dto.totalSpent ?: 0.0,
         totalRefuels            = dto.totalRefuels ?: 0,
         lastRefuelDate          = dto.lastRefuelDate,
         lastRefuelEnergyAmount  = lastRefuel?.energyAmount,

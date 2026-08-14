@@ -33,6 +33,10 @@ data class DashboardData(
     /** Unidade de consumo informada pelo backend (ex: "km/L", "km/kWh"); null para HYBRID. */
     val consumptionUnit: String?,
     val totalSpent: Double,
+    /** Gasto só com abastecimentos (sem eventos) — sempre o valor bruto do
+     *  endpoint de dashboard, mesmo depois de [totalSpent] virar o total
+     *  combinado em HomeViewModel.fetchDashboardWithEventsTotal. */
+    val fuelSpent: Double,
     val totalRefuels: Int,
     val lastRefuelDate: String?,
     /** Litros ou kWh do último abastecimento — vem de /refuels, não do endpoint de dashboard. */
