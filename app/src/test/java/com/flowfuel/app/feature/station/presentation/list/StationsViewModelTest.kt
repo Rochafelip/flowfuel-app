@@ -7,10 +7,12 @@ import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
 import com.flowfuel.app.feature.station.domain.model.GeoLocation
+import com.flowfuel.app.feature.station.domain.model.GeocodeResult
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
 import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
+import com.flowfuel.app.feature.station.domain.usecase.GeocodeLocationsUseCase
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
@@ -51,6 +53,7 @@ class StationsViewModelTest {
     private val sessionStore: SessionStore = mockk(relaxed = true)
     private val getVehicleById: GetVehicleByIdUseCase = mockk()
     private val stationsPrefetcher: NearbyStationsPrefetcher = mockk()
+    private val geocodeLocations: GeocodeLocationsUseCase = mockk()
 
     private val location = GeoLocation(latitude = -8.05, longitude = -34.90)
 
@@ -72,7 +75,7 @@ class StationsViewModelTest {
     )
 
     private fun buildViewModel() =
-        StationsViewModel(getNearbyStations, locationProvider, sessionStore, getVehicleById, stationsPrefetcher)
+        StationsViewModel(getNearbyStations, locationProvider, sessionStore, getVehicleById, stationsPrefetcher, geocodeLocations)
 
     @Before
     fun setUp() {
@@ -336,5 +339,123 @@ class StationsViewModelTest {
         vm.onRadiusSelected(10_000)
 
         verify(exactly = 1) { stationsPrefetcher.updateCache(any()) }
+    }
+
+    @Test
+    fun `showLocationSearch starts false`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+
+        val vm = buildViewModel()
+
+        assertEquals(false, vm.showLocationSearch.value)
+    }
+
+    @Test
+    fun `openLocationSearch shows the sheet and resets locationSearchState to Idle`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val vm = buildViewModel()
+
+        vm.openLocationSearch()
+
+        assertEquals(true, vm.showLocationSearch.value)
+        assertEquals(LocationSearchState.Idle, vm.locationSearchState.value)
+    }
+
+    @Test
+    fun `searchLocation populates locationSearchState with results`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val results = listOf(GeocodeResult("Boa Viagem, Recife, Pernambuco, Brasil", GeoLocation(-8.12, -34.90)))
+        coEvery { geocodeLocations("Boa Viagem") } returns AppResult.Success(results)
+        val vm = buildViewModel()
+
+        vm.searchLocation("Boa Viagem")
+
+        assertEquals(LocationSearchState.Success(results), vm.locationSearchState.value)
+    }
+
+    @Test
+    fun `searchLocation with no matches sets Empty`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        coEvery { geocodeLocations("zzz") } returns AppResult.Success(emptyList())
+        val vm = buildViewModel()
+
+        vm.searchLocation("zzz")
+
+        assertEquals(LocationSearchState.Empty, vm.locationSearchState.value)
+    }
+
+    @Test
+    fun `searchLocation failure sets Error`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        coEvery { geocodeLocations("Boa Viagem") } returns AppResult.Failure(AppError.Network)
+        val vm = buildViewModel()
+
+        vm.searchLocation("Boa Viagem")
+
+        assertEquals(LocationSearchState.Error(AppError.Network), vm.locationSearchState.value)
+    }
+
+    @Test
+    fun `searchLocation ignores blank query`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val vm = buildViewModel()
+
+        vm.searchLocation("   ")
+
+        assertEquals(LocationSearchState.Idle, vm.locationSearchState.value)
+        coVerify(inverse = true) { geocodeLocations(any()) }
+    }
+
+    @Test
+    fun `onLocationSelected sets selectedLocation, closes the sheet and reloads stations using the picked coordinate`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val boaViagem = GeocodeResult("Boa Viagem, Recife, Pernambuco, Brasil", GeoLocation(-8.12, -34.90))
+        coEvery { getNearbyStations(boaViagem.location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("b")))
+        val vm = buildViewModel()
+        vm.openLocationSearch()
+
+        vm.onLocationSelected(boaViagem)
+
+        assertEquals(boaViagem, vm.selectedLocation.value)
+        assertEquals(false, vm.showLocationSearch.value)
+        val state = vm.state.value
+        assertTrue(state is StationsUiState.Success)
+        assertEquals(listOf(station("b")), (state as StationsUiState.Success).stations)
+        coVerify(exactly = 1) { locationProvider.getCurrentLocation() } // só a carga inicial, não a de Boa Viagem
+    }
+
+    @Test
+    fun `onLocationSelected at default radius does not overwrite the nearby-me prefetch cache`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val boaViagem = GeocodeResult("Boa Viagem, Recife, Pernambuco, Brasil", GeoLocation(-8.12, -34.90))
+        coEvery { getNearbyStations(boaViagem.location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("b")))
+        val vm = buildViewModel()
+
+        vm.onLocationSelected(boaViagem)
+
+        verify(exactly = 1) { stationsPrefetcher.updateCache(any()) } // só a carga inicial (GPS)
+    }
+
+    @Test
+    fun `clearSelectedLocation reverts to the current GPS location`() = runTest {
+        coEvery { locationProvider.getCurrentLocation() } returns LocationResult.Available(location)
+        coEvery { getNearbyStations(location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("a")))
+        val boaViagem = GeocodeResult("Boa Viagem, Recife, Pernambuco, Brasil", GeoLocation(-8.12, -34.90))
+        coEvery { getNearbyStations(boaViagem.location, defaultBandMaxMeters) } returns AppResult.Success(listOf(station("b")))
+        val vm = buildViewModel()
+        vm.onLocationSelected(boaViagem)
+
+        vm.clearSelectedLocation()
+
+        assertEquals(null, vm.selectedLocation.value)
+        coVerify(exactly = 2) { locationProvider.getCurrentLocation() } // carga inicial + após limpar
     }
 }

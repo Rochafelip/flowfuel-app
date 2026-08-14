@@ -8,10 +8,12 @@ import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.station.domain.model.DEFAULT_STATION_RADIUS_METERS
+import com.flowfuel.app.feature.station.domain.model.GeocodeResult
 import com.flowfuel.app.feature.station.domain.model.LocationResult
 import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
 import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
+import com.flowfuel.app.feature.station.domain.usecase.GeocodeLocationsUseCase
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
@@ -32,6 +34,7 @@ class StationsViewModel @Inject constructor(
     private val sessionStore: SessionStore,
     private val getVehicleById: GetVehicleByIdUseCase,
     private val stationsPrefetcher: NearbyStationsPrefetcher,
+    private val geocodeLocations: GeocodeLocationsUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<StationsUiState>(StationsUiState.Loading)
@@ -42,6 +45,16 @@ class StationsViewModel @Inject constructor(
 
     private val _selectedType = MutableStateFlow(StationType.Fuel)
     val selectedType: StateFlow<StationType> = _selectedType.asStateFlow()
+
+    private val _showLocationSearch = MutableStateFlow(false)
+    val showLocationSearch: StateFlow<Boolean> = _showLocationSearch.asStateFlow()
+
+    private val _locationSearchState = MutableStateFlow<LocationSearchState>(LocationSearchState.Idle)
+    val locationSearchState: StateFlow<LocationSearchState> = _locationSearchState.asStateFlow()
+
+    /** null = usa a localização atual (GPS); preenchido = busca ativa por localidade. */
+    private val _selectedLocation = MutableStateFlow<GeocodeResult?>(null)
+    val selectedLocation: StateFlow<GeocodeResult?> = _selectedLocation.asStateFlow()
 
     private val _effects = Channel<StationsEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -70,8 +83,11 @@ class StationsViewModel @Inject constructor(
         _state.value = StationsUiState.Loading
         val requestRadius = _radiusMeters.value
         val band = stationDistanceBand(requestRadius)
+        val selected = _selectedLocation.value
         viewModelScope.launch {
-            when (val locationResult = locationProvider.getCurrentLocation()) {
+            val locationResult = selected?.let { LocationResult.Available(it.location) }
+                ?: locationProvider.getCurrentLocation()
+            when (locationResult) {
                 LocationResult.PermissionDenied -> _state.value = StationsUiState.PermissionRequired
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
@@ -83,7 +99,10 @@ class StationsViewModel @Inject constructor(
                             } else {
                                 StationsUiState.Success(stations)
                             }
-                            if (requestRadius == DEFAULT_STATION_RADIUS_METERS) {
+                            // Só atualiza o cache de "perto de mim" quando a busca é por GPS —
+                            // salvar resultados de uma localidade pesquisada corromperia o
+                            // prefetch que a Home usa pra mostrar postos rapidamente.
+                            if (requestRadius == DEFAULT_STATION_RADIUS_METERS && selected == null) {
                                 stationsPrefetcher.updateCache(stations)
                             }
                         }
@@ -101,6 +120,38 @@ class StationsViewModel @Inject constructor(
 
     fun onTypeSelected(type: StationType) {
         _selectedType.value = type
+    }
+
+    fun openLocationSearch() {
+        _showLocationSearch.value = true
+        _locationSearchState.value = LocationSearchState.Idle
+    }
+
+    fun closeLocationSearch() {
+        _showLocationSearch.value = false
+    }
+
+    fun searchLocation(query: String) {
+        if (query.isBlank()) return
+        _locationSearchState.value = LocationSearchState.Loading
+        viewModelScope.launch {
+            when (val result = geocodeLocations(query)) {
+                is AppResult.Success -> _locationSearchState.value =
+                    if (result.value.isEmpty()) LocationSearchState.Empty else LocationSearchState.Success(result.value)
+                is AppResult.Failure -> _locationSearchState.value = LocationSearchState.Error(result.error)
+            }
+        }
+    }
+
+    fun onLocationSelected(result: GeocodeResult) {
+        _selectedLocation.value = result
+        _showLocationSearch.value = false
+        load()
+    }
+
+    fun clearSelectedLocation() {
+        _selectedLocation.value = null
+        load()
     }
 
     fun onRouteClick(station: Station) {

@@ -1,6 +1,7 @@
 package com.flowfuel.app.feature.station.presentation.list
 
 import com.flowfuel.app.core.domain.AppError
+import com.flowfuel.app.feature.station.domain.model.GeocodeResult
 import com.flowfuel.app.feature.station.domain.model.Station
 
 // ─── Estado da tela ───────────────────────────────────────────────────────────
@@ -17,6 +18,14 @@ sealed interface StationsUiState {
 }
 
 // ─── Efeitos pontuais ─────────────────────────────────────────────────────────
+
+sealed interface LocationSearchState {
+    data object Idle : LocationSearchState
+    data object Loading : LocationSearchState
+    data class Success(val results: List<GeocodeResult>) : LocationSearchState
+    data object Empty : LocationSearchState
+    data class Error(val error: AppError) : LocationSearchState
+}
 
 sealed interface StationsEffect {
     data class OpenNavigation(val uri: String) : StationsEffect
