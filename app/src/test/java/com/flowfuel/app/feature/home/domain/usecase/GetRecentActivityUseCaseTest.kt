@@ -34,8 +34,8 @@ class GetRecentActivityUseCaseTest {
     )
 
     @Test
-    fun `merges refuels and events sorted by date descending, limited to 4`() = runTest {
-        coEvery { getRefuelHistory(1, 0, 4) } returns AppResult.Success(
+    fun `merges refuels and events sorted by date descending, limited to 3`() = runTest {
+        coEvery { getRefuelHistory(1, 0, 3) } returns AppResult.Success(
             RefuelPage(items = listOf(refuel(1, "2026-07-01"), refuel(2, "2026-06-15")), hasMore = false, currentPage = 0, totalElements = 2)
         )
         coEvery { getVehicleEventsPage(1, 0, null) } returns AppResult.Success(
@@ -47,20 +47,18 @@ class GetRecentActivityUseCaseTest {
 
         val timeline = (useCase(1) as AppResult.Success).value
 
-        assertEquals(4, timeline.size)
+        assertEquals(3, timeline.size)
         assertEquals("2026-07-05", timeline[0].sortDate)
         assertEquals("2026-07-01", timeline[1].sortDate)
         assertEquals("2026-06-15", timeline[2].sortDate)
-        assertEquals("2026-06-01", timeline[3].sortDate)
         assertEquals(VehicleTimelineItem.EventEntry::class, timeline[0]::class)
         assertEquals(VehicleTimelineItem.RefuelEntry::class, timeline[1]::class)
         assertEquals(VehicleTimelineItem.RefuelEntry::class, timeline[2]::class)
-        assertEquals(VehicleTimelineItem.EventEntry::class, timeline[3]::class)
     }
 
     @Test
     fun `propagates failure from events page`() = runTest {
-        coEvery { getRefuelHistory(1, 0, 4) } returns AppResult.Success(
+        coEvery { getRefuelHistory(1, 0, 3) } returns AppResult.Success(
             RefuelPage(items = emptyList(), hasMore = false, currentPage = 0, totalElements = 0)
         )
         coEvery { getVehicleEventsPage(1, 0, null) } returns AppResult.Failure(AppError.Network)

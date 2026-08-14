@@ -6,7 +6,7 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsPageUseCase
 import javax.inject.Inject
 
-private const val RECENT_ACTIVITY_LIMIT = 4
+private const val RECENT_ACTIVITY_LIMIT = 3
 
 /**
  * Combina abastecimentos e eventos num único timeline ordenado por data,
