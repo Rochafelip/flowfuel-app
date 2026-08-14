@@ -42,6 +42,10 @@ data class DashboardData(
     val lastRefuelEnergyUnit: String?,
     /** Detalhamento por combustão/elétrico; preenchido apenas para HYBRID. */
     val hybridBreakdown: HybridConsumptionBreakdown? = null,
+    /** Odômetro do último abastecimento registrado; null se não houver abastecimentos. */
+    val lastOdometer: Int? = null,
+    /** Custo médio por km rodado (totalSpent / km rodados no período). */
+    val costPerKm: Double? = null,
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }

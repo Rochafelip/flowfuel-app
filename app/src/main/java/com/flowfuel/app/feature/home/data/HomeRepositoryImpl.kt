@@ -62,6 +62,8 @@ class HomeRepositoryImpl @Inject constructor(
         lastRefuelEnergyAmount  = lastRefuel?.energyAmount,
         lastRefuelAmount        = lastRefuel?.totalAmount,
         lastRefuelEnergyUnit    = lastRefuelEnergyUnit(dto.energyType, lastRefuel?.refuelType),
+        lastOdometer            = dto.lastOdometer,
+        costPerKm               = dto.costPerKm,
         hybridBreakdown         = dto.breakdown?.let { b ->
             HybridConsumptionBreakdown(
                 fuelConsumption         = b.fuel?.averageConsumption,

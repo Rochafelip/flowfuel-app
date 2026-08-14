@@ -42,6 +42,8 @@ data class DashboardResponseDto(
     val consumptionUnit: String? = null,
     val breakdown: HybridBreakdownDto? = null,
     val lastRefuelDate: String? = null,
+    val lastOdometer: Int? = null,
+    val costPerKm: Double? = null,
 )
 
 // ─── Abastecimento ────────────────────────────────────────────────────────────
