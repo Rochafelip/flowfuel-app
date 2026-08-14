@@ -105,6 +105,31 @@ object FFExtraColors {
     val BrandGreenContainerDark = Color(0xFF064E3B)  // emerald-900
 }
 
+object FFChartColors {
+    // Ordem fixa por categoria (identidade estável, não por rank/valor) —
+    // mesma ordem em que as fatias são desenhadas no donut, então pares
+    // adjacentes na tela preservam a validação de contraste da sequência.
+    val FuelLight = Color(0xFF2A78D6)
+    val MaintenanceLight = Color(0xFFEB6834)
+    val OilChangeLight = Color(0xFF1BAF7A)
+    val WashLight = Color(0xFFEDA100)
+    val TiresLight = Color(0xFFE87BA4)
+    val InsuranceLight = Color(0xFF008300)
+    val TaxLight = Color(0xFF4A3AA7)
+    val DocumentsLight = Color(0xFFE34948)
+    val OtherLight = FFColors.OutlineVariantLight
+
+    val FuelDark = Color(0xFF3987E5)
+    val MaintenanceDark = Color(0xFFD95926)
+    val OilChangeDark = Color(0xFF199E70)
+    val WashDark = Color(0xFFC98500)
+    val TiresDark = Color(0xFFD55181)
+    val InsuranceDark = Color(0xFF008300)
+    val TaxDark = Color(0xFF9085E9)
+    val DocumentsDark = Color(0xFFE66767)
+    val OtherDark = FFColors.OutlineVariantDark
+}
+
 data class FFSemanticColors(
     val success: Color,
     val onSuccess: Color,
