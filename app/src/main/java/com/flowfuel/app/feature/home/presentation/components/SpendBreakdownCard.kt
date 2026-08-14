@@ -22,8 +22,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
@@ -40,7 +42,7 @@ fun SpendBreakdownCard(breakdown: SpendBreakdown, modifier: Modifier = Modifier)
                 slices = breakdown.slices,
                 totalLabel = formatBrl(breakdown.totalSpent),
                 colorFor = { label -> sliceColor(label, isDark) },
-                modifier = Modifier.size(120.dp),
+                modifier = Modifier.size(140.dp),
             )
             Spacer(Modifier.width(FFTheme.spacing.md))
             Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
@@ -69,7 +71,7 @@ private fun SpendBreakdownDonut(
     val total = slices.sumOf { it.amount }
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.matchParentSize()) {
-            val strokeWidth = size.minDimension * 0.22f
+            val strokeWidth = size.minDimension * 0.18f
             val diameter = size.minDimension - strokeWidth
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             var startAngle = -90f
@@ -87,10 +89,20 @@ private fun SpendBreakdownDonut(
                 startAngle += sweep
             }
         }
+        // Quebra "R$" do valor em linhas separadas — o círculo interno do
+        // donut não tem largura pra um valor grande (ex: "R$ 12.480,00")
+        // numa linha só sem sobrepor o anel. formatBrl usa espaço
+        // não-quebrável (NBSP) entre "R$" e o número, não espaço comum —
+        // \\s cobre os dois.
         Text(
-            text = totalLabel,
-            style = FFTheme.numericTypography.numericSmall,
+            text = totalLabel.replaceFirst(Regex("\\s"), "\n"),
+            style = FFTheme.numericTypography.numericSmall.copy(
+                fontSize = 13.sp,
+                lineHeight = 15.sp,
+                textAlign = TextAlign.Center,
+            ),
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.width(84.dp),
         )
     }
 }
