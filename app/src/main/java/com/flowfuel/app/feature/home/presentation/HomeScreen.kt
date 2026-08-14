@@ -215,6 +215,7 @@ private fun HomeContent(
                     is SectionState.Success -> FinancialSummaryCard(
                         currentMonthTotalLabel = formatBrl(financialSummary.value.currentMonthTotal),
                         percentDelta = financialSummary.value.percentDelta,
+                        fuelSpentLabel = formatBrl(dashboard.fuelSpent),
                         totalSpentLabel = formatBrl(dashboard.totalSpent),
                     )
                     SectionState.Loading -> FFSkeletonBlock(height = 96.dp)

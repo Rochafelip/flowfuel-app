@@ -33,18 +33,29 @@ import kotlin.math.abs
 fun FinancialSummaryCard(
     currentMonthTotalLabel: String,
     percentDelta: Double?,
+    fuelSpentLabel: String,
     totalSpentLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    val pageCount = 2
+    val pageCount = 3
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
     FFCard(modifier = modifier, variant = FFCardVariant.Flat) {
         Column {
             HorizontalPager(state = pagerState) { page ->
+                val title = when (page) {
+                    0 -> "Gasto do mês"
+                    1 -> "Combustíveis"
+                    else -> "Gasto total"
+                }
+                val value = when (page) {
+                    0 -> currentMonthTotalLabel
+                    1 -> fuelSpentLabel
+                    else -> totalSpentLabel
+                }
                 Column {
                     Text(
-                        text = if (page == 0) "Gasto do mês" else "Gasto total",
+                        text = title,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = FFTheme.spacing.sm),
@@ -54,7 +65,7 @@ fun FinancialSummaryCard(
                         horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
                     ) {
                         Text(
-                            text = if (page == 0) currentMonthTotalLabel else totalSpentLabel,
+                            text = value,
                             style = FFTheme.numericTypography.numericLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -112,6 +123,7 @@ private fun FinancialSummaryCardPreview() {
     FinancialSummaryCard(
         currentMonthTotalLabel = "R$ 350,00",
         percentDelta = 12.0,
+        fuelSpentLabel = "R$ 9.320,00",
         totalSpentLabel = "R$ 12.480,00",
     )
 }
