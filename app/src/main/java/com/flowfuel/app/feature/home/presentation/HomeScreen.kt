@@ -33,14 +33,15 @@ import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.presentation.components.FinancialSummaryCard
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
-import com.flowfuel.app.feature.home.presentation.components.InsightCard
 import com.flowfuel.app.feature.home.presentation.components.LastRefuelCard
 import com.flowfuel.app.feature.home.presentation.components.RecentActivityCard
+import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
 import com.flowfuel.app.feature.home.presentation.components.VehicleHeader
 import com.flowfuel.app.feature.home.presentation.components.formatBrl
@@ -120,12 +121,14 @@ fun HomeScreen(
                         financialSummary = s.financialSummary,
                         recentActivity = s.recentActivity,
                         upcomingMaintenance = s.upcomingMaintenance,
+                        spendBreakdown = s.spendBreakdown,
                         onRegisterRefuel = onOpenRefuelSheet,
                         onVehicleClick = viewModel::openVehicleSwitcher,
                         onInfoClick = viewModel::openAboutDialog,
                         onRetryFinancialSummary = viewModel::retryFinancialSummary,
                         onRetryRecentActivity = viewModel::retryRecentActivity,
                         onRetryUpcomingMaintenance = viewModel::retryUpcomingMaintenance,
+                        onRetrySpendBreakdown = viewModel::retrySpendBreakdown,
                         onUpcomingEventClick = onUpcomingEventClick,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -168,12 +171,14 @@ private fun HomeContent(
     financialSummary: SectionState<FinancialSummary>,
     recentActivity: SectionState<List<VehicleTimelineItem>>,
     upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>>,
+    spendBreakdown: SectionState<SpendBreakdown>,
     onRegisterRefuel: () -> Unit,
     onVehicleClick: () -> Unit,
     onInfoClick: () -> Unit,
     onRetryFinancialSummary: () -> Unit,
     onRetryRecentActivity: () -> Unit,
     onRetryUpcomingMaintenance: () -> Unit,
+    onRetrySpendBreakdown: () -> Unit,
     onUpcomingEventClick: (UpcomingMaintenanceType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -234,9 +239,15 @@ private fun HomeContent(
             }
         }
 
-        item { InsightCard() }
-
         if (!isFirstUse) {
+            item {
+                when (spendBreakdown) {
+                    is SectionState.Success -> SpendBreakdownCard(breakdown = spendBreakdown.value)
+                    SectionState.Loading -> FFSkeletonBlock(height = 160.dp)
+                    is SectionState.Error -> SectionErrorCard(onRetry = onRetrySpendBreakdown)
+                }
+            }
+
             item { LastRefuelCard(dashboard = dashboard) }
 
             item {
