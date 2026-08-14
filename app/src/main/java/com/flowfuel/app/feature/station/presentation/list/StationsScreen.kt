@@ -19,8 +19,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -40,6 +43,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flowfuel.app.core.designsystem.components.FFChip
+import com.flowfuel.app.core.designsystem.components.FFChipKind
 import com.flowfuel.app.core.designsystem.components.FFEmptyState
 import com.flowfuel.app.core.designsystem.components.FFErrorState
 import com.flowfuel.app.core.designsystem.components.FFSkeletonList
@@ -61,6 +66,9 @@ fun StationsScreen(
     val state by viewModel.state.collectAsState()
     val radiusMeters by viewModel.radiusMeters.collectAsState()
     val selectedType by viewModel.selectedType.collectAsState()
+    val showLocationSearch by viewModel.showLocationSearch.collectAsState()
+    val locationSearchState by viewModel.locationSearchState.collectAsState()
+    val selectedLocation by viewModel.selectedLocation.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -110,7 +118,16 @@ fun StationsScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { FFTopBar(title = "Postos próximos") },
+        topBar = {
+            FFTopBar(
+                title = "Postos próximos",
+                actions = {
+                    IconButton(onClick = viewModel::openLocationSearch) {
+                        Icon(Icons.Default.Search, contentDescription = "Buscar localidade")
+                    }
+                },
+            )
+        },
         snackbarHost = { FFSnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -131,6 +148,16 @@ fun StationsScreen(
                     onSelect = viewModel::onRadiusSelected,
                     modifier = Modifier.padding(vertical = FFTheme.spacing.sm),
                 )
+                selectedLocation?.let { location ->
+                    FFChip(
+                        label = location.displayName,
+                        kind = FFChipKind.Input,
+                        leadingIcon = Icons.Outlined.LocationOn,
+                        onClick = {},
+                        onTrailingClick = viewModel::clearSelectedLocation,
+                        modifier = Modifier.padding(horizontal = FFTheme.spacing.md),
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -217,5 +244,14 @@ fun StationsScreen(
                 }
             }
         }
+    }
+
+    if (showLocationSearch) {
+        LocationSearchBottomSheet(
+            state = locationSearchState,
+            onSearch = viewModel::searchLocation,
+            onLocationSelected = viewModel::onLocationSelected,
+            onDismiss = viewModel::closeLocationSearch,
+        )
     }
 }
