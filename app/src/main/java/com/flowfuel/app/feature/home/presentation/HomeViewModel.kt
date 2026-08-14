@@ -8,6 +8,8 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.DashboardData
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.buildSpendBreakdown
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
@@ -17,6 +19,7 @@ import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehiclesUseCase
 import com.flowfuel.app.feature.vehicle.domain.usecase.SetActiveVehicleUseCase
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsTotalUseCase
+import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -40,6 +43,7 @@ class HomeViewModel @Inject constructor(
     private val setActiveVehicle: SetActiveVehicleUseCase,
     private val stationsPrefetcher: NearbyStationsPrefetcher,
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
+    private val getVehicleEvents: GetVehicleEventsUseCase,
     private val getFinancialSummary: GetFinancialSummaryUseCase,
     private val getRecentActivity: GetRecentActivityUseCase,
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
@@ -93,6 +97,7 @@ class HomeViewModel @Inject constructor(
                     launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
                     launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
+                    launch { loadSpendBreakdown(vehicleId, dashboardResult.value.fuelSpent) }
                 }
                 is AppResult.Failure -> handleGlobalError(dashboardResult.error)
             }
@@ -125,6 +130,29 @@ class HomeViewModel @Inject constructor(
             if (success.vehicle.id != vehicleId) return@update state
             state.copy(screenState = success.copy(recentActivity = sectionState))
         }
+    }
+
+    private suspend fun loadSpendBreakdown(vehicleId: Int, fuelSpent: Double) {
+        val sectionState = when (val result = getVehicleEvents(vehicleId)) {
+            is AppResult.Success -> SectionState.Success(buildSpendBreakdown(fuelSpent, result.value))
+            is AppResult.Failure -> SectionState.Error(result.error)
+        }
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            if (success.vehicle.id != vehicleId) return@update state
+            state.copy(screenState = success.copy(spendBreakdown = sectionState))
+        }
+    }
+
+    /** Reexecuta só a composição de gastos, sem recarregar o resto da tela. */
+    fun retrySpendBreakdown() {
+        val vehicleId = loadedVehicleId ?: return
+        val fuelSpent = (_state.value.screenState as? HomeScreenState.Success)?.dashboard?.fuelSpent ?: return
+        _state.update { state ->
+            val success = state.screenState as? HomeScreenState.Success ?: return@update state
+            state.copy(screenState = success.copy(spendBreakdown = SectionState.Loading))
+        }
+        viewModelScope.launch { loadSpendBreakdown(vehicleId, fuelSpent) }
     }
 
     /** Reexecuta só o resumo financeiro, sem recarregar o resto da tela. */
@@ -226,6 +254,7 @@ class HomeViewModel @Inject constructor(
                     launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
                     launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
+                    launch { loadSpendBreakdown(vehicleId, dashboardResult.value.fuelSpent) }
                 }
                 is AppResult.Failure ->
                     _state.update { it.copy(isRefreshing = false) }

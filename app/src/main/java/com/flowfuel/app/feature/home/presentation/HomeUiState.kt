@@ -4,6 +4,7 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
@@ -18,6 +19,7 @@ sealed interface HomeScreenState {
         val financialSummary: SectionState<FinancialSummary> = SectionState.Loading,
         val recentActivity: SectionState<List<VehicleTimelineItem>> = SectionState.Loading,
         val upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>> = SectionState.Loading,
+        val spendBreakdown: SectionState<SpendBreakdown> = SectionState.Loading,
     ) : HomeScreenState
     data class Error(val error: AppError) : HomeScreenState
 }
