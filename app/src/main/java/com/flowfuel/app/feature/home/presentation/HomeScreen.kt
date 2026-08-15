@@ -37,6 +37,7 @@ import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
+import com.flowfuel.app.feature.home.presentation.components.LastRefuelDetailCard
 import com.flowfuel.app.feature.home.presentation.components.RecentActivityCard
 import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
@@ -228,6 +229,12 @@ private fun HomeContent(
                     odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
                     daysSinceRefuel = IndicatorItem("Último abastecimento", formatLastRefuelLabel(daysSince)),
                 )
+            }
+
+            if (dashboard.lastRefuelDate != null) {
+                item {
+                    LastRefuelDetailCard(dashboard = dashboard)
+                }
             }
 
             item {
