@@ -20,17 +20,9 @@ private val decimal2Format: NumberFormat
         maximumFractionDigits = 2
     }
 
-private val kmFormat: NumberFormat
-    get() = NumberFormat.getNumberInstance(ptBr).apply {
-        minimumFractionDigits = 1
-        maximumFractionDigits = 1
-    }
-
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", ptBr)
 
 internal fun formatBrl(amount: Double): String = brlFormat.format(amount)
-
-internal fun formatKm(km: Double): String = kmFormat.format(km)
 
 /** Inteiro com separador de milhar, sem casas decimais (ex: odômetro). */
 internal fun formatInteger(value: Int): String = integerFormat.format(value)

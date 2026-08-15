@@ -42,7 +42,7 @@ import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
 import com.flowfuel.app.feature.home.presentation.components.VehicleHeader
 import com.flowfuel.app.feature.home.presentation.components.formatBrl
-import com.flowfuel.app.feature.home.presentation.components.formatKm
+import com.flowfuel.app.feature.home.presentation.components.formatInteger
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import kotlinx.coroutines.flow.collectLatest
@@ -219,7 +219,7 @@ private fun HomeContent(
                 IndicatorsGrid(
                     consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
                     averagePrice = IndicatorItem("Preço médio", dashboard.averagePricePerUnit?.let(::formatBrl) ?: "—"),
-                    odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
+                    odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
                     daysSinceRefuel = IndicatorItem("Dias sem abastecer", daysSince?.toString() ?: "—", "dias"),
                 )
             }
