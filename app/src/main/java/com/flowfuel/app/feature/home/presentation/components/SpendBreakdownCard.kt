@@ -36,7 +36,6 @@ import com.flowfuel.app.core.designsystem.components.FFTrend
 import com.flowfuel.app.core.designsystem.components.FFTrendBadge
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
 import com.flowfuel.app.core.designsystem.theme.FFTheme
-import com.flowfuel.app.feature.home.domain.model.MonthlySpendingEntry
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
@@ -54,7 +53,6 @@ fun SpendBreakdownCard(
     overview: SpendBreakdownOverview,
     fuelSpent: Double,
     costPerKm: Double?,
-    monthlySpending: List<MonthlySpendingEntry>,
     modifier: Modifier = Modifier,
 ) {
     val isDark = isSystemInDarkTheme()
@@ -65,7 +63,7 @@ fun SpendBreakdownCard(
         Column {
             HorizontalPager(state = pagerState) { page ->
                 when (page) {
-                    0 -> MonthPage(overview = overview, costPerKm = costPerKm, monthlySpending = monthlySpending, isDark = isDark)
+                    0 -> MonthPage(overview = overview, costPerKm = costPerKm, isDark = isDark)
                     1 -> FuelPage(fuelSpent = fuelSpent)
                     else -> TotalPage(breakdown = overview.total, isDark = isDark)
                 }
@@ -80,7 +78,6 @@ fun SpendBreakdownCard(
 private fun MonthPage(
     overview: SpendBreakdownOverview,
     costPerKm: Double?,
-    monthlySpending: List<MonthlySpendingEntry>,
     isDark: Boolean,
 ) {
     Column {
@@ -123,8 +120,6 @@ private fun MonthPage(
         }
         Spacer(Modifier.height(FFTheme.spacing.sm))
         BreakdownRow(breakdown = overview.monthly, isDark = isDark)
-        Spacer(Modifier.height(FFTheme.spacing.md))
-        MonthlySpendingBarChart(entries = monthlySpending, modifier = Modifier.fillMaxWidth().height(96.dp))
     }
 }
 
@@ -291,13 +286,5 @@ private fun SpendBreakdownCardPreview() {
         ),
         fuelSpent = 298.50,
         costPerKm = 0.68,
-        monthlySpending = listOf(
-            MonthlySpendingEntry("2026-03", 210.0),
-            MonthlySpendingEntry("2026-04", 380.0),
-            MonthlySpendingEntry("2026-05", 190.0),
-            MonthlySpendingEntry("2026-06", 410.0),
-            MonthlySpendingEntry("2026-07", 330.0),
-            MonthlySpendingEntry("2026-08", 543.0),
-        ),
     )
 }
