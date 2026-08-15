@@ -10,6 +10,19 @@
 
 ## Global Constraints
 
+> **SUPERSEDIDO (2026-08-15):** a paleta por categoria (Task 2 abaixo,
+> `CATEGORY_DISPLAY_ORDER` + `FFChartColors` por identidade) foi
+> substituída pelo commit `9c1e186` (`feat(home): switch spend breakdown
+> donut to rank-based palette`), a pedido explícito do usuário — cor por
+> **posição/rank** (1ª..5ª maior fatia + "Outros" sempre por último), não
+> por categoria. `CATEGORY_DISPLAY_ORDER` foi removido. A revisão final
+> do branch (subagent-driven-development) validou que a paleta por rank
+> passa em todos os pares adjacentes (CVD, ambos os temas) — critério
+> correto para uma sequência fixa por posição. **Não reintroduzir a
+> paleta por categoria/`CATEGORY_DISPLAY_ORDER`** com base neste plano —
+> as duas constraints abaixo sobre acessibilidade descrevem a decisão
+> *antiga* e ficam aqui só como contexto histórico.
+
 - Design aprovado em `docs/superpowers/specs/2026-08-14-spend-breakdown-carousel-palette-design.md`.
 - Sub-projeto 2 de 2 (sub-projeto 1 — grid de indicadores + limite de atividade recente — tem spec/plano separado, sem dependência entre os dois).
 - A ordem de categorias em `CATEGORY_DISPLAY_ORDER` (Documentos antes de Imposto) é **acessibilidade, não estética** — não reverter sem rodar `scripts/validate_palette.js` (skill `dataviz`) de novo.

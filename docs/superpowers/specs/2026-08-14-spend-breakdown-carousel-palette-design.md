@@ -276,6 +276,17 @@ vazio dedicado só pra essa página do carrossel.
 
 ### Paleta — `FFChartColors` (nova, validada)
 
+> **SUPERSEDIDO (2026-08-15):** esta paleta por categoria (e o
+> `CATEGORY_DISPLAY_ORDER` associado, abaixo) foi substituída pelo commit
+> `9c1e186`, a pedido explícito do usuário, por uma paleta por
+> **posição/rank** (1ª..5ª maior fatia + "Outros" sempre por último). A
+> revisão final do branch (subagent-driven-development, 2026-08-15)
+> confirmou que a validação por pares-adjacentes desta seção era o
+> critério errado para uma ordem que é filtrada por valor (vizinhos
+> dependem dos dados) — a paleta por rank não tem esse problema porque a
+> sequência é fixa. Mantido abaixo só como contexto histórico da decisão
+> original; não reimplementar.
+
 Mapeamento intuitivo aprovado: Combustível→laranja, Manutenção→azul-petróleo,
 Troca de Óleo→marrom, Lavagem→ciano, Pneus→azul-violeta escuro, Seguro→verde,
 Documentos→roxo, Imposto→vermelho-bordô.
