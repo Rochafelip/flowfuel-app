@@ -79,7 +79,7 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
                             }
                             FFTrendBadge(
                                 trend = trend,
-                                label = "%.0f%% vs. mês anterior".format(abs(overview.percentDelta)),
+                                label = "${formatPercent(abs(overview.percentDelta))} vs. mês anterior",
                                 positiveIsGood = false,
                             )
                         }
@@ -111,7 +111,7 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
                                         color = sliceColor(index, slice.label, isDark),
                                         label = slice.label,
                                         amountLabel = formatBrl(slice.amount),
-                                        percentLabel = "%.0f%%".format(percent),
+                                        percentLabel = formatPercent(percent),
                                     )
                                 }
                             }
