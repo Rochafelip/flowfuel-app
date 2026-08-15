@@ -52,4 +52,12 @@ class FormattingTest {
     fun `formatDate converte iso para dd-mm-yyyy`() {
         assertEquals("15/08/2026", formatDate("2026-08-15T10:30:00"))
     }
+
+    @Test
+    fun `formatMonthAbbrev converte yyyy-MM para abreviacao pt-BR`() {
+        assertEquals("jan", formatMonthAbbrev("2026-01"))
+        assertEquals("mar", formatMonthAbbrev("2026-03"))
+        assertEquals("ago", formatMonthAbbrev("2026-08"))
+        assertEquals("dez", formatMonthAbbrev("2026-12"))
+    }
 }

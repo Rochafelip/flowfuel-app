@@ -61,3 +61,13 @@ internal fun formatLastRefuelLabel(days: Int?): String = when {
     days == 1 -> "Ontem"
     else -> "Há $days dias"
 }
+
+private val monthAbbreviations = listOf(
+    "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
+)
+
+/** Converte "yyyy-MM" (ex: "2026-08") para o mês abreviado em pt-BR (ex: "ago"). */
+internal fun formatMonthAbbrev(monthIso: String): String {
+    val month = monthIso.substring(5, 7).toInt()
+    return monthAbbreviations[month - 1]
+}
