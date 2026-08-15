@@ -228,7 +228,7 @@ private fun HomeContent(
                         dashboard.priceUnit,
                     ),
                     odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
-                    daysSinceRefuel = IndicatorItem("Último abastecimento", formatLastRefuelLabel(daysSince)),
+                    daysSinceRefuel = IndicatorItem("Último abastecimento", daysSince?.let(::formatLastRefuelLabel) ?: "—"),
                 )
             }
 
