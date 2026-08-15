@@ -1,6 +1,6 @@
 # Home Dashboard Formatting Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Apply the exact formatting rules used on the web dashboard (currency, integers, 2-decimal numbers, percentages, dates, relative-date labels) to the Android Home dashboard, and add the two cards that exist on web but not yet on mobile (hybrid fuel/electric metrics, last-refuel detail).
 
@@ -42,7 +42,7 @@
 **Interfaces:**
 - Produces: `internal fun formatBrl(amount: Double): String` (unchanged), `internal fun formatDate(iso: String): String` (unchanged), `internal fun formatInteger(value: Int): String`, `internal fun formatDecimal2(value: Double): String`, `internal fun formatPercent(value: Double): String`, `internal fun formatLastRefuelLabel(days: Int?): String`, `internal fun formatActivityDate(iso: String): String`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```kotlin
 package com.flowfuel.app.feature.home.presentation.components
@@ -102,12 +102,12 @@ class FormattingTest {
 
 Note: `formatBrl`'s expected string uses ` ` (non-breaking space) between `R$` and the amount — this already matches the current ICU/`NumberFormat` behavior on the project's JVM (verify with Step 2; if your JVM's ICU data produces a regular space instead, adjust the expected literal to match — this test is pinning existing, unchanged `formatBrl` behavior, not changing it).
 
-- [ ] **Step 2: Run tests to verify they fail (compile error — missing functions)**
+- [x] **Step 2: Run tests to verify they fail (compile error — missing functions)**
 
 Run: `./gradlew testDebugUnitTest --tests "*FormattingTest*" --console=plain`
 Expected: FAIL — compile error, `formatInteger`/`formatDecimal2`/`formatPercent`/`formatLastRefuelLabel`/`formatActivityDate` unresolved.
 
-- [ ] **Step 3: Implement the formatters**
+- [x] **Step 3: Implement the formatters**
 
 Replace the full contents of `Formatting.kt`:
 
@@ -177,12 +177,12 @@ internal fun formatLastRefuelLabel(days: Int?): String = when {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `./gradlew testDebugUnitTest --tests "*FormattingTest*" --console=plain`
 Expected: PASS (5 tests). If `formatBrl`'s non-breaking-space assertion fails, replace ` ` in the test with a plain space (`" "`) to match your JVM's actual ICU output, then re-run.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/components/Formatting.kt app/src/test/java/com/flowfuel/app/feature/home/presentation/components/FormattingTest.kt
@@ -202,7 +202,7 @@ git commit -m "feat(home): add shared decimal/integer/percent/relative-date form
 - Consumes: `DashboardResponseDto` (`app/src/main/java/com/flowfuel/app/feature/home/data/remote/HomeApi.kt:32-47`, fields `priceUnit: String?`, `breakdown: HybridBreakdownDto?`), `FuelMetricsDto` (`HomeApi.kt:15-23`, fields `totalSpent`, `averagePrice`, `priceUnit`, `averageConsumption`, `consumptionUnit`), `RefuelItemDto` (`app/src/main/java/com/flowfuel/app/feature/history/data/remote/HistoryApi.kt:15-43`, field `pricePerUnit: Double?`).
 - Produces: `DashboardData.priceUnit: String?`, `DashboardData.lastRefuelPricePerUnit: Double?`, `HybridConsumptionBreakdown.fuelAveragePrice/fuelPriceUnit/fuelTotalSpent/electricAveragePrice/electricPriceUnit/electricTotalSpent: Double?/String?/Double?`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `app/src/test/java/com/flowfuel/app/feature/home/data/HomeRepositoryImplTest.kt`:
 
@@ -287,12 +287,12 @@ class HomeRepositoryImplTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `./gradlew testDebugUnitTest --tests "*HomeRepositoryImplTest*" --console=plain`
 Expected: FAIL — compile error (`priceUnit`, `lastRefuelPricePerUnit`, `fuelAveragePrice` etc. don't exist yet on `DashboardData`/`HybridConsumptionBreakdown`).
 
-- [ ] **Step 3: Extend the domain model**
+- [x] **Step 3: Extend the domain model**
 
 In `HomeModels.kt`, replace lines 22-57 (the `HybridConsumptionBreakdown` and `DashboardData` classes):
 
@@ -345,7 +345,7 @@ data class DashboardData(
 }
 ```
 
-- [ ] **Step 4: Wire the new fields through the repository**
+- [x] **Step 4: Wire the new fields through the repository**
 
 In `HomeRepositoryImpl.kt`, replace the `buildDashboardData` function (lines 56-77):
 
@@ -382,17 +382,17 @@ In `HomeRepositoryImpl.kt`, replace the `buildDashboardData` function (lines 56-
     )
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `./gradlew testDebugUnitTest --tests "*HomeRepositoryImplTest*" --console=plain`
 Expected: PASS (1 test).
 
-- [ ] **Step 6: Run the existing Home test suite to confirm nothing broke**
+- [x] **Step 6: Run the existing Home test suite to confirm nothing broke**
 
 Run: `./gradlew testDebugUnitTest --tests "*com.flowfuel.app.feature.home*" --console=plain`
 Expected: PASS (all existing Home tests, including `HomeViewModelTest`, still green — the new `DashboardData`/`HybridConsumptionBreakdown` fields all have safe defaults or are supplied via named args, so `HomeViewModelTest.kt:94-104`'s `testDashboard` fixture keeps compiling unchanged).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/domain/model/HomeModels.kt app/src/main/java/com/flowfuel/app/feature/home/data/HomeRepositoryImpl.kt app/src/test/java/com/flowfuel/app/feature/home/data/HomeRepositoryImplTest.kt
@@ -409,7 +409,7 @@ git commit -m "feat(home): map priceUnit and hybrid per-type price/spend fields 
 **Interfaces:**
 - Consumes: `formatDecimal2`, `formatInteger`, `formatLastRefuelLabel` from Task 1's `Formatting.kt`.
 
-- [ ] **Step 1: Update imports**
+- [x] **Step 1: Update imports**
 
 In `HomeScreen.kt`, replace line 45 (`import ...formatKm`):
 
@@ -421,7 +421,7 @@ import com.flowfuel.app.feature.home.presentation.components.formatLastRefuelLab
 
 (Keep the existing `import ...formatBrl` on line 44 as-is.)
 
-- [ ] **Step 2: Fix `consumptionValue` (2 decimals, locale comma) — line 182**
+- [x] **Step 2: Fix `consumptionValue` (2 decimals, locale comma) — line 182**
 
 Replace:
 ```kotlin
@@ -432,7 +432,7 @@ with:
     val consumptionValue = dashboard.averageConsumption?.let(::formatDecimal2) ?: "—"
 ```
 
-- [ ] **Step 3: Fix the odometer tile and relabel the "days since refuel" tile — lines 218-225**
+- [x] **Step 3: Fix the odometer tile and relabel the "days since refuel" tile — lines 218-225**
 
 Replace:
 ```kotlin
@@ -463,12 +463,12 @@ with:
 
 Note: `odometer` keeps reading from `vehicle.currentKm` (an `Int`, never null) rather than switching to `dashboard.lastOdometer` (`Int?`) — this is a pure format fix (bare thousands-grouped integer instead of a spurious ",0" decimal), not a data-source change. `vehicle.currentKm` is non-nullable, so the "—" null case from the spec is unreachable here and intentionally not coded.
 
-- [ ] **Step 4: Run a full Gradle compile check**
+- [x] **Step 4: Run a full Gradle compile check**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL — confirms `formatKm` (now unused) doesn't break anything and the new imports/calls resolve. `formatKm` in `Formatting.kt` was already replaced by `formatInteger` in Task 1's rewrite of the file, so there's nothing stale to remove here.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/HomeScreen.kt
@@ -485,7 +485,7 @@ git commit -m "fix(home): 2-decimal consumption, integer odometer, relative last
 **Interfaces:**
 - Consumes: `formatPercent` from Task 1's `Formatting.kt` (same package, no import needed).
 
-- [ ] **Step 1: Replace the two inline `"%.0f%%".format(...)` calls**
+- [x] **Step 1: Replace the two inline `"%.0f%%".format(...)` calls**
 
 Line 82 (trend badge label):
 ```kotlin
@@ -506,12 +506,12 @@ Line 114 (legend row percent):
                                     )
 ```
 
-- [ ] **Step 2: Run a compile check**
+- [x] **Step 2: Run a compile check**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/components/SpendBreakdownCard.kt
@@ -528,7 +528,7 @@ git commit -m "refactor(home): use shared formatPercent instead of inline %.0f%%
 **Interfaces:**
 - Consumes: `formatDecimal2`, `formatActivityDate` from Task 1's `Formatting.kt` (same package, no import needed).
 
-- [ ] **Step 1: Replace the manual `.replace('.', ',')` liters formatter — line 59**
+- [x] **Step 1: Replace the manual `.replace('.', ',')` liters formatter — line 59**
 
 Replace:
 ```kotlin
@@ -539,7 +539,7 @@ with:
             val litersLabel = "${formatDecimal2(item.refuel.energyAmount)} $unit"
 ```
 
-- [ ] **Step 2: Use `formatActivityDate` for the row date — line 80**
+- [x] **Step 2: Use `formatActivityDate` for the row date — line 80**
 
 Replace:
 ```kotlin
@@ -550,12 +550,12 @@ with:
                 Text(formatActivityDate(row.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 ```
 
-- [ ] **Step 3: Run a compile check**
+- [x] **Step 3: Run a compile check**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/components/RecentActivityCard.kt
@@ -574,7 +574,7 @@ git commit -m "fix(home): locale-safe 2-decimal liters and formatActivityDate in
 - Consumes: `DashboardData` fields `lastRefuelDate: String?`, `lastRefuelEnergyAmount: Double?`, `lastRefuelAmount: Double?`, `lastRefuelEnergyUnit: String?`, `lastRefuelPricePerUnit: Double?` (Task 2); `formatBrl`, `formatDate`, `formatDecimal2` from `Formatting.kt` (Task 1).
 - Produces: `@Composable fun LastRefuelDetailCard(dashboard: DashboardData, modifier: Modifier = Modifier)`.
 
-- [ ] **Step 1: Create the card**
+- [x] **Step 1: Create the card**
 
 ```kotlin
 package com.flowfuel.app.feature.home.presentation.components
@@ -642,7 +642,7 @@ private fun LastRefuelDetailCardPreview() {
 }
 ```
 
-- [ ] **Step 2: Wire it into HomeScreen.kt**
+- [x] **Step 2: Wire it into HomeScreen.kt**
 
 Add import (alongside the other component imports, e.g. after line 40's `RecentActivityCard` import):
 ```kotlin
@@ -658,12 +658,12 @@ In `HomeContent`, insert a new `item {}` right after the `IndicatorsGrid` item (
             }
 ```
 
-- [ ] **Step 3: Run a compile check**
+- [x] **Step 3: Run a compile check**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/components/LastRefuelDetailCard.kt app/src/main/java/com/flowfuel/app/feature/home/presentation/HomeScreen.kt
@@ -682,7 +682,7 @@ git commit -m "feat(home): add LastRefuelDetailCard showing date, energy, amount
 - Consumes: `HybridConsumptionBreakdown` (Task 2) fields `fuelConsumption/fuelConsumptionUnit/fuelAveragePrice/fuelPriceUnit/fuelTotalSpent` and the `electric*` equivalents; `formatBrl`, `formatDecimal2` from `Formatting.kt` (Task 1).
 - Produces: `@Composable fun FuelMetricsCard(breakdown: HybridConsumptionBreakdown, modifier: Modifier = Modifier)`.
 
-- [ ] **Step 1: Create the card**
+- [x] **Step 1: Create the card**
 
 ```kotlin
 package com.flowfuel.app.feature.home.presentation.components
@@ -786,7 +786,7 @@ private fun FuelMetricsCardPreview() {
 }
 ```
 
-- [ ] **Step 2: Wire it into HomeScreen.kt**
+- [x] **Step 2: Wire it into HomeScreen.kt**
 
 Add import:
 ```kotlin
@@ -804,12 +804,12 @@ In `HomeContent`, insert a new `item {}` right after the `IndicatorsGrid` item a
 
 Final item order inside the non-`isFirstUse` branch of `HomeContent` is: `SpendBreakdownCard` → `IndicatorsGrid` → `FuelMetricsCard` (hybrid only) → `LastRefuelDetailCard` (when there's a last refuel) → `RecentActivityCard`.
 
-- [ ] **Step 3: Run a compile check**
+- [x] **Step 3: Run a compile check**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/src/main/java/com/flowfuel/app/feature/home/presentation/components/FuelMetricsCard.kt app/src/main/java/com/flowfuel/app/feature/home/presentation/HomeScreen.kt
@@ -822,17 +822,17 @@ git commit -m "feat(home): add FuelMetricsCard showing fuel vs electric consumpt
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Run the whole Home test suite**
+- [x] **Step 1: Run the whole Home test suite**
 
 Run: `./gradlew testDebugUnitTest --tests "*com.flowfuel.app.feature.home*" --console=plain`
 Expected: PASS — all tests including the two new files from Tasks 1 and 2.
 
-- [ ] **Step 2: Full debug compile**
+- [x] **Step 2: Full debug compile**
 
 Run: `./gradlew compileDebugKotlin --console=plain`
 Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 3: Manual check on the emulator**
+- [x] **Step 3: Manual check on the emulator**
 
 Use the `run-android-emulator` skill to launch the app against the QA test account (see memory `project_qa_test_account`), open the Home tab, and visually confirm:
 - Consumo médio shows 2 decimals (e.g. "12,50 km/L").
