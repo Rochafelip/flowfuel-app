@@ -39,6 +39,7 @@ import com.flowfuel.app.feature.home.presentation.components.FuelMetricsCard
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
 import com.flowfuel.app.feature.home.presentation.components.LastRefuelDetailCard
+import com.flowfuel.app.feature.home.presentation.components.MonthlySpendingCard
 import com.flowfuel.app.feature.home.presentation.components.RecentActivityCard
 import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
@@ -217,6 +218,10 @@ private fun HomeContent(
                     SectionState.Loading -> FFSkeletonBlock(height = 220.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetrySpendBreakdown)
                 }
+            }
+
+            item {
+                MonthlySpendingCard(entries = dashboard.monthlySpending)
             }
 
             item {
