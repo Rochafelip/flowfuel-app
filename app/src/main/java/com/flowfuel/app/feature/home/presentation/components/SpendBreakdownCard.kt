@@ -205,7 +205,6 @@ private fun SpendBreakdownCardPreview() {
                 ),
             ),
             percentDelta = 12.0,
-            averagePricePerUnit = 5.89,
         ),
     )
 }

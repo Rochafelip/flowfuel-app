@@ -26,19 +26,16 @@ data class SpendBreakdownOverview(
     val total: SpendBreakdown,
     /** Delta percentual do mês atual vs. mês anterior completo; null se o mês anterior não teve gastos. */
     val percentDelta: Double? = null,
-    /** Preço médio por litro/kWh no mês atual, calculado sobre os abastecimentos do período. */
-    val averagePricePerUnit: Double? = null,
 )
 
 /**
  * Resultado de [com.flowfuel.app.feature.home.domain.usecase.GetMonthlySpendBreakdownUseCase]:
  * o detalhamento por categoria do mês atual, mais o total do mês anterior (só para o
- * cálculo de [percentDelta]) e o preço médio pago no mês atual.
+ * cálculo de [percentDelta]).
  */
 data class MonthlyFinancialSummary(
     val breakdown: SpendBreakdown,
     val previousMonthTotal: Double,
-    val averagePricePerUnit: Double?,
 ) {
     val percentDelta: Double?
         get() = if (previousMonthTotal > 0.0)

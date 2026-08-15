@@ -15,10 +15,10 @@ private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
 
 /**
  * Composição de gastos do mês atual (até hoje) por categoria, mais o total do mês
- * anterior completo (só para o delta) e o preço médio pago no mês atual — as três
- * informações que a Home mostra sobre "o mês", buscadas numa única passada para não
- * duplicar a paginação de abastecimentos+eventos que existia antes em
- * GetFinancialSummaryUseCase (removido: fundido aqui).
+ * anterior completo (só para o delta) — as duas informações que a Home mostra sobre
+ * "o mês", buscadas numa única passada para não duplicar a paginação de
+ * abastecimentos+eventos que existia antes em GetFinancialSummaryUseCase (removido:
+ * fundido aqui).
  */
 class GetMonthlySpendBreakdownUseCase @Inject constructor(
     private val getRefuelHistory: GetRefuelHistoryUseCase,
@@ -50,14 +50,10 @@ class GetMonthlySpendBreakdownUseCase @Inject constructor(
         val currentFuelSpent = currentRefuels.sumOf { it.totalPrice }
         val previousTotal = previousRefuels.sumOf { it.totalPrice } + previousEvents.sumOf { it.amount ?: 0.0 }
 
-        val currentEnergyTotal = currentRefuels.sumOf { it.energyAmount }
-        val averagePricePerUnit = if (currentEnergyTotal > 0.0) currentFuelSpent / currentEnergyTotal else null
-
         return AppResult.Success(
             MonthlyFinancialSummary(
                 breakdown = buildSpendBreakdown(currentFuelSpent, currentEvents),
                 previousMonthTotal = previousTotal,
-                averagePricePerUnit = averagePricePerUnit,
             )
         )
     }

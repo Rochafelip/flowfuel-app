@@ -143,29 +143,6 @@ class GetMonthlySpendBreakdownUseCaseTest {
     }
 
     @Test
-    fun `computes average price per unit from current month refuels`() = runTest {
-        coEvery { getRefuelHistory(1, 0, 50, any(), any()) } returnsMany listOf(
-            AppResult.Success(refuelPage(listOf(refuel(200.0, energyAmount = 40.0)))),
-            AppResult.Success(refuelPage(emptyList())),
-        )
-        coEvery { getVehicleEventsPage(1, 0, null, any(), any()) } returns AppResult.Success(eventPage(emptyList()))
-
-        val summary = (useCase(1) as AppResult.Success).value
-
-        assertEquals(5.0, summary.averagePricePerUnit!!, 0.001)
-    }
-
-    @Test
-    fun `averagePricePerUnit is null when there are no refuels this month`() = runTest {
-        coEvery { getRefuelHistory(1, 0, 50, any(), any()) } returns AppResult.Success(refuelPage(emptyList()))
-        coEvery { getVehicleEventsPage(1, 0, null, any(), any()) } returns AppResult.Success(eventPage(emptyList()))
-
-        val summary = (useCase(1) as AppResult.Success).value
-
-        assertNull(summary.averagePricePerUnit)
-    }
-
-    @Test
     fun `propagates failure from refuel history`() = runTest {
         coEvery { getRefuelHistory(1, 0, 50, any(), any()) } returns AppResult.Failure(AppError.Network)
         coEvery { getVehicleEventsPage(any(), any(), any(), any(), any()) } returns AppResult.Success(eventPage(emptyList()))

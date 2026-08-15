@@ -131,7 +131,6 @@ class HomeViewModel @Inject constructor(
                     monthly = monthlyResult.value.breakdown,
                     total = total,
                     percentDelta = monthlyResult.value.percentDelta,
-                    averagePricePerUnit = monthlyResult.value.averagePricePerUnit,
                 ),
             )
             is AppResult.Failure -> SectionState.Error(monthlyResult.error)

@@ -216,10 +216,9 @@ private fun HomeContent(
             }
 
             item {
-                val averagePrice = (spendBreakdown as? SectionState.Success)?.value?.averagePricePerUnit
                 IndicatorsGrid(
                     consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
-                    averagePrice = IndicatorItem("Preço médio (mês)", averagePrice?.let(::formatBrl) ?: "—"),
+                    averagePrice = IndicatorItem("Preço médio", dashboard.averagePricePerUnit?.let(::formatBrl) ?: "—"),
                     odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
                     daysSinceRefuel = IndicatorItem("Dias sem abastecer", daysSince?.toString() ?: "—", "dias"),
                 )

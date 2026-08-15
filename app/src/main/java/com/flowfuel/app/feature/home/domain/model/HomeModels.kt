@@ -50,6 +50,8 @@ data class DashboardData(
     val lastOdometer: Int? = null,
     /** Custo médio por km rodado (totalSpent / km rodados no período). */
     val costPerKm: Double? = null,
+    /** Preço médio por litro/kWh em todo o histórico de abastecimentos (não só o mês atual). */
+    val averagePricePerUnit: Double? = null,
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }

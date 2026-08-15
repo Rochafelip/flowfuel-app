@@ -73,7 +73,6 @@ class HomeViewModelTest {
     private val testMonthlyFinancialSummary = MonthlyFinancialSummary(
         breakdown = SpendBreakdown(300.0, listOf(SpendSlice("Combustível", 300.0))),
         previousMonthTotal = 250.0,
-        averagePricePerUnit = 5.5,
     )
 
     private val testUpcomingMaintenance = listOf(
@@ -170,7 +169,6 @@ class HomeViewModelTest {
             MonthlyFinancialSummary(
                 breakdown = SpendBreakdown(60.0, listOf(SpendSlice("Combustível", 60.0))),
                 previousMonthTotal = 50.0,
-                averagePricePerUnit = 5.5,
             ),
         )
 
@@ -186,7 +184,6 @@ class HomeViewModelTest {
         assertEquals(60.0, overview.monthly.totalSpent, 0.001)
         assertEquals(listOf(SpendSlice("Combustível", 60.0)), overview.monthly.slices)
         assertEquals(20.0, overview.percentDelta!!, 0.001)
-        assertEquals(5.5, overview.averagePricePerUnit!!, 0.001)
     }
 
     @Test
