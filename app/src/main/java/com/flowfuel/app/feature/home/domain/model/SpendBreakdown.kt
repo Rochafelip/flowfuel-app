@@ -5,7 +5,14 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
 
 data class SpendBreakdown(
     val totalSpent: Double,
-    /** No máximo 6 fatias: até 5 categorias nomeadas + "Outros" agrupando o resto. */
+    /**
+     * No máximo 6 fatias: até 5 categorias nomeadas + "Outros" agrupando o
+     * resto. Ordem é por valor decrescente (rank), com "Outros" sempre por
+     * último independente do valor dele — a cor de cada fatia em
+     * [SpendBreakdownCard] segue essa mesma posição (rank), não a
+     * categoria: a cor de "Combustível" pode mudar entre carregamentos se o
+     * rank dele mudar. Decisão consciente do usuário.
+     */
     val slices: List<SpendSlice>,
 )
 
@@ -21,23 +28,6 @@ data class SpendBreakdownOverview(
 
 private const val MAX_NAMED_SLICES = 5
 private const val OTHER_LABEL = "Outros"
-
-/**
- * Ordem fixa de exibição (fatias do donut e linhas da legenda) — a mesma
- * ordem usada para atribuir cor por categoria em [SpendBreakdownCard]. A
- * seleção de quais categorias entram como fatia nomeada é por valor (as 5
- * maiores); a ordem em que aparecem na tela não é.
- */
-private val CATEGORY_DISPLAY_ORDER = listOf(
-    EventCategory.FUEL,
-    EventCategory.MAINTENANCE,
-    EventCategory.OIL_CHANGE,
-    EventCategory.WASH,
-    EventCategory.TIRES,
-    EventCategory.INSURANCE,
-    EventCategory.DOCUMENTS,
-    EventCategory.TAX,
-).map { it.label }
 
 /**
  * Funde o gasto com abastecimentos ([fuelSpent]) com eventos manuais de
@@ -56,12 +46,9 @@ fun buildSpendBreakdown(fuelSpent: Double, events: List<VehicleEvent>): SpendBre
 
     val otherAmount = amountsByLabel.remove(EventCategory.OTHER.label) ?: 0.0
     val sorted = amountsByLabel.entries.sortedByDescending { it.value }
-    val keptLabels = sorted.take(MAX_NAMED_SLICES).map { it.key }.toSet()
     val foldedTail = sorted.drop(MAX_NAMED_SLICES).sumOf { it.value } + otherAmount
 
-    val namedSlices = CATEGORY_DISPLAY_ORDER
-        .filter { it in keptLabels }
-        .map { label -> SpendSlice(label, amountsByLabel.getValue(label)) }
+    val namedSlices = sorted.take(MAX_NAMED_SLICES).map { (label, amount) -> SpendSlice(label, amount) }
 
     val slices = namedSlices +
         if (foldedTail > 0.0) listOf(SpendSlice(OTHER_LABEL, foldedTail)) else emptyList()

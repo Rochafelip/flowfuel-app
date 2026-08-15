@@ -71,13 +71,12 @@ class SpendBreakdownTest {
     }
 
     @Test
-    fun `orders named slices by fixed category order, not by amount`() {
-        // Imposto (TAX) é o maior valor, mas Combustível deve continuar
-        // aparecendo primeiro — cor e ordem seguem identidade da categoria,
-        // não o ranking de valor (ver design doc). Documentos vem antes de
-        // Imposto de propósito: Seguro (verde) e Imposto (vermelho) não
-        // podem ficar adjacentes, senão a dupla falha o teste de
-        // daltonismo (ver docs/superpowers/specs/2026-08-14-spend-breakdown-carousel-palette-design.md).
+    fun `orders named slices by amount descending, not by fixed category order`() {
+        // Imposto (TAX) é o maior valor, então deve vir primeiro — cor e
+        // ordem seguem o ranking de valor (rank-based), decisão pedida pelo
+        // usuário em 2026-08-14 (ver [[project_spend_breakdown_donut]] na
+        // memória: reverte de propósito a decisão anterior de ordem fixa
+        // por categoria).
         val events = listOf(
             event(EventCategory.TAX, 858.90),
             event(EventCategory.DOCUMENTS, 0.01),
@@ -87,9 +86,9 @@ class SpendBreakdownTest {
 
         assertEquals(
             listOf(
+                SpendSlice("Imposto", 858.90),
                 SpendSlice("Combustível", 148.42),
                 SpendSlice("Documentos", 0.01),
-                SpendSlice("Imposto", 858.90),
             ),
             breakdown.slices,
         )

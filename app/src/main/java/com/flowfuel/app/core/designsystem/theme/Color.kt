@@ -106,33 +106,34 @@ object FFExtraColors {
 }
 
 object FFChartColors {
-    // Ordem fixa por categoria (identidade estável, não por rank/valor) —
-    // mesma ordem em que as fatias são desenhadas no donut. A ordem
-    // importa pra acessibilidade: Seguro (verde) e Imposto (vermelho) NÃO
-    // ficam adjacentes de propósito — Documentos (roxo) fica entre os
-    // dois, senão a dupla verde/vermelho falha o teste de daltonismo
-    // (confirmado com scripts/validate_palette.js da skill dataviz, nos
-    // dois modos: claro contra #fcfcfb, escuro contra o SurfaceDark real
-    // do app #1E293B).
-    val FuelLight = Color(0xFFE06B1D)
-    val MaintenanceLight = Color(0xFF0A8FA6)
-    val OilChangeLight = Color(0xFFA8672A)
-    val WashLight = Color(0xFF0E8FAE)
-    val TiresLight = Color(0xFF4257C0)
-    val InsuranceLight = Color(0xFF1E9E4A)
-    val DocumentsLight = Color(0xFF5B3FA6)
-    val TaxLight = Color(0xFF9C2A44)
-    val OtherLight = FFColors.OutlineVariantLight
+    // Paleta por RANK (1ª..5ª maior fatia por valor + "Outros" sempre por
+    // último), não por identidade de categoria — mesma cor pode trocar de
+    // categoria entre carregamentos conforme o valor de cada uma sobe/desce
+    // no ranking. Decisão consciente pedida pelo usuário; validada com
+    // scripts/validate_palette.js da skill dataviz (pares ADJACENTES, que é
+    // o que importa num donut ordenado por valor — cada fatia só encosta
+    // nas duas vizinhas):
+    // - Claro (contra #fcfcfb): todos os pares adjacentes passam CVD
+    //   (ΔE ≥ 9.1) e o piso de visão normal (ΔE ≥ 19.6). Slot5↔Outros exigiu
+    //   trocar o cinza pedido (#9ca3af, ΔE 2.7 com o magenta — falha dura)
+    //   por #6b7280, que resolve o par.
+    // - Escuro (contra #1E293B, SurfaceDark real do app): o par
+    //   Slot5↔Outros fica na faixa-piso do CVD (ΔE 6.2, dentro de 6–8) — só
+    //   é legal com encoding secundário, que já existe (label + valor no
+    //   texto da legenda, nunca só a cor).
+    val Rank1Light = Color(0xFF2A78D6) // azul
+    val Rank2Light = Color(0xFFEB6834) // laranja
+    val Rank3Light = Color(0xFF1BAF7A) // água/verde
+    val Rank4Light = Color(0xFFEDA100) // amarelo
+    val Rank5Light = Color(0xFFE87BA4) // magenta
+    val OtherLight = Color(0xFF6B7280) // cinza neutro
 
-    val FuelDark = Color(0xFFD9752E)
-    val MaintenanceDark = Color(0xFF1C96AD)
-    val OilChangeDark = Color(0xFFB37A3A)
-    val WashDark = Color(0xFF1D93B8)
-    val TiresDark = Color(0xFF8A5FE0)
-    val InsuranceDark = Color(0xFF1F9E70)
-    val DocumentsDark = Color(0xFF8A6FC2)
-    val TaxDark = Color(0xFFC2436F)
-    val OtherDark = FFColors.OutlineVariantDark
+    val Rank1Dark = Color(0xFF3987E5)
+    val Rank2Dark = Color(0xFFD95926)
+    val Rank3Dark = Color(0xFF199E70)
+    val Rank4Dark = Color(0xFFC98500)
+    val Rank5Dark = Color(0xFFD55181)
+    val OtherDark = Color(0xFF8695AA)
 }
 
 data class FFSemanticColors(

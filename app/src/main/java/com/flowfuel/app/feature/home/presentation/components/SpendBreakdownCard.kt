@@ -61,16 +61,16 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
                         SpendBreakdownDonut(
                             slices = breakdown.slices,
                             totalLabel = formatBrl(breakdown.totalSpent),
-                            colorFor = { sliceLabel -> sliceColor(sliceLabel, isDark) },
+                            colorFor = { index, sliceLabel -> sliceColor(index, sliceLabel, isDark) },
                             modifier = Modifier.size(140.dp),
                         )
                         Spacer(Modifier.width(FFTheme.spacing.md))
                         Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                            breakdown.slices.forEach { slice ->
+                            breakdown.slices.forEachIndexed { index, slice ->
                                 val percent = if (breakdown.totalSpent > 0)
                                     slice.amount / breakdown.totalSpent * 100 else 0.0
                                 SpendLegendRow(
-                                    color = sliceColor(slice.label, isDark),
+                                    color = sliceColor(index, slice.label, isDark),
                                     label = slice.label,
                                     amountLabel = formatBrl(slice.amount),
                                     percentLabel = "%.0f%%".format(percent),
@@ -90,7 +90,7 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
 private fun SpendBreakdownDonut(
     slices: List<SpendSlice>,
     totalLabel: String,
-    colorFor: (String) -> Color,
+    colorFor: (Int, String) -> Color,
     modifier: Modifier = Modifier,
 ) {
     val total = slices.sumOf { it.amount }
@@ -100,10 +100,10 @@ private fun SpendBreakdownDonut(
             val diameter = size.minDimension - strokeWidth
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             var startAngle = -90f
-            slices.forEach { slice ->
+            slices.forEachIndexed { index, slice ->
                 val sweep = if (total > 0) (slice.amount / total * 360.0).toFloat() else 0f
                 drawArc(
-                    color = colorFor(slice.label),
+                    color = colorFor(index, slice.label),
                     startAngle = startAngle,
                     sweepAngle = sweep,
                     useCenter = false,
@@ -153,16 +153,21 @@ private fun SpendLegendRow(color: Color, label: String, amountLabel: String, per
     }
 }
 
-private fun sliceColor(label: String, isDark: Boolean): Color = when (label) {
-    "Combustível" -> if (isDark) FFChartColors.FuelDark else FFChartColors.FuelLight
-    "Manutenção" -> if (isDark) FFChartColors.MaintenanceDark else FFChartColors.MaintenanceLight
-    "Troca de Óleo" -> if (isDark) FFChartColors.OilChangeDark else FFChartColors.OilChangeLight
-    "Lavagem" -> if (isDark) FFChartColors.WashDark else FFChartColors.WashLight
-    "Pneus" -> if (isDark) FFChartColors.TiresDark else FFChartColors.TiresLight
-    "Seguro" -> if (isDark) FFChartColors.InsuranceDark else FFChartColors.InsuranceLight
-    "Documentos" -> if (isDark) FFChartColors.DocumentsDark else FFChartColors.DocumentsLight
-    "Imposto" -> if (isDark) FFChartColors.TaxDark else FFChartColors.TaxLight
-    else -> if (isDark) FFChartColors.OtherDark else FFChartColors.OtherLight // "Outros"
+/**
+ * Cor por posição (rank), não por categoria — "Outros" sempre usa o cinza
+ * neutro, independente de onde cai na lista; as demais fatias (já
+ * ordenadas por valor decrescente em [buildSpendBreakdown]) usam a cor do
+ * slot correspondente ao índice.
+ */
+private fun sliceColor(index: Int, label: String, isDark: Boolean): Color {
+    if (label == "Outros") return if (isDark) FFChartColors.OtherDark else FFChartColors.OtherLight
+    return when (index) {
+        0 -> if (isDark) FFChartColors.Rank1Dark else FFChartColors.Rank1Light
+        1 -> if (isDark) FFChartColors.Rank2Dark else FFChartColors.Rank2Light
+        2 -> if (isDark) FFChartColors.Rank3Dark else FFChartColors.Rank3Light
+        3 -> if (isDark) FFChartColors.Rank4Dark else FFChartColors.Rank4Light
+        else -> if (isDark) FFChartColors.Rank5Dark else FFChartColors.Rank5Light
+    }
 }
 
 @Preview(showBackground = true)
