@@ -36,6 +36,7 @@ import com.flowfuel.app.core.designsystem.components.FFTrend
 import com.flowfuel.app.core.designsystem.components.FFTrendBadge
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import com.flowfuel.app.feature.home.domain.model.MonthlySpendingEntry
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
@@ -49,78 +50,146 @@ import kotlin.math.abs
 private const val MAX_LEGEND_ROWS = 6
 
 @Composable
-fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Modifier) {
+fun SpendBreakdownCard(
+    overview: SpendBreakdownOverview,
+    fuelSpent: Double,
+    costPerKm: Double?,
+    monthlySpending: List<MonthlySpendingEntry>,
+    modifier: Modifier = Modifier,
+) {
     val isDark = isSystemInDarkTheme()
-    val pageCount = 2
+    val pageCount = 3
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
     FFCard(modifier = modifier, variant = FFCardVariant.Flat) {
         Column {
             HorizontalPager(state = pagerState) { page ->
-                val label = if (page == 0) "Gastos do Mês" else "Gastos Totais"
-                val breakdown = if (page == 0) overview.monthly else overview.total
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        if (page == 0 && overview.percentDelta != null) {
-                            // Gasto subindo é ruim (positiveIsGood = false): Up vira vermelho, Down vira verde.
-                            val trend = when {
-                                overview.percentDelta > 0.5 -> FFTrend.Up
-                                overview.percentDelta < -0.5 -> FFTrend.Down
-                                else -> FFTrend.Flat
-                            }
-                            FFTrendBadge(
-                                trend = trend,
-                                label = "${formatPercent(abs(overview.percentDelta))} vs. mês anterior",
-                                positiveIsGood = false,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(FFTheme.spacing.xs))
-                    Text(
-                        text = formatBrl(breakdown.totalSpent),
-                        style = FFTheme.numericTypography.numericLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(FFTheme.spacing.sm))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SpendBreakdownDonut(
-                            slices = breakdown.slices,
-                            colorFor = { index, sliceLabel -> sliceColor(index, sliceLabel, isDark) },
-                            modifier = Modifier.size(96.dp),
-                        )
-                        Spacer(Modifier.width(FFTheme.spacing.md))
-                        Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                            for (index in 0 until MAX_LEGEND_ROWS) {
-                                val slice = breakdown.slices.getOrNull(index)
-                                if (slice == null) {
-                                    // Linha vazia: só reserva altura, não é visível nem clicável.
-                                    SpendLegendRow(color = Color.Transparent, label = "", amountLabel = "", percentLabel = "")
-                                } else {
-                                    val percent = if (breakdown.totalSpent > 0)
-                                        slice.amount / breakdown.totalSpent * 100 else 0.0
-                                    SpendLegendRow(
-                                        color = sliceColor(index, slice.label, isDark),
-                                        label = slice.label,
-                                        amountLabel = formatBrl(slice.amount),
-                                        percentLabel = formatPercent(percent),
-                                    )
-                                }
-                            }
-                        }
-                    }
+                when (page) {
+                    0 -> MonthPage(overview = overview, costPerKm = costPerKm, monthlySpending = monthlySpending, isDark = isDark)
+                    1 -> FuelPage(fuelSpent = fuelSpent)
+                    else -> TotalPage(breakdown = overview.total, isDark = isDark)
                 }
             }
             Spacer(Modifier.height(FFTheme.spacing.sm))
             FFPagerDotsIndicator(pagerState = pagerState, pageCount = pageCount)
+        }
+    }
+}
+
+@Composable
+private fun MonthPage(
+    overview: SpendBreakdownOverview,
+    costPerKm: Double?,
+    monthlySpending: List<MonthlySpendingEntry>,
+    isDark: Boolean,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Gasto do Mês",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (overview.percentDelta != null) {
+                // Gasto subindo é ruim (positiveIsGood = false): Up vira vermelho, Down vira verde.
+                val trend = when {
+                    overview.percentDelta > 0.5 -> FFTrend.Up
+                    overview.percentDelta < -0.5 -> FFTrend.Down
+                    else -> FFTrend.Flat
+                }
+                FFTrendBadge(
+                    trend = trend,
+                    label = "${formatPercent(abs(overview.percentDelta))} vs. mês anterior",
+                    positiveIsGood = false,
+                )
+            }
+        }
+        Spacer(Modifier.height(FFTheme.spacing.xs))
+        Text(
+            text = formatBrl(overview.monthly.totalSpent),
+            style = FFTheme.numericTypography.numericLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (costPerKm != null && costPerKm > 0.0) {
+            Text(
+                text = "${formatBrl(costPerKm)}/km",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(FFTheme.spacing.sm))
+        BreakdownRow(breakdown = overview.monthly, isDark = isDark)
+        Spacer(Modifier.height(FFTheme.spacing.md))
+        MonthlySpendingBarChart(entries = monthlySpending, modifier = Modifier.fillMaxWidth().height(96.dp))
+    }
+}
+
+@Composable
+private fun FuelPage(fuelSpent: Double) {
+    Column {
+        Text(
+            text = "Gasto de Combustível",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(FFTheme.spacing.xs))
+        Text(
+            text = formatBrl(fuelSpent),
+            style = FFTheme.numericTypography.numericLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun TotalPage(breakdown: SpendBreakdown, isDark: Boolean) {
+    Column {
+        Text(
+            text = "Gastos Totais",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(FFTheme.spacing.xs))
+        Text(
+            text = formatBrl(breakdown.totalSpent),
+            style = FFTheme.numericTypography.numericLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(FFTheme.spacing.sm))
+        BreakdownRow(breakdown = breakdown, isDark = isDark)
+    }
+}
+
+@Composable
+private fun BreakdownRow(breakdown: SpendBreakdown, isDark: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        SpendBreakdownDonut(
+            slices = breakdown.slices,
+            colorFor = { index, sliceLabel -> sliceColor(index, sliceLabel, isDark) },
+            modifier = Modifier.size(96.dp),
+        )
+        Spacer(Modifier.width(FFTheme.spacing.md))
+        Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
+            for (index in 0 until MAX_LEGEND_ROWS) {
+                val slice = breakdown.slices.getOrNull(index)
+                if (slice == null) {
+                    // Linha vazia: só reserva altura, não é visível nem clicável.
+                    SpendLegendRow(color = Color.Transparent, label = "", amountLabel = "", percentLabel = "")
+                } else {
+                    val percent = if (breakdown.totalSpent > 0)
+                        slice.amount / breakdown.totalSpent * 100 else 0.0
+                    SpendLegendRow(
+                        color = sliceColor(index, slice.label, isDark),
+                        label = slice.label,
+                        amountLabel = formatBrl(slice.amount),
+                        percentLabel = formatPercent(percent),
+                    )
+                }
+            }
         }
     }
 }
@@ -202,10 +271,11 @@ private fun SpendBreakdownCardPreview() {
     SpendBreakdownCard(
         overview = SpendBreakdownOverview(
             monthly = SpendBreakdown(
-                totalSpent = 303.30,
+                totalSpent = 542.80,
                 slices = listOf(
-                    SpendSlice("Combustível", 148.42),
-                    SpendSlice("Documentos", 154.88),
+                    SpendSlice("Combustível", 298.50),
+                    SpendSlice("Manutenção", 135.80),
+                    SpendSlice("Outros", 108.50),
                 ),
             ),
             total = SpendBreakdown(
@@ -218,6 +288,16 @@ private fun SpendBreakdownCardPreview() {
                 ),
             ),
             percentDelta = 12.0,
+        ),
+        fuelSpent = 298.50,
+        costPerKm = 0.68,
+        monthlySpending = listOf(
+            MonthlySpendingEntry("2026-03", 210.0),
+            MonthlySpendingEntry("2026-04", 380.0),
+            MonthlySpendingEntry("2026-05", 190.0),
+            MonthlySpendingEntry("2026-06", 410.0),
+            MonthlySpendingEntry("2026-07", 330.0),
+            MonthlySpendingEntry("2026-08", 543.0),
         ),
     )
 }

@@ -214,7 +214,12 @@ private fun HomeContent(
         } else {
             item {
                 when (spendBreakdown) {
-                    is SectionState.Success -> SpendBreakdownCard(overview = spendBreakdown.value)
+                    is SectionState.Success -> SpendBreakdownCard(
+                        overview = spendBreakdown.value,
+                        fuelSpent = dashboard.fuelSpent,
+                        costPerKm = dashboard.costPerKm,
+                        monthlySpending = dashboard.monthlySpending,
+                    )
                     SectionState.Loading -> FFSkeletonBlock(height = 220.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetrySpendBreakdown)
                 }
