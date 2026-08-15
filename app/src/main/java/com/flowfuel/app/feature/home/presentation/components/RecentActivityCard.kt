@@ -56,7 +56,7 @@ private fun RecentActivityRow(item: VehicleTimelineItem, vehicleEnergyType: Stri
     val row = when (item) {
         is VehicleTimelineItem.RefuelEntry -> {
             val unit = refuelUnit(item.refuel.refuelType, vehicleEnergyType)
-            val litersLabel = "%.2f %s".format(item.refuel.energyAmount, unit).replace('.', ',')
+            val litersLabel = "${formatDecimal2(item.refuel.energyAmount)} $unit"
             RowData(
                 icon = Icons.Default.LocalGasStation,
                 title = "Abastecimento",
@@ -77,7 +77,7 @@ private fun RecentActivityRow(item: VehicleTimelineItem, vehicleEnergyType: Stri
         headlineContent = { Text(row.title, style = MaterialTheme.typography.titleSmall) },
         supportingContent = {
             Column {
-                Text(formatDate(row.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(formatActivityDate(row.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 row.detail?.let {
                     Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
