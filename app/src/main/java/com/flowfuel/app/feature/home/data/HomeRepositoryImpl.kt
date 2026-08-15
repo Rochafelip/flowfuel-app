@@ -14,6 +14,7 @@ import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.HybridConsumptionBreakdown
+import com.flowfuel.app.feature.home.domain.model.MonthlySpendingEntry
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
 import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 import javax.inject.Inject
@@ -68,6 +69,9 @@ class HomeRepositoryImpl @Inject constructor(
         costPerKm               = dto.costPerKm,
         averagePricePerUnit     = dto.averagePrice,
         priceUnit               = dto.priceUnit,
+        monthlySpending         = dto.monthlySpending?.map {
+            MonthlySpendingEntry(month = it.month.orEmpty(), amount = it.amount ?: 0.0)
+        } ?: emptyList(),
         hybridBreakdown         = dto.breakdown?.let { b ->
             HybridConsumptionBreakdown(
                 fuelConsumption         = b.fuel?.averageConsumption,

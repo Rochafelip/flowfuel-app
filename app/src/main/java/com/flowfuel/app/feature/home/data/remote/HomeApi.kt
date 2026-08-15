@@ -29,6 +29,12 @@ data class HybridBreakdownDto(
 )
 
 @Serializable
+data class MonthlySpendingDto(
+    val month: String? = null,
+    val amount: Double? = null,
+)
+
+@Serializable
 data class DashboardResponseDto(
     val vehicleId: Int? = null,
     val energyType: String? = null,
@@ -44,6 +50,7 @@ data class DashboardResponseDto(
     val lastRefuelDate: String? = null,
     val lastOdometer: Int? = null,
     val costPerKm: Double? = null,
+    val monthlySpending: List<MonthlySpendingDto>? = null,
 )
 
 // ─── Abastecimento ────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import com.flowfuel.app.feature.home.data.remote.DashboardApi
 import com.flowfuel.app.feature.home.data.remote.DashboardResponseDto
 import com.flowfuel.app.feature.home.data.remote.FuelMetricsDto
 import com.flowfuel.app.feature.home.data.remote.HybridBreakdownDto
+import com.flowfuel.app.feature.home.data.remote.MonthlySpendingDto
 import com.flowfuel.app.feature.home.data.remote.RefuelApi
 import com.flowfuel.app.feature.vehicle.data.remote.VehicleApi
 import io.mockk.coEvery
@@ -74,5 +75,25 @@ class HomeRepositoryImplTest {
         assertEquals(0.85, result.value.hybridBreakdown?.electricAveragePrice)
         assertEquals("R$/kWh", result.value.hybridBreakdown?.electricPriceUnit)
         assertEquals(200.0, result.value.hybridBreakdown?.electricTotalSpent)
+    }
+
+    @Test
+    fun `getDashboard mapeia monthlySpending, usando 0 quando amount vier nulo`() = runTest {
+        coEvery { dashboardApi.getDashboard(1) } returns DashboardResponseDto(
+            totalSpent = 500.0,
+            totalRefuels = 3,
+            monthlySpending = listOf(
+                MonthlySpendingDto(month = "2026-03", amount = 210.0),
+                MonthlySpendingDto(month = "2026-04", amount = null),
+            ),
+        )
+        coEvery { historyApi.getRefuelHistory(1, page = 0, size = 1) } returns RefuelHistoryPageDto(content = emptyList())
+
+        val result = repository.getDashboard(1) as AppResult.Success
+
+        assertEquals(2, result.value.monthlySpending.size)
+        assertEquals("2026-03", result.value.monthlySpending[0].month)
+        assertEquals(210.0, result.value.monthlySpending[0].amount, 0.001)
+        assertEquals(0.0, result.value.monthlySpending[1].amount, 0.001)
     }
 }

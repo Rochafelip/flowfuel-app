@@ -33,6 +33,12 @@ data class HybridConsumptionBreakdown(
     val electricTotalSpent: Double?,
 )
 
+/** Um ponto do gráfico de gastos mensais (últimos 6 meses). [month] no formato ISO "yyyy-MM". */
+data class MonthlySpendingEntry(
+    val month: String,
+    val amount: Double,
+)
+
 /** Dados do painel de controle para um veículo. */
 data class DashboardData(
     val averageConsumption: Double?,
@@ -62,6 +68,8 @@ data class DashboardData(
     val averagePricePerUnit: Double? = null,
     /** Unidade do preço médio (ex: "R$/L", "R$/kWh"), informada pelo backend. */
     val priceUnit: String? = null,
+    /** Gasto total (combustível + eventos) dos últimos 6 meses, do mais antigo ao mais recente. Sempre 6 entradas (backend garante). */
+    val monthlySpending: List<MonthlySpendingEntry> = emptyList(),
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }
