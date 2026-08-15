@@ -41,6 +41,13 @@ import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
 import kotlin.math.abs
 
+/**
+ * buildSpendBreakdown nunca gera mais que 5 fatias nomeadas + "Outros" — reservar
+ * sempre esse tanto de linhas na legenda (mesmo vazias) evita que o card mude de
+ * altura ao trocar de página no pager (Mês costuma ter menos categorias que Total).
+ */
+private const val MAX_LEGEND_ROWS = 6
+
 @Composable
 fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
@@ -92,15 +99,21 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
                         )
                         Spacer(Modifier.width(FFTheme.spacing.md))
                         Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                            breakdown.slices.forEachIndexed { index, slice ->
-                                val percent = if (breakdown.totalSpent > 0)
-                                    slice.amount / breakdown.totalSpent * 100 else 0.0
-                                SpendLegendRow(
-                                    color = sliceColor(index, slice.label, isDark),
-                                    label = slice.label,
-                                    amountLabel = formatBrl(slice.amount),
-                                    percentLabel = "%.0f%%".format(percent),
-                                )
+                            for (index in 0 until MAX_LEGEND_ROWS) {
+                                val slice = breakdown.slices.getOrNull(index)
+                                if (slice == null) {
+                                    // Linha vazia: só reserva altura, não é visível nem clicável.
+                                    SpendLegendRow(color = Color.Transparent, label = "", amountLabel = "", percentLabel = "")
+                                } else {
+                                    val percent = if (breakdown.totalSpent > 0)
+                                        slice.amount / breakdown.totalSpent * 100 else 0.0
+                                    SpendLegendRow(
+                                        color = sliceColor(index, slice.label, isDark),
+                                        label = slice.label,
+                                        amountLabel = formatBrl(slice.amount),
+                                        percentLabel = "%.0f%%".format(percent),
+                                    )
+                                }
                             }
                         }
                     }

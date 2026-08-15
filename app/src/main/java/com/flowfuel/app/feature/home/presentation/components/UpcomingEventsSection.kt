@@ -72,12 +72,14 @@ private fun UpcomingEventCard(item: UpcomingMaintenanceItem, onClick: () -> Unit
                 text = presentation.title,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                minLines = 2,
             )
             Text(
                 text = presentation.subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (item.isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
             )
         }
     }
