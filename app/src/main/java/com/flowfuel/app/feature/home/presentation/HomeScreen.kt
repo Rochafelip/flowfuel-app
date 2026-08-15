@@ -35,6 +35,7 @@ import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
+import com.flowfuel.app.feature.home.presentation.components.FuelMetricsCard
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
 import com.flowfuel.app.feature.home.presentation.components.LastRefuelDetailCard
@@ -229,6 +230,12 @@ private fun HomeContent(
                     odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
                     daysSinceRefuel = IndicatorItem("Último abastecimento", formatLastRefuelLabel(daysSince)),
                 )
+            }
+
+            dashboard.hybridBreakdown?.let { breakdown ->
+                item {
+                    FuelMetricsCard(breakdown = breakdown)
+                }
             }
 
             if (dashboard.lastRefuelDate != null) {
