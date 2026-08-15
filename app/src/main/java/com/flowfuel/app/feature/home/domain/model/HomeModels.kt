@@ -19,12 +19,18 @@ data class ActiveVehicleData(
     val vehicleType: VehicleType = VehicleType.Car,
 )
 
-/** Consumo separado por modal para veículos HYBRID. */
+/** Consumo e gasto separados por modal para veículos HYBRID. */
 data class HybridConsumptionBreakdown(
     val fuelConsumption: Double?,
     val fuelConsumptionUnit: String?,
+    val fuelAveragePrice: Double?,
+    val fuelPriceUnit: String?,
+    val fuelTotalSpent: Double?,
     val electricConsumption: Double?,
     val electricConsumptionUnit: String?,
+    val electricAveragePrice: Double?,
+    val electricPriceUnit: String?,
+    val electricTotalSpent: Double?,
 )
 
 /** Dados do painel de controle para um veículo. */
@@ -44,6 +50,8 @@ data class DashboardData(
     val lastRefuelAmount: Double?,
     /** Unidade do último abastecimento (ex: "L", "kWh"), inferida do refuelType/energyType. */
     val lastRefuelEnergyUnit: String?,
+    /** Preço por litro/kWh pago no último abastecimento — vem de /refuels. */
+    val lastRefuelPricePerUnit: Double? = null,
     /** Detalhamento por combustão/elétrico; preenchido apenas para HYBRID. */
     val hybridBreakdown: HybridConsumptionBreakdown? = null,
     /** Odômetro do último abastecimento registrado; null se não houver abastecimentos. */
@@ -52,6 +60,8 @@ data class DashboardData(
     val costPerKm: Double? = null,
     /** Preço médio por litro/kWh em todo o histórico de abastecimentos (não só o mês atual). */
     val averagePricePerUnit: Double? = null,
+    /** Unidade do preço médio (ex: "R$/L", "R$/kWh"), informada pelo backend. */
+    val priceUnit: String? = null,
 ) {
     val hasRefuels: Boolean get() = totalRefuels > 0
 }
