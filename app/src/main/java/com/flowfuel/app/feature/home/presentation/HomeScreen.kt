@@ -185,6 +185,17 @@ private fun HomeContent(
     val consumptionUnit = dashboard.consumptionUnit
         ?: if (vehicle.energyType.equals("ELECTRIC", ignoreCase = true)) "km/kWh" else "km/L"
     val consumptionValue = dashboard.averageConsumption?.let(::formatDecimal2) ?: "—"
+    val isHybrid = vehicle.energyType.equals("HYBRID", ignoreCase = true)
+    val indicators = buildList {
+        if (!isHybrid && dashboard.averageConsumption != null) {
+            add(IndicatorItem("Consumo médio", consumptionValue, consumptionUnit))
+        }
+        if (!isHybrid && dashboard.averagePricePerUnit != null) {
+            add(IndicatorItem("Preço médio", formatBrl(dashboard.averagePricePerUnit), dashboard.priceUnit))
+        }
+        add(IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"))
+        add(IndicatorItem("Último abastecimento", daysSince?.let(::formatLastRefuelLabel) ?: "—"))
+    }
 
     LazyColumn(
         modifier = modifier,
@@ -230,16 +241,7 @@ private fun HomeContent(
             }
 
             item {
-                IndicatorsGrid(
-                    consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
-                    averagePrice = IndicatorItem(
-                        "Preço médio",
-                        dashboard.averagePricePerUnit?.let(::formatBrl) ?: "—",
-                        dashboard.priceUnit,
-                    ),
-                    odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
-                    daysSinceRefuel = IndicatorItem("Último abastecimento", daysSince?.let(::formatLastRefuelLabel) ?: "—"),
-                )
+                IndicatorsGrid(items = indicators)
             }
 
             dashboard.hybridBreakdown?.let { breakdown ->
