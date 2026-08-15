@@ -14,6 +14,11 @@ data class SpendSlice(
     val amount: Double,
 )
 
+data class SpendBreakdownOverview(
+    val monthly: SpendBreakdown,
+    val total: SpendBreakdown,
+)
+
 private const val MAX_NAMED_SLICES = 5
 private const val OTHER_LABEL = "Outros"
 
@@ -30,8 +35,8 @@ private val CATEGORY_DISPLAY_ORDER = listOf(
     EventCategory.WASH,
     EventCategory.TIRES,
     EventCategory.INSURANCE,
-    EventCategory.TAX,
     EventCategory.DOCUMENTS,
+    EventCategory.TAX,
 ).map { it.label }
 
 /**

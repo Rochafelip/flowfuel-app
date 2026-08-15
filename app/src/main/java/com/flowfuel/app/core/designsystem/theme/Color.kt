@@ -107,26 +107,31 @@ object FFExtraColors {
 
 object FFChartColors {
     // Ordem fixa por categoria (identidade estável, não por rank/valor) —
-    // mesma ordem em que as fatias são desenhadas no donut, então pares
-    // adjacentes na tela preservam a validação de contraste da sequência.
-    val FuelLight = Color(0xFF2A78D6)
-    val MaintenanceLight = Color(0xFFEB6834)
-    val OilChangeLight = Color(0xFF1BAF7A)
-    val WashLight = Color(0xFFEDA100)
-    val TiresLight = Color(0xFFE87BA4)
-    val InsuranceLight = Color(0xFF008300)
-    val TaxLight = Color(0xFF4A3AA7)
-    val DocumentsLight = Color(0xFFE34948)
+    // mesma ordem em que as fatias são desenhadas no donut. A ordem
+    // importa pra acessibilidade: Seguro (verde) e Imposto (vermelho) NÃO
+    // ficam adjacentes de propósito — Documentos (roxo) fica entre os
+    // dois, senão a dupla verde/vermelho falha o teste de daltonismo
+    // (confirmado com scripts/validate_palette.js da skill dataviz, nos
+    // dois modos: claro contra #fcfcfb, escuro contra o SurfaceDark real
+    // do app #1E293B).
+    val FuelLight = Color(0xFFE06B1D)
+    val MaintenanceLight = Color(0xFF0A8FA6)
+    val OilChangeLight = Color(0xFFA8672A)
+    val WashLight = Color(0xFF0E8FAE)
+    val TiresLight = Color(0xFF4257C0)
+    val InsuranceLight = Color(0xFF1E9E4A)
+    val DocumentsLight = Color(0xFF5B3FA6)
+    val TaxLight = Color(0xFF9C2A44)
     val OtherLight = FFColors.OutlineVariantLight
 
-    val FuelDark = Color(0xFF3987E5)
-    val MaintenanceDark = Color(0xFFD95926)
-    val OilChangeDark = Color(0xFF199E70)
-    val WashDark = Color(0xFFC98500)
-    val TiresDark = Color(0xFFD55181)
-    val InsuranceDark = Color(0xFF008300)
-    val TaxDark = Color(0xFF9085E9)
-    val DocumentsDark = Color(0xFFE66767)
+    val FuelDark = Color(0xFFD9752E)
+    val MaintenanceDark = Color(0xFF1C96AD)
+    val OilChangeDark = Color(0xFFB37A3A)
+    val WashDark = Color(0xFF1D93B8)
+    val TiresDark = Color(0xFF8A5FE0)
+    val InsuranceDark = Color(0xFF1F9E70)
+    val DocumentsDark = Color(0xFF8A6FC2)
+    val TaxDark = Color(0xFFC2436F)
     val OtherDark = FFColors.OutlineVariantDark
 }
 
