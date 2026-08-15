@@ -2,7 +2,6 @@ package com.flowfuel.app.feature.home.presentation.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import com.flowfuel.app.feature.vehicle.domain.model.VehicleType
 @Composable
 fun VehicleHeader(
     vehicle: ActiveVehicleData,
-    daysSinceLastRefuel: Int?,
     onVehicleClick: () -> Unit,
     onInfoClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -36,18 +34,12 @@ fun VehicleHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.clickable(onClick = onVehicleClick)) {
-            Text(
-                text = "${vehicle.brand} ${vehicle.model}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = daysSinceRefuelLabel(daysSinceLastRefuel),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = "${vehicle.brand} ${vehicle.model}",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.clickable(onClick = onVehicleClick),
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onInfoClick) {
                 Icon(
@@ -68,13 +60,6 @@ fun VehicleHeader(
     }
 }
 
-private fun daysSinceRefuelLabel(days: Int?): String = when {
-    days == null -> "Pronto para rodar"
-    days == 0 -> "Abastecido hoje"
-    days == 1 -> "Último abastecimento foi ontem"
-    else -> "Há $days dias sem abastecer"
-}
-
 @Preview(showBackground = true)
 @Composable
 private fun VehicleHeaderPreview() {
@@ -84,7 +69,6 @@ private fun VehicleHeaderPreview() {
             licensePlate = "ABC1D23", energyType = "COMBUSTION", currentKm = 67270,
             photoUrl = null, vehicleType = VehicleType.Car,
         ),
-        daysSinceLastRefuel = 3,
         onVehicleClick = {},
         onInfoClick = {},
     )

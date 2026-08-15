@@ -47,10 +47,10 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
     val pageCount = 2
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    FFCard(modifier = modifier, variant = FFCardVariant.Flat, title = "Composição de gastos") {
+    FFCard(modifier = modifier, variant = FFCardVariant.Flat) {
         Column {
             HorizontalPager(state = pagerState) { page ->
-                val label = if (page == 0) "Mês" else "Total"
+                val label = if (page == 0) "Gastos do Mês" else "Gastos Totais"
                 val breakdown = if (page == 0) overview.monthly else overview.total
                 Column {
                     Row(

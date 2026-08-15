@@ -192,7 +192,6 @@ private fun HomeContent(
         item {
             VehicleHeader(
                 vehicle = vehicle,
-                daysSinceLastRefuel = if (isFirstUse) null else daysSince,
                 onVehicleClick = onVehicleClick,
                 onInfoClick = onInfoClick,
             )
@@ -222,6 +221,7 @@ private fun HomeContent(
                     consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
                     averagePrice = IndicatorItem("Preço médio (mês)", averagePrice?.let(::formatBrl) ?: "—"),
                     odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
+                    daysSinceRefuel = IndicatorItem("Dias sem abastecer", daysSince?.toString() ?: "—", "dias"),
                 )
             }
 
