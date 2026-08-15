@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
+import com.flowfuel.app.core.designsystem.components.FFPagerDotsIndicator
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
@@ -37,27 +42,46 @@ import com.flowfuel.app.feature.home.domain.model.SpendSlice
 @Composable
 fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
+    val pageCount = 2
+    val pagerState = rememberPagerState(pageCount = { pageCount })
+
     FFCard(modifier = modifier, variant = FFCardVariant.Flat, title = "Composição de gastos") {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SpendBreakdownDonut(
-                slices = overview.total.slices,
-                totalLabel = formatBrl(overview.total.totalSpent),
-                colorFor = { label -> sliceColor(label, isDark) },
-                modifier = Modifier.size(140.dp),
-            )
-            Spacer(Modifier.width(FFTheme.spacing.md))
-            Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                overview.total.slices.forEach { slice ->
-                    val percent = if (overview.total.totalSpent > 0)
-                        slice.amount / overview.total.totalSpent * 100 else 0.0
-                    SpendLegendRow(
-                        color = sliceColor(slice.label, isDark),
-                        label = slice.label,
-                        amountLabel = formatBrl(slice.amount),
-                        percentLabel = "%.0f%%".format(percent),
+        Column {
+            HorizontalPager(state = pagerState) { page ->
+                val label = if (page == 0) "Mês" else "Total"
+                val breakdown = if (page == 0) overview.monthly else overview.total
+                Column {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = FFTheme.spacing.sm),
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SpendBreakdownDonut(
+                            slices = breakdown.slices,
+                            totalLabel = formatBrl(breakdown.totalSpent),
+                            colorFor = { sliceLabel -> sliceColor(sliceLabel, isDark) },
+                            modifier = Modifier.size(140.dp),
+                        )
+                        Spacer(Modifier.width(FFTheme.spacing.md))
+                        Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
+                            breakdown.slices.forEach { slice ->
+                                val percent = if (breakdown.totalSpent > 0)
+                                    slice.amount / breakdown.totalSpent * 100 else 0.0
+                                SpendLegendRow(
+                                    color = sliceColor(slice.label, isDark),
+                                    label = slice.label,
+                                    amountLabel = formatBrl(slice.amount),
+                                    percentLabel = "%.0f%%".format(percent),
+                                )
+                            }
+                        }
+                    }
                 }
             }
+            Spacer(Modifier.height(FFTheme.spacing.sm))
+            FFPagerDotsIndicator(pagerState = pagerState, pageCount = pageCount)
         }
     }
 }
@@ -90,11 +114,6 @@ private fun SpendBreakdownDonut(
                 startAngle += sweep
             }
         }
-        // Quebra "R$" do valor em linhas separadas — o círculo interno do
-        // donut não tem largura pra um valor grande (ex: "R$ 12.480,00")
-        // numa linha só sem sobrepor o anel. formatBrl usa espaço
-        // não-quebrável (NBSP) entre "R$" e o número, não espaço comum —
-        // \\s cobre os dois.
         Text(
             text = totalLabel.replaceFirst(Regex("\\s"), "\n"),
             style = FFTheme.numericTypography.numericSmall.copy(
@@ -141,8 +160,8 @@ private fun sliceColor(label: String, isDark: Boolean): Color = when (label) {
     "Lavagem" -> if (isDark) FFChartColors.WashDark else FFChartColors.WashLight
     "Pneus" -> if (isDark) FFChartColors.TiresDark else FFChartColors.TiresLight
     "Seguro" -> if (isDark) FFChartColors.InsuranceDark else FFChartColors.InsuranceLight
-    "Imposto" -> if (isDark) FFChartColors.TaxDark else FFChartColors.TaxLight
     "Documentos" -> if (isDark) FFChartColors.DocumentsDark else FFChartColors.DocumentsLight
+    "Imposto" -> if (isDark) FFChartColors.TaxDark else FFChartColors.TaxLight
     else -> if (isDark) FFChartColors.OtherDark else FFChartColors.OtherLight // "Outros"
 }
 
@@ -151,7 +170,13 @@ private fun sliceColor(label: String, isDark: Boolean): Color = when (label) {
 private fun SpendBreakdownCardPreview() {
     SpendBreakdownCard(
         overview = SpendBreakdownOverview(
-            monthly = SpendBreakdown(totalSpent = 0.0, slices = emptyList()),
+            monthly = SpendBreakdown(
+                totalSpent = 303.30,
+                slices = listOf(
+                    SpendSlice("Combustível", 148.42),
+                    SpendSlice("Documentos", 154.88),
+                ),
+            ),
             total = SpendBreakdown(
                 totalSpent = 1720.65,
                 slices = listOf(

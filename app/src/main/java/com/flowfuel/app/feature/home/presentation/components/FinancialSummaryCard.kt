@@ -1,29 +1,22 @@
 package com.flowfuel.app.feature.home.presentation.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
+import com.flowfuel.app.core.designsystem.components.FFPagerDotsIndicator
 import com.flowfuel.app.core.designsystem.components.FFTrend
 import com.flowfuel.app.core.designsystem.components.FFTrendBadge
 import com.flowfuel.app.core.designsystem.theme.FFTheme
@@ -86,33 +79,7 @@ fun FinancialSummaryCard(
                 }
             }
             Spacer(Modifier.height(FFTheme.spacing.sm))
-            PagerDotsIndicator(pagerState = pagerState, pageCount = pageCount)
-        }
-    }
-}
-
-@Composable
-private fun PagerDotsIndicator(
-    pagerState: PagerState,
-    pageCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        repeat(pageCount) { index ->
-            val active = pagerState.currentPage == index
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 3.dp)
-                    .size(if (active) 8.dp else 6.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant,
-                    ),
-            )
+            FFPagerDotsIndicator(pagerState = pagerState, pageCount = pageCount)
         }
     }
 }
