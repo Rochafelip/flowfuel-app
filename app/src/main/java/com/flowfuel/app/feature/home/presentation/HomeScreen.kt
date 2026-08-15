@@ -32,14 +32,11 @@ import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
-import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
-import com.flowfuel.app.feature.home.presentation.components.FinancialSummaryCard
 import com.flowfuel.app.feature.home.presentation.components.IndicatorItem
 import com.flowfuel.app.feature.home.presentation.components.IndicatorsGrid
-import com.flowfuel.app.feature.home.presentation.components.LastRefuelCard
 import com.flowfuel.app.feature.home.presentation.components.RecentActivityCard
 import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
@@ -118,14 +115,12 @@ fun HomeScreen(
                     HomeContent(
                         vehicle = s.vehicle,
                         dashboard = s.dashboard,
-                        financialSummary = s.financialSummary,
                         recentActivity = s.recentActivity,
                         upcomingMaintenance = s.upcomingMaintenance,
                         spendBreakdown = s.spendBreakdown,
                         onRegisterRefuel = onOpenRefuelSheet,
                         onVehicleClick = viewModel::openVehicleSwitcher,
                         onInfoClick = viewModel::openAboutDialog,
-                        onRetryFinancialSummary = viewModel::retryFinancialSummary,
                         onRetryRecentActivity = viewModel::retryRecentActivity,
                         onRetryUpcomingMaintenance = viewModel::retryUpcomingMaintenance,
                         onRetrySpendBreakdown = viewModel::retrySpendBreakdown,
@@ -168,14 +163,12 @@ fun HomeScreen(
 private fun HomeContent(
     vehicle: ActiveVehicleData,
     dashboard: DashboardData,
-    financialSummary: SectionState<FinancialSummary>,
     recentActivity: SectionState<List<VehicleTimelineItem>>,
     upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>>,
     spendBreakdown: SectionState<SpendBreakdownOverview>,
     onRegisterRefuel: () -> Unit,
     onVehicleClick: () -> Unit,
     onInfoClick: () -> Unit,
-    onRetryFinancialSummary: () -> Unit,
     onRetryRecentActivity: () -> Unit,
     onRetryUpcomingMaintenance: () -> Unit,
     onRetrySpendBreakdown: () -> Unit,
@@ -216,42 +209,28 @@ private fun HomeContent(
             }
         } else {
             item {
-                when (financialSummary) {
-                    is SectionState.Success -> FinancialSummaryCard(
-                        currentMonthTotalLabel = formatBrl(financialSummary.value.currentMonthTotal),
-                        percentDelta = financialSummary.value.percentDelta,
-                        fuelSpentLabel = formatBrl(dashboard.fuelSpent),
-                        totalSpentLabel = formatBrl(dashboard.totalSpent),
-                    )
-                    SectionState.Loading -> FFSkeletonBlock(height = 96.dp)
-                    is SectionState.Error -> SectionErrorCard(onRetry = onRetryFinancialSummary)
-                }
-            }
-
-            item {
-                val averagePrice = (financialSummary as? SectionState.Success)?.value?.averagePricePerUnit
-                IndicatorsGrid(
-                    consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
-                    averagePrice = IndicatorItem("Preço médio", averagePrice?.let(::formatBrl) ?: "—"),
-                    odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
-                )
-            }
-        }
-
-        if (!isFirstUse) {
-            item {
                 when (spendBreakdown) {
                     is SectionState.Success -> SpendBreakdownCard(overview = spendBreakdown.value)
-                    SectionState.Loading -> FFSkeletonBlock(height = 160.dp)
+                    SectionState.Loading -> FFSkeletonBlock(height = 220.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetrySpendBreakdown)
                 }
             }
 
-            item { LastRefuelCard(dashboard = dashboard) }
+            item {
+                val averagePrice = (spendBreakdown as? SectionState.Success)?.value?.averagePricePerUnit
+                IndicatorsGrid(
+                    consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
+                    averagePrice = IndicatorItem("Preço médio (mês)", averagePrice?.let(::formatBrl) ?: "—"),
+                    odometer = IndicatorItem("Odômetro", formatKm(vehicle.currentKm.toDouble()), "km"),
+                )
+            }
 
             item {
                 when (recentActivity) {
-                    is SectionState.Success -> RecentActivityCard(items = recentActivity.value)
+                    is SectionState.Success -> RecentActivityCard(
+                        items = recentActivity.value,
+                        vehicleEnergyType = vehicle.energyType,
+                    )
                     SectionState.Loading -> FFSkeletonBlock(height = 160.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetryRecentActivity)
                 }
@@ -298,8 +277,7 @@ private fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
     ) {
         FFSkeletonBlock(height = 56.dp)
-        FFSkeletonBlock(height = 96.dp)
-        FFSkeletonBlock(height = 176.dp)
+        FFSkeletonBlock(height = 220.dp)
         FFSkeletonBlock(height = 96.dp)
         FFSkeletonBlock(height = 160.dp)
         FFSkeletonBlock(height = 96.dp)

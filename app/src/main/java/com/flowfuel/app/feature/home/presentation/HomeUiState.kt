@@ -3,7 +3,6 @@ package com.flowfuel.app.feature.home.presentation
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
-import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.vehicle.domain.model.Vehicle
@@ -16,7 +15,6 @@ sealed interface HomeScreenState {
     data class Success(
         val vehicle: ActiveVehicleData,
         val dashboard: DashboardData,
-        val financialSummary: SectionState<FinancialSummary> = SectionState.Loading,
         val recentActivity: SectionState<List<VehicleTimelineItem>> = SectionState.Loading,
         val upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>> = SectionState.Loading,
         val spendBreakdown: SectionState<SpendBreakdownOverview> = SectionState.Loading,

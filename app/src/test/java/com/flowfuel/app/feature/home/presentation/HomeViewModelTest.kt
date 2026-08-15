@@ -7,7 +7,7 @@ import com.flowfuel.app.core.datastore.VehicleMaintenancePrefsStore
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
-import com.flowfuel.app.feature.home.domain.model.FinancialSummary
+import com.flowfuel.app.feature.home.domain.model.MonthlyFinancialSummary
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
@@ -15,7 +15,6 @@ import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
-import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetMonthlySpendBreakdownUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
@@ -67,13 +66,12 @@ class HomeViewModelTest {
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase = mockk(relaxed = true)
     private val getVehicleEvents: GetVehicleEventsUseCase = mockk()
     private val getMonthlySpendBreakdown: GetMonthlySpendBreakdownUseCase = mockk()
-    private val getFinancialSummary: GetFinancialSummaryUseCase = mockk()
     private val getRecentActivity: GetRecentActivityUseCase = mockk()
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase = mockk()
     private val maintenancePrefsStore: VehicleMaintenancePrefsStore = mockk(relaxed = true)
 
-    private val testFinancialSummary = FinancialSummary(
-        currentMonthTotal = 300.0,
+    private val testMonthlyFinancialSummary = MonthlyFinancialSummary(
+        breakdown = SpendBreakdown(300.0, listOf(SpendSlice("Combustível", 300.0))),
         previousMonthTotal = 250.0,
         averagePricePerUnit = 5.5,
     )
@@ -129,17 +127,14 @@ class HomeViewModelTest {
         every { sessionStore.activeVehicleIdFlow } returns flowOf(1)
         coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard)
-        coEvery { getFinancialSummary(any()) } returns AppResult.Success(testFinancialSummary)
         coEvery { getRecentActivity(any()) } returns AppResult.Success(emptyList())
         coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Success(testUpcomingMaintenance)
         coEvery { getVehicleEvents(any()) } returns AppResult.Success(emptyList())
-        coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Success(
-            SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))),
-        )
+        coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Success(testMonthlyFinancialSummary)
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, logout,
             sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
-            getVehicleEvents, getMonthlySpendBreakdown, getFinancialSummary, getRecentActivity,
+            getVehicleEvents, getMonthlySpendBreakdown, getRecentActivity,
             getUpcomingMaintenance, maintenancePrefsStore,
         )
     }
@@ -172,7 +167,11 @@ class HomeViewModelTest {
             listOf(testVehicleEvent(EventCategory.MAINTENANCE, 40.0)),
         )
         coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Success(
-            SpendBreakdown(60.0, listOf(SpendSlice("Combustível", 60.0))),
+            MonthlyFinancialSummary(
+                breakdown = SpendBreakdown(60.0, listOf(SpendSlice("Combustível", 60.0))),
+                previousMonthTotal = 50.0,
+                averagePricePerUnit = 5.5,
+            ),
         )
 
         viewModel.load()
@@ -186,6 +185,8 @@ class HomeViewModelTest {
         )
         assertEquals(60.0, overview.monthly.totalSpent, 0.001)
         assertEquals(listOf(SpendSlice("Combustível", 60.0)), overview.monthly.slices)
+        assertEquals(20.0, overview.percentDelta!!, 0.001)
+        assertEquals(5.5, overview.averagePricePerUnit!!, 0.001)
     }
 
     @Test
@@ -196,7 +197,7 @@ class HomeViewModelTest {
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(SectionState.Error(AppError.Network), success.spendBreakdown)
-        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
+        assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
     }
 
     @Test
@@ -220,7 +221,7 @@ class HomeViewModelTest {
         val success = viewModel.state.value.screenState as HomeScreenState.Success
         val overview = (success.spendBreakdown as SectionState.Success).value
         assertEquals(SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))), overview.total)
-        assertEquals(SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))), overview.monthly)
+        assertEquals(testMonthlyFinancialSummary.breakdown, overview.monthly)
     }
 
     // ── Estações (prefetch) ────────────────────────────────────────────────────
@@ -242,69 +243,50 @@ class HomeViewModelTest {
         verify(exactly = 3) { stationsPrefetcher.prefetch() }
     }
 
-    // ── Seções independentes (financialSummary / recentActivity) ──────────────
+    // ── Seção independente (recentActivity) ────────────────────────────────────
 
     @Test
-    fun `load() populates financialSummary and recentActivity sections on success`() = runTest {
+    fun `load() populates recentActivity section on success`() = runTest {
         viewModel.load()
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
-        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
         assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
     }
 
     @Test
-    fun `load() isolates financialSummary failure without breaking the rest of the screen`() = runTest {
-        coEvery { getFinancialSummary(any()) } returns AppResult.Failure(AppError.Network)
-
-        viewModel.load()
-
-        val success = viewModel.state.value.screenState as HomeScreenState.Success
-        assertEquals(SectionState.Error(AppError.Network), success.financialSummary)
-        assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
-    }
-
-    @Test
-    fun `retryFinancialSummary() re-fetches only the financial summary section`() = runTest {
-        coEvery { getFinancialSummary(any()) } returns AppResult.Failure(AppError.Network)
-        viewModel.load()
-        coEvery { getFinancialSummary(any()) } returns AppResult.Success(testFinancialSummary)
-
-        viewModel.retryFinancialSummary()
-
-        val success = viewModel.state.value.screenState as HomeScreenState.Success
-        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
-    }
-
-    @Test
-    fun `stale financialSummary fetch for a previous vehicle does not overwrite the new vehicle's state after a switch`() = runTest {
+    fun `stale spendBreakdown fetch for a previous vehicle does not overwrite the new vehicle's state after a switch`() = runTest {
         val vehicle2 = testVehicle.copy(id = 2, brand = "Toyota", model = "Corolla")
-        val financialSummaryForVehicle2 = testFinancialSummary.copy(currentMonthTotal = 999.0)
+        val summaryForVehicle2 = testMonthlyFinancialSummary.copy(
+            breakdown = SpendBreakdown(999.0, listOf(SpendSlice("Combustível", 999.0))),
+        )
         val staleFetchGate = CompletableDeferred<Unit>()
 
-        // getFinancialSummary(1) parks on staleFetchGate until we explicitly release it,
+        // getMonthlySpendBreakdown(1) parks on staleFetchGate until we explicitly release it,
         // simulating a slow in-flight fetch for the vehicle the user is navigating away from.
-        coEvery { getFinancialSummary(1) } coAnswers {
+        coEvery { getMonthlySpendBreakdown(1) } coAnswers {
             staleFetchGate.await()
-            AppResult.Success(testFinancialSummary)
+            AppResult.Success(testMonthlyFinancialSummary)
         }
-        coEvery { getFinancialSummary(2) } returns AppResult.Success(financialSummaryForVehicle2)
+        coEvery { getMonthlySpendBreakdown(2) } returns AppResult.Success(summaryForVehicle2)
 
-        // Kick off a fresh load for vehicle 1; its loadFinancialSummary(1) call suspends on the gate,
+        // Kick off a fresh load for vehicle 1; its loadSpendBreakdown(1) call suspends on the gate,
         // leaving the coroutine in flight when we switch vehicles below.
         viewModel.load()
         val afterInitialLoad = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(1, afterInitialLoad.vehicle.id)
-        assertEquals(SectionState.Loading, afterInitialLoad.financialSummary)
+        assertEquals(SectionState.Loading, afterInitialLoad.spendBreakdown)
 
-        // Now switch to vehicle 2 while vehicle 1's financial summary fetch is still pending.
+        // Now switch to vehicle 2 while vehicle 1's spend breakdown fetch is still pending.
         every { sessionStore.activeVehicleIdFlow } returns flowOf(2)
         coEvery { getActiveVehicle() } returns AppResult.Success(vehicle2)
         viewModel.onVehicleSwitch(2)
 
         val afterSwitch = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(2, afterSwitch.vehicle.id)
-        assertEquals(SectionState.Success(financialSummaryForVehicle2), afterSwitch.financialSummary)
+        assertEquals(
+            summaryForVehicle2.breakdown,
+            (afterSwitch.spendBreakdown as SectionState.Success).value.monthly,
+        )
 
         // Release the stale vehicle-1 fetch now that vehicle 2's Success state is in place.
         staleFetchGate.complete(Unit)
@@ -312,9 +294,9 @@ class HomeViewModelTest {
         val finalState = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(2, finalState.vehicle.id)
         assertEquals(
-            "Stale vehicle-1 financial summary must not overwrite vehicle 2's state",
-            SectionState.Success(financialSummaryForVehicle2),
-            finalState.financialSummary,
+            "Stale vehicle-1 spend breakdown must not overwrite vehicle 2's state",
+            summaryForVehicle2.breakdown,
+            (finalState.spendBreakdown as SectionState.Success).value.monthly,
         )
     }
 
@@ -336,7 +318,7 @@ class HomeViewModelTest {
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
         assertEquals(SectionState.Error(AppError.Network), success.upcomingMaintenance)
-        assertEquals(SectionState.Success(testFinancialSummary), success.financialSummary)
+        assertEquals(SectionState.Success(emptyList<VehicleTimelineItem>()), success.recentActivity)
     }
 
     @Test

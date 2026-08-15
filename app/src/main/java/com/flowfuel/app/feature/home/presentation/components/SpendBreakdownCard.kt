@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,18 +27,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.flowfuel.app.core.designsystem.components.FFCard
 import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.components.FFPagerDotsIndicator
+import com.flowfuel.app.core.designsystem.components.FFTrend
+import com.flowfuel.app.core.designsystem.components.FFTrendBadge
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
+import kotlin.math.abs
 
 @Composable
 fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Modifier) {
@@ -51,18 +53,42 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
                 val label = if (page == 0) "Mês" else "Total"
                 val breakdown = if (page == 0) overview.monthly else overview.total
                 Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (page == 0 && overview.percentDelta != null) {
+                            // Gasto subindo é ruim (positiveIsGood = false): Up vira vermelho, Down vira verde.
+                            val trend = when {
+                                overview.percentDelta > 0.5 -> FFTrend.Up
+                                overview.percentDelta < -0.5 -> FFTrend.Down
+                                else -> FFTrend.Flat
+                            }
+                            FFTrendBadge(
+                                trend = trend,
+                                label = "%.0f%% vs. mês anterior".format(abs(overview.percentDelta)),
+                                positiveIsGood = false,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(FFTheme.spacing.xs))
                     Text(
-                        text = label,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = formatBrl(breakdown.totalSpent),
+                        style = FFTheme.numericTypography.numericLarge,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = FFTheme.spacing.sm),
                     )
+                    Spacer(Modifier.height(FFTheme.spacing.sm))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         SpendBreakdownDonut(
                             slices = breakdown.slices,
-                            totalLabel = formatBrl(breakdown.totalSpent),
                             colorFor = { index, sliceLabel -> sliceColor(index, sliceLabel, isDark) },
-                            modifier = Modifier.size(140.dp),
+                            modifier = Modifier.size(96.dp),
                         )
                         Spacer(Modifier.width(FFTheme.spacing.md))
                         Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
@@ -89,41 +115,28 @@ fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Mo
 @Composable
 private fun SpendBreakdownDonut(
     slices: List<SpendSlice>,
-    totalLabel: String,
     colorFor: (Int, String) -> Color,
     modifier: Modifier = Modifier,
 ) {
     val total = slices.sumOf { it.amount }
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val strokeWidth = size.minDimension * 0.18f
-            val diameter = size.minDimension - strokeWidth
-            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-            var startAngle = -90f
-            slices.forEachIndexed { index, slice ->
-                val sweep = if (total > 0) (slice.amount / total * 360.0).toFloat() else 0f
-                drawArc(
-                    color = colorFor(index, slice.label),
-                    startAngle = startAngle,
-                    sweepAngle = sweep,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = Size(diameter, diameter),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
-                )
-                startAngle += sweep
-            }
+    Canvas(modifier = modifier) {
+        val strokeWidth = size.minDimension * 0.18f
+        val diameter = size.minDimension - strokeWidth
+        val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+        var startAngle = -90f
+        slices.forEachIndexed { index, slice ->
+            val sweep = if (total > 0) (slice.amount / total * 360.0).toFloat() else 0f
+            drawArc(
+                color = colorFor(index, slice.label),
+                startAngle = startAngle,
+                sweepAngle = sweep,
+                useCenter = false,
+                topLeft = topLeft,
+                size = Size(diameter, diameter),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
+            )
+            startAngle += sweep
         }
-        Text(
-            text = totalLabel.replaceFirst(Regex("\\s"), "\n"),
-            style = FFTheme.numericTypography.numericSmall.copy(
-                fontSize = 13.sp,
-                lineHeight = 15.sp,
-                textAlign = TextAlign.Center,
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.width(84.dp),
-        )
     }
 }
 
@@ -191,6 +204,8 @@ private fun SpendBreakdownCardPreview() {
                     SpendSlice("Outros", 110.65),
                 ),
             ),
+            percentDelta = 12.0,
+            averagePricePerUnit = 5.89,
         ),
     )
 }

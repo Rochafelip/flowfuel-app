@@ -3,7 +3,7 @@ package com.flowfuel.app.feature.home.domain.usecase
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.history.domain.model.RefuelItem
 import com.flowfuel.app.feature.history.domain.usecase.GetRefuelHistoryUseCase
-import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.MonthlyFinancialSummary
 import com.flowfuel.app.feature.home.domain.model.buildSpendBreakdown
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleEvent
 import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsPageUseCase
@@ -14,32 +14,52 @@ import javax.inject.Inject
 private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
 
 /**
- * Composição de gastos do mês atual (até hoje) por categoria — mesma
- * janela de datas de GetFinancialSummaryUseCase.currentMonthTotal, mas
- * com o detalhamento por categoria em vez de só a soma. Duplica a
- * paginação por data que GetFinancialSummaryUseCase já faz — decisão
- * consciente, mesmo padrão já adotado em GetVehicleEventsUseCase (ver
- * docs/superpowers/specs/2026-08-14-spend-breakdown-donut-design.md):
- * evitar mexer em código já em produção só por reuso.
+ * Composição de gastos do mês atual (até hoje) por categoria, mais o total do mês
+ * anterior completo (só para o delta) e o preço médio pago no mês atual — as três
+ * informações que a Home mostra sobre "o mês", buscadas numa única passada para não
+ * duplicar a paginação de abastecimentos+eventos que existia antes em
+ * GetFinancialSummaryUseCase (removido: fundido aqui).
  */
 class GetMonthlySpendBreakdownUseCase @Inject constructor(
     private val getRefuelHistory: GetRefuelHistoryUseCase,
     private val getVehicleEventsPage: GetVehicleEventsPageUseCase,
 ) {
-    suspend operator fun invoke(vehicleId: Int): AppResult<SpendBreakdown> {
+    suspend operator fun invoke(vehicleId: Int): AppResult<MonthlyFinancialSummary> {
         val today = LocalDate.now()
-        val monthStart = today.withDayOfMonth(1)
+        val currentStart = today.withDayOfMonth(1)
+        val previousMonth = today.minusMonths(1)
+        val previousStart = previousMonth.withDayOfMonth(1)
+        val previousEnd = previousMonth.withDayOfMonth(previousMonth.lengthOfMonth())
 
-        val refuelsResult = fetchAllRefuels(vehicleId, monthStart, today)
-        if (refuelsResult is AppResult.Failure) return refuelsResult
-        val refuels = (refuelsResult as AppResult.Success).value
+        val currentRefuelsResult = fetchAllRefuels(vehicleId, currentStart, today)
+        if (currentRefuelsResult is AppResult.Failure) return currentRefuelsResult
+        val currentRefuels = (currentRefuelsResult as AppResult.Success).value
 
-        val eventsResult = fetchAllEvents(vehicleId, monthStart, today)
-        if (eventsResult is AppResult.Failure) return eventsResult
-        val events = (eventsResult as AppResult.Success).value
+        val currentEventsResult = fetchAllEvents(vehicleId, currentStart, today)
+        if (currentEventsResult is AppResult.Failure) return currentEventsResult
+        val currentEvents = (currentEventsResult as AppResult.Success).value
 
-        val monthFuelSpent = refuels.sumOf { it.totalPrice }
-        return AppResult.Success(buildSpendBreakdown(monthFuelSpent, events))
+        val previousRefuelsResult = fetchAllRefuels(vehicleId, previousStart, previousEnd)
+        if (previousRefuelsResult is AppResult.Failure) return previousRefuelsResult
+        val previousRefuels = (previousRefuelsResult as AppResult.Success).value
+
+        val previousEventsResult = fetchAllEvents(vehicleId, previousStart, previousEnd)
+        if (previousEventsResult is AppResult.Failure) return previousEventsResult
+        val previousEvents = (previousEventsResult as AppResult.Success).value
+
+        val currentFuelSpent = currentRefuels.sumOf { it.totalPrice }
+        val previousTotal = previousRefuels.sumOf { it.totalPrice } + previousEvents.sumOf { it.amount ?: 0.0 }
+
+        val currentEnergyTotal = currentRefuels.sumOf { it.energyAmount }
+        val averagePricePerUnit = if (currentEnergyTotal > 0.0) currentFuelSpent / currentEnergyTotal else null
+
+        return AppResult.Success(
+            MonthlyFinancialSummary(
+                breakdown = buildSpendBreakdown(currentFuelSpent, currentEvents),
+                previousMonthTotal = previousTotal,
+                averagePricePerUnit = averagePricePerUnit,
+            )
+        )
     }
 
     private suspend fun fetchAllRefuels(vehicleId: Int, from: LocalDate, to: LocalDate): AppResult<List<RefuelItem>> {

@@ -12,7 +12,6 @@ import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.buildSpendBreakdown
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
-import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetMonthlySpendBreakdownUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
@@ -46,7 +45,6 @@ class HomeViewModel @Inject constructor(
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
     private val getVehicleEvents: GetVehicleEventsUseCase,
     private val getMonthlySpendBreakdown: GetMonthlySpendBreakdownUseCase,
-    private val getFinancialSummary: GetFinancialSummaryUseCase,
     private val getRecentActivity: GetRecentActivityUseCase,
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
     private val maintenancePrefsStore: VehicleMaintenancePrefsStore,
@@ -96,27 +94,12 @@ class HomeViewModel @Inject constructor(
                             ),
                         )
                     }
-                    launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
                     launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
                     launch { loadSpendBreakdown(vehicleId, dashboardResult.value.fuelSpent) }
                 }
                 is AppResult.Failure -> handleGlobalError(dashboardResult.error)
             }
-        }
-    }
-
-    private suspend fun loadFinancialSummary(vehicleId: Int) {
-        val sectionState = when (val result = getFinancialSummary(vehicleId)) {
-            is AppResult.Success -> SectionState.Success(result.value)
-            is AppResult.Failure -> SectionState.Error(result.error)
-        }
-        _state.update { state ->
-            val success = state.screenState as? HomeScreenState.Success ?: return@update state
-            // Descarta o resultado se, enquanto o fetch estava em andamento, o usuário
-            // trocou de veículo — o Success atual já não pertence a este vehicleId.
-            if (success.vehicle.id != vehicleId) return@update state
-            state.copy(screenState = success.copy(financialSummary = sectionState))
         }
     }
 
@@ -143,7 +126,14 @@ class HomeViewModel @Inject constructor(
         val total = buildSpendBreakdown(fuelSpent, (totalResult as AppResult.Success).value)
 
         val sectionState = when (val monthlyResult = getMonthlySpendBreakdown(vehicleId)) {
-            is AppResult.Success -> SectionState.Success(SpendBreakdownOverview(monthly = monthlyResult.value, total = total))
+            is AppResult.Success -> SectionState.Success(
+                SpendBreakdownOverview(
+                    monthly = monthlyResult.value.breakdown,
+                    total = total,
+                    percentDelta = monthlyResult.value.percentDelta,
+                    averagePricePerUnit = monthlyResult.value.averagePricePerUnit,
+                ),
+            )
             is AppResult.Failure -> SectionState.Error(monthlyResult.error)
         }
         applySpendBreakdown(vehicleId, sectionState)
@@ -166,16 +156,6 @@ class HomeViewModel @Inject constructor(
             state.copy(screenState = success.copy(spendBreakdown = SectionState.Loading))
         }
         viewModelScope.launch { loadSpendBreakdown(vehicleId, fuelSpent) }
-    }
-
-    /** Reexecuta só o resumo financeiro, sem recarregar o resto da tela. */
-    fun retryFinancialSummary() {
-        val vehicleId = loadedVehicleId ?: return
-        _state.update { state ->
-            val success = state.screenState as? HomeScreenState.Success ?: return@update state
-            state.copy(screenState = success.copy(financialSummary = SectionState.Loading))
-        }
-        viewModelScope.launch { loadFinancialSummary(vehicleId) }
     }
 
     /** Reexecuta só a atividade recente, sem recarregar o resto da tela. */
@@ -264,7 +244,6 @@ class HomeViewModel @Inject constructor(
                             ),
                         )
                     }
-                    launch { loadFinancialSummary(vehicleId) }
                     launch { loadRecentActivity(vehicleId) }
                     launch { loadUpcomingMaintenance(vehicleId, vehicle.currentKm) }
                     launch { loadSpendBreakdown(vehicleId, dashboardResult.value.fuelSpent) }

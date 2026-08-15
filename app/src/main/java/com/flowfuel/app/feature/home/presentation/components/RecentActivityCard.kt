@@ -22,7 +22,11 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 
 @Composable
-fun RecentActivityCard(items: List<VehicleTimelineItem>, modifier: Modifier = Modifier) {
+fun RecentActivityCard(
+    items: List<VehicleTimelineItem>,
+    vehicleEnergyType: String,
+    modifier: Modifier = Modifier,
+) {
     FFCard(modifier = modifier, variant = FFCardVariant.Flat, title = "Atividade recente") {
         if (items.isEmpty()) {
             Text(
@@ -32,23 +36,35 @@ fun RecentActivityCard(items: List<VehicleTimelineItem>, modifier: Modifier = Mo
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                items.forEach { item -> RecentActivityRow(item) }
+                items.forEach { item -> RecentActivityRow(item, vehicleEnergyType) }
             }
         }
     }
 }
 
-private data class RowData(val icon: ImageVector, val title: String, val amount: Double?, val date: String)
+private data class RowData(
+    val icon: ImageVector,
+    val title: String,
+    val amount: Double?,
+    val date: String,
+    /** Litros/kWh + preço por unidade, só para abastecimentos. */
+    val detail: String? = null,
+)
 
 @Composable
-private fun RecentActivityRow(item: VehicleTimelineItem) {
+private fun RecentActivityRow(item: VehicleTimelineItem, vehicleEnergyType: String) {
     val row = when (item) {
-        is VehicleTimelineItem.RefuelEntry -> RowData(
-            icon = Icons.Default.LocalGasStation,
-            title = "Abastecimento",
-            amount = item.refuel.totalPrice,
-            date = item.refuel.date,
-        )
+        is VehicleTimelineItem.RefuelEntry -> {
+            val unit = refuelUnit(item.refuel.refuelType, vehicleEnergyType)
+            val litersLabel = "%.2f %s".format(item.refuel.energyAmount, unit).replace('.', ',')
+            RowData(
+                icon = Icons.Default.LocalGasStation,
+                title = "Abastecimento",
+                amount = item.refuel.totalPrice,
+                date = item.refuel.date,
+                detail = "$litersLabel · ${formatBrl(item.refuel.pricePerUnit)}/$unit",
+            )
+        }
         is VehicleTimelineItem.EventEntry -> RowData(
             icon = categoryIcon(item.event.category),
             title = item.event.title,
@@ -60,7 +76,12 @@ private fun RecentActivityRow(item: VehicleTimelineItem) {
         leadingContent = { Icon(row.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         headlineContent = { Text(row.title, style = MaterialTheme.typography.titleSmall) },
         supportingContent = {
-            Text(formatDate(row.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column {
+                Text(formatDate(row.date), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                row.detail?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         },
         trailingContent = {
             row.amount?.let {
@@ -69,6 +90,14 @@ private fun RecentActivityRow(item: VehicleTimelineItem) {
         },
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
     )
+}
+
+/** Mesma regra de [com.flowfuel.app.feature.home.presentation.HomeScreen]: HYBRID usa o refuelType do próprio abastecimento; os demais, o tipo de energia do veículo. */
+private fun refuelUnit(refuelType: String?, vehicleEnergyType: String): String = when {
+    refuelType == "ELECTRIC" -> "kWh"
+    refuelType == "FUEL" -> "L"
+    vehicleEnergyType.equals("ELECTRIC", ignoreCase = true) -> "kWh"
+    else -> "L"
 }
 
 private fun categoryIcon(category: EventCategory): ImageVector = when (category) {
@@ -80,5 +109,5 @@ private fun categoryIcon(category: EventCategory): ImageVector = when (category)
 @Preview(showBackground = true)
 @Composable
 private fun RecentActivityCardPreview() {
-    RecentActivityCard(items = emptyList())
+    RecentActivityCard(items = emptyList(), vehicleEnergyType = "COMBUSTION")
 }
