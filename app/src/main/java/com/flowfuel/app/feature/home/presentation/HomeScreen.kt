@@ -42,7 +42,9 @@ import com.flowfuel.app.feature.home.presentation.components.SpendBreakdownCard
 import com.flowfuel.app.feature.home.presentation.components.UpcomingEventsSection
 import com.flowfuel.app.feature.home.presentation.components.VehicleHeader
 import com.flowfuel.app.feature.home.presentation.components.formatBrl
+import com.flowfuel.app.feature.home.presentation.components.formatDecimal2
 import com.flowfuel.app.feature.home.presentation.components.formatInteger
+import com.flowfuel.app.feature.home.presentation.components.formatLastRefuelLabel
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.domain.model.VehicleTimelineItem
 import kotlinx.coroutines.flow.collectLatest
@@ -179,7 +181,7 @@ private fun HomeContent(
     val daysSince = remember(dashboard.lastRefuelDate) { daysSinceRefuel(dashboard.lastRefuelDate) }
     val consumptionUnit = dashboard.consumptionUnit
         ?: if (vehicle.energyType.equals("ELECTRIC", ignoreCase = true)) "km/kWh" else "km/L"
-    val consumptionValue = dashboard.averageConsumption?.let { "%.1f".format(it) } ?: "—"
+    val consumptionValue = dashboard.averageConsumption?.let(::formatDecimal2) ?: "—"
 
     LazyColumn(
         modifier = modifier,
@@ -218,9 +220,13 @@ private fun HomeContent(
             item {
                 IndicatorsGrid(
                     consumption = IndicatorItem("Consumo médio", consumptionValue, consumptionUnit),
-                    averagePrice = IndicatorItem("Preço médio", dashboard.averagePricePerUnit?.let(::formatBrl) ?: "—"),
+                    averagePrice = IndicatorItem(
+                        "Preço médio",
+                        dashboard.averagePricePerUnit?.let(::formatBrl) ?: "—",
+                        dashboard.priceUnit,
+                    ),
                     odometer = IndicatorItem("Odômetro", formatInteger(vehicle.currentKm), "km"),
-                    daysSinceRefuel = IndicatorItem("Dias sem abastecer", daysSince?.toString() ?: "—", "dias"),
+                    daysSinceRefuel = IndicatorItem("Último abastecimento", formatLastRefuelLabel(daysSince)),
                 )
             }
 
