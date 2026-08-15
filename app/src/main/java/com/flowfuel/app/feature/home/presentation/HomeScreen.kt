@@ -33,7 +33,7 @@ import com.flowfuel.app.core.ui.userMessage
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
-import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.presentation.components.FinancialSummaryCard
@@ -171,7 +171,7 @@ private fun HomeContent(
     financialSummary: SectionState<FinancialSummary>,
     recentActivity: SectionState<List<VehicleTimelineItem>>,
     upcomingMaintenance: SectionState<List<UpcomingMaintenanceItem>>,
-    spendBreakdown: SectionState<SpendBreakdown>,
+    spendBreakdown: SectionState<SpendBreakdownOverview>,
     onRegisterRefuel: () -> Unit,
     onVehicleClick: () -> Unit,
     onInfoClick: () -> Unit,
@@ -241,7 +241,7 @@ private fun HomeContent(
         if (!isFirstUse) {
             item {
                 when (spendBreakdown) {
-                    is SectionState.Success -> SpendBreakdownCard(breakdown = spendBreakdown.value)
+                    is SectionState.Success -> SpendBreakdownCard(overview = spendBreakdown.value)
                     SectionState.Loading -> FFSkeletonBlock(height = 160.dp)
                     is SectionState.Error -> SectionErrorCard(onRetry = onRetrySpendBreakdown)
                 }

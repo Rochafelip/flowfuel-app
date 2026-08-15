@@ -8,11 +8,12 @@ import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auth.domain.usecase.LogoutUseCase
 import com.flowfuel.app.feature.home.domain.model.DashboardData
-import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.buildSpendBreakdown
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetMonthlySpendBreakdownUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
@@ -44,6 +45,7 @@ class HomeViewModel @Inject constructor(
     private val stationsPrefetcher: NearbyStationsPrefetcher,
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase,
     private val getVehicleEvents: GetVehicleEventsUseCase,
+    private val getMonthlySpendBreakdown: GetMonthlySpendBreakdownUseCase,
     private val getFinancialSummary: GetFinancialSummaryUseCase,
     private val getRecentActivity: GetRecentActivityUseCase,
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
@@ -133,10 +135,21 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadSpendBreakdown(vehicleId: Int, fuelSpent: Double) {
-        val sectionState = when (val result = getVehicleEvents(vehicleId)) {
-            is AppResult.Success -> SectionState.Success(buildSpendBreakdown(fuelSpent, result.value))
-            is AppResult.Failure -> SectionState.Error(result.error)
+        val totalResult = getVehicleEvents(vehicleId)
+        if (totalResult is AppResult.Failure) {
+            applySpendBreakdown(vehicleId, SectionState.Error(totalResult.error))
+            return
         }
+        val total = buildSpendBreakdown(fuelSpent, (totalResult as AppResult.Success).value)
+
+        val sectionState = when (val monthlyResult = getMonthlySpendBreakdown(vehicleId)) {
+            is AppResult.Success -> SectionState.Success(SpendBreakdownOverview(monthly = monthlyResult.value, total = total))
+            is AppResult.Failure -> SectionState.Error(monthlyResult.error)
+        }
+        applySpendBreakdown(vehicleId, sectionState)
+    }
+
+    private fun applySpendBreakdown(vehicleId: Int, sectionState: SectionState<SpendBreakdownOverview>) {
         _state.update { state ->
             val success = state.screenState as? HomeScreenState.Success ?: return@update state
             if (success.vehicle.id != vehicleId) return@update state

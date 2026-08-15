@@ -9,12 +9,14 @@ import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.DashboardData
 import com.flowfuel.app.feature.home.domain.model.FinancialSummary
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetFinancialSummaryUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetMonthlySpendBreakdownUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetRecentActivityUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.NearbyStationsPrefetcher
@@ -64,6 +66,7 @@ class HomeViewModelTest {
     private val stationsPrefetcher: NearbyStationsPrefetcher = mockk(relaxed = true)
     private val getVehicleEventsTotal: GetVehicleEventsTotalUseCase = mockk(relaxed = true)
     private val getVehicleEvents: GetVehicleEventsUseCase = mockk()
+    private val getMonthlySpendBreakdown: GetMonthlySpendBreakdownUseCase = mockk()
     private val getFinancialSummary: GetFinancialSummaryUseCase = mockk()
     private val getRecentActivity: GetRecentActivityUseCase = mockk()
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase = mockk()
@@ -130,10 +133,14 @@ class HomeViewModelTest {
         coEvery { getRecentActivity(any()) } returns AppResult.Success(emptyList())
         coEvery { getUpcomingMaintenance(any(), any()) } returns AppResult.Success(testUpcomingMaintenance)
         coEvery { getVehicleEvents(any()) } returns AppResult.Success(emptyList())
+        coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Success(
+            SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))),
+        )
         viewModel = HomeViewModel(
             getActiveVehicle, getDashboard, logout,
             sessionStore, getVehicles, setActiveVehicle, stationsPrefetcher, getVehicleEventsTotal,
-            getVehicleEvents, getFinancialSummary, getRecentActivity, getUpcomingMaintenance, maintenancePrefsStore,
+            getVehicleEvents, getMonthlySpendBreakdown, getFinancialSummary, getRecentActivity,
+            getUpcomingMaintenance, maintenancePrefsStore,
         )
     }
 
@@ -159,21 +166,26 @@ class HomeViewModelTest {
     // ── Composição de gastos (spendBreakdown) ──────────────────────────────────
 
     @Test
-    fun `load() populates spendBreakdown from fuelSpent and vehicle events`() = runTest {
+    fun `load() populates spendBreakdown combining monthly and total sources`() = runTest {
         coEvery { getDashboard(any()) } returns AppResult.Success(testDashboard.copy(fuelSpent = 100.0))
         coEvery { getVehicleEvents(any()) } returns AppResult.Success(
             listOf(testVehicleEvent(EventCategory.MAINTENANCE, 40.0)),
+        )
+        coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Success(
+            SpendBreakdown(60.0, listOf(SpendSlice("Combustível", 60.0))),
         )
 
         viewModel.load()
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
-        val breakdown = (success.spendBreakdown as SectionState.Success).value
-        assertEquals(140.0, breakdown.totalSpent, 0.001)
+        val overview = (success.spendBreakdown as SectionState.Success).value
+        assertEquals(140.0, overview.total.totalSpent, 0.001)
         assertEquals(
             listOf(SpendSlice("Combustível", 100.0), SpendSlice("Manutenção", 40.0)),
-            breakdown.slices,
+            overview.total.slices,
         )
+        assertEquals(60.0, overview.monthly.totalSpent, 0.001)
+        assertEquals(listOf(SpendSlice("Combustível", 60.0)), overview.monthly.slices)
     }
 
     @Test
@@ -188,6 +200,16 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `load() isolates spendBreakdown failure when only the monthly source fails`() = runTest {
+        coEvery { getMonthlySpendBreakdown(any()) } returns AppResult.Failure(AppError.Network)
+
+        viewModel.load()
+
+        val success = viewModel.state.value.screenState as HomeScreenState.Success
+        assertEquals(SectionState.Error(AppError.Network), success.spendBreakdown)
+    }
+
+    @Test
     fun `retrySpendBreakdown() re-fetches only the spend breakdown section`() = runTest {
         coEvery { getVehicleEvents(any()) } returns AppResult.Failure(AppError.Network)
         viewModel.load()
@@ -196,10 +218,9 @@ class HomeViewModelTest {
         viewModel.retrySpendBreakdown()
 
         val success = viewModel.state.value.screenState as HomeScreenState.Success
-        assertEquals(
-            SectionState.Success(SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0)))),
-            success.spendBreakdown,
-        )
+        val overview = (success.spendBreakdown as SectionState.Success).value
+        assertEquals(SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))), overview.total)
+        assertEquals(SpendBreakdown(0.0, listOf(SpendSlice("Combustível", 0.0))), overview.monthly)
     }
 
     // ── Estações (prefetch) ────────────────────────────────────────────────────

@@ -31,24 +31,25 @@ import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.theme.FFChartColors
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.home.domain.model.SpendBreakdown
+import com.flowfuel.app.feature.home.domain.model.SpendBreakdownOverview
 import com.flowfuel.app.feature.home.domain.model.SpendSlice
 
 @Composable
-fun SpendBreakdownCard(breakdown: SpendBreakdown, modifier: Modifier = Modifier) {
+fun SpendBreakdownCard(overview: SpendBreakdownOverview, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
     FFCard(modifier = modifier, variant = FFCardVariant.Flat, title = "Composição de gastos") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SpendBreakdownDonut(
-                slices = breakdown.slices,
-                totalLabel = formatBrl(breakdown.totalSpent),
+                slices = overview.total.slices,
+                totalLabel = formatBrl(overview.total.totalSpent),
                 colorFor = { label -> sliceColor(label, isDark) },
                 modifier = Modifier.size(140.dp),
             )
             Spacer(Modifier.width(FFTheme.spacing.md))
             Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.xs)) {
-                breakdown.slices.forEach { slice ->
-                    val percent = if (breakdown.totalSpent > 0)
-                        slice.amount / breakdown.totalSpent * 100 else 0.0
+                overview.total.slices.forEach { slice ->
+                    val percent = if (overview.total.totalSpent > 0)
+                        slice.amount / overview.total.totalSpent * 100 else 0.0
                     SpendLegendRow(
                         color = sliceColor(slice.label, isDark),
                         label = slice.label,
@@ -149,13 +150,16 @@ private fun sliceColor(label: String, isDark: Boolean): Color = when (label) {
 @Composable
 private fun SpendBreakdownCardPreview() {
     SpendBreakdownCard(
-        breakdown = SpendBreakdown(
-            totalSpent = 1720.65,
-            slices = listOf(
-                SpendSlice("Combustível", 890.0),
-                SpendSlice("Manutenção", 420.0),
-                SpendSlice("Seguro", 300.0),
-                SpendSlice("Outros", 110.65),
+        overview = SpendBreakdownOverview(
+            monthly = SpendBreakdown(totalSpent = 0.0, slices = emptyList()),
+            total = SpendBreakdown(
+                totalSpent = 1720.65,
+                slices = listOf(
+                    SpendSlice("Combustível", 890.0),
+                    SpendSlice("Manutenção", 420.0),
+                    SpendSlice("Seguro", 300.0),
+                    SpendSlice("Outros", 110.65),
+                ),
             ),
         ),
     )
