@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Contrast
 import com.flowfuel.app.core.designsystem.components.FFDialog
 import com.flowfuel.app.core.designsystem.components.FFDialogKind
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,6 +79,8 @@ import com.flowfuel.app.core.designsystem.components.FFTopBarVariant
 import com.flowfuel.app.core.designsystem.components.PhotoCropDialog
 import com.flowfuel.app.core.designsystem.components.UserAvatar
 import com.flowfuel.app.core.designsystem.theme.FFTheme
+import com.flowfuel.app.core.designsystem.theme.ThemeMode
+import com.flowfuel.app.core.designsystem.theme.ThemeViewModel
 import com.flowfuel.app.feature.auth.domain.model.UserProfile
 import com.flowfuel.app.feature.auth.domain.usecase.ProfileStats
 import kotlinx.coroutines.flow.collectLatest
@@ -338,6 +342,8 @@ private fun ProfileContent(
         )
         HorizontalDivider()
         NotificationStatusRow()
+        HorizontalDivider()
+        ThemeStatusRow()
         HorizontalDivider()
 
         Spacer(Modifier.height(FFTheme.spacing.xl))
@@ -623,6 +629,78 @@ private fun NotificationStatusRow() {
             )
         },
     )
+}
+
+// ─── Tema ──────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ThemeStatusRow(viewModel: ThemeViewModel = hiltViewModel()) {
+    val themeMode by viewModel.themeMode.collectAsState()
+    var showSheet by remember { mutableStateOf(false) }
+
+    ProfileActionRow(
+        icon         = Icons.Outlined.Contrast,
+        label        = "Tema",
+        trailingText = themeMode.label(),
+        onClick      = { showSheet = true },
+    )
+
+    if (showSheet) {
+        ThemePickerSheet(
+            selected = themeMode,
+            onSelect = { mode ->
+                viewModel.setThemeMode(mode)
+                showSheet = false
+            },
+            onDismiss = { showSheet = false },
+        )
+    }
+}
+
+private fun ThemeMode.label(): String = when (this) {
+    ThemeMode.LIGHT  -> "Claro"
+    ThemeMode.DARK   -> "Escuro"
+    ThemeMode.SYSTEM -> "Automático"
+}
+
+@Composable
+private fun ThemePickerSheet(
+    selected: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    FFBottomSheet(onDismiss = onDismiss) {
+        Text(
+            text     = "Tema",
+            style    = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = FFTheme.spacing.sm),
+        )
+        ThemeMode.entries.forEach { mode ->
+            Surface(onClick = { onSelect(mode) }, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = FFTheme.spacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+                    verticalAlignment     = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text     = mode.label(),
+                        style    = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (mode == selected) {
+                        Icon(
+                            imageVector        = Icons.Outlined.Check,
+                            contentDescription = null,
+                            tint               = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(FFTheme.spacing.sm))
+    }
 }
 
 // ─── Estatísticas de uso ───────────────────────────────────────────────────────

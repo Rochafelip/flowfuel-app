@@ -6,11 +6,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.flowfuel.app.core.designsystem.theme.FlowFuelTheme
+import com.flowfuel.app.core.designsystem.theme.ThemeMode
+import com.flowfuel.app.core.designsystem.theme.ThemeViewModel
 import com.flowfuel.app.navigation.FlowFuelNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -29,7 +34,14 @@ class MainActivity : ComponentActivity() {
         var keepSplash = true
         splash.setKeepOnScreenCondition { keepSplash }
         setContent {
-            FlowFuelTheme {
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val themeMode by themeViewModel.themeMode.collectAsState()
+            val darkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            FlowFuelTheme(darkTheme = darkTheme) {
                 FlowFuelNavHost(
                     onSplashReady = { keepSplash = false },
                     deepLinkUri = deepLinkUri,
