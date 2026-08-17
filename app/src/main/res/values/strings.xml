@@ -60,18 +60,16 @@
 
     <!-- Check Email / Ativação de conta (A5) -->
     <string name="check_email_title">Confirme seu e-mail</string>
-    <string name="check_email_subtitle">Enviamos um link de ativação para</string>
-    <string name="check_email_resend">Reenviar e-mail</string>
+    <string name="check_email_subtitle">Enviamos um código de ativação de 6 dígitos para</string>
+    <string name="check_email_resend">Reenviar código</string>
     <string name="check_email_resend_loading">Reenviando…</string>
     <string name="check_email_resend_cooldown">Reenviar em %ds</string>
-    <string name="check_email_resend_sent">Se houver uma conta pendente, reenviamos o link de ativação.</string>
+    <string name="check_email_resend_sent">Se houver uma conta pendente, reenviamos o código de ativação.</string>
     <string name="check_email_already_confirmed">Já confirmei → Entrar</string>
     <string name="check_email_activation_confirmed">Conta ativada com sucesso. Faça login.</string>
-    <string name="check_email_manual_token_label">Não recebeu o e-mail? Cole o código de ativação abaixo.</string>
     <string name="check_email_manual_token_field">Código de ativação</string>
-    <string name="check_email_manual_token_cta">Ativar com código</string>
-    <string name="check_email_manual_entry_link">Problemas para ativar?</string>
-    <string name="spam_folder_notice">Abra o e-mail e toque no botão de ativação. Não encontrou? Verifique a caixa de spam ou lixo eletrônico.</string>
+    <string name="check_email_manual_token_cta">Ativar</string>
+    <string name="spam_folder_notice">Não encontrou o e-mail? Verifique a caixa de spam ou lixo eletrônico.</string>
     <string name="error_account_not_activated">Conta ainda não ativada. Verifique seu e-mail.</string>
     <string name="error_activation_invalid">Código de ativação inválido, expirado ou já usado.</string>
 

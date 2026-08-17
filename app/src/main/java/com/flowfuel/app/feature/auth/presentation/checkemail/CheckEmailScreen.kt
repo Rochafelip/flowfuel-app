@@ -19,24 +19,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flowfuel.app.R
-import com.flowfuel.app.core.designsystem.components.FFBottomSheet
 import com.flowfuel.app.core.designsystem.components.FFButton
 import com.flowfuel.app.core.designsystem.components.FFButtonVariant
-import com.flowfuel.app.core.designsystem.components.FFInfoBanner
 import com.flowfuel.app.core.designsystem.components.FFSnackbarHost
 import com.flowfuel.app.core.designsystem.components.FFSnackbarKind
 import com.flowfuel.app.core.designsystem.components.FFSnackbarVisuals
@@ -52,37 +49,17 @@ fun CheckEmailScreen(
     onBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateHome: () -> Unit,
-    initialToken: String = "",
     viewModel: CheckEmailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showManualEntry by remember { mutableStateOf(false) }
     val resendSentMessage = stringResource(R.string.check_email_resend_sent)
     val activationConfirmedMessage = stringResource(R.string.check_email_activation_confirmed)
     val resendErrorMessage = state.resendError?.userMessage()
-    val activationErrorMessage = state.activationError?.userMessage()
 
-    // Token vindo do magic link de ativação (flowfuel://activate?token=...) ativa
-    // a conta automaticamente, sem exigir que o usuário abra o fallback manual.
-    LaunchedEffect(initialToken) {
-        if (initialToken.isNotBlank()) {
-            viewModel.onActivationTokenChange(initialToken)
-            viewModel.activateWithToken()
-        }
-    }
     LaunchedEffect(resendErrorMessage) {
         if (resendErrorMessage != null) {
             snackbarHostState.showSnackbar(FFSnackbarVisuals(resendErrorMessage, FFSnackbarKind.Error))
-        }
-    }
-    LaunchedEffect(activationErrorMessage) {
-        // Cobre o caso de ativação automática via deep link falhar (token
-        // inválido/expirado) sem o bottom sheet estar aberto para mostrar o
-        // erro inline. Se o sheet estiver aberto, o campo também mostra o
-        // erro — redundante nesse caso, mas inofensivo.
-        if (activationErrorMessage != null) {
-            snackbarHostState.showSnackbar(FFSnackbarVisuals(activationErrorMessage, FFSnackbarKind.Error))
         }
     }
 
@@ -145,9 +122,27 @@ fun CheckEmailScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(FFTheme.spacing.md))
+            Spacer(Modifier.height(FFTheme.spacing.xl))
 
-            FFInfoBanner(text = stringResource(R.string.spam_folder_notice))
+            FFTextField(
+                value = state.activationToken,
+                onValueChange = { v -> viewModel.onActivationTokenChange(v.filter(Char::isDigit).take(6)) },
+                label = stringResource(R.string.check_email_manual_token_field),
+                errorText = state.activationError?.userMessage(),
+                keyboardType = KeyboardType.Number,
+                enabled = !state.isActivating,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(FFTheme.spacing.sm))
+
+            FFButton(
+                text = stringResource(R.string.check_email_manual_token_cta),
+                onClick = { viewModel.activateWithToken(email) },
+                enabled = state.activationToken.length == 6 && !state.isActivating,
+                loading = state.isActivating,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(Modifier.height(FFTheme.spacing.xl))
 
@@ -161,6 +156,7 @@ fun CheckEmailScreen(
             FFButton(
                 text = resendLabel,
                 onClick = { viewModel.resend(email) },
+                variant = FFButtonVariant.Text,
                 enabled = state.canResend,
                 loading = state.isResending,
                 modifier = Modifier.fillMaxWidth(),
@@ -172,48 +168,6 @@ fun CheckEmailScreen(
                 text = stringResource(R.string.check_email_already_confirmed),
                 variant = FFButtonVariant.Text,
                 onClick = viewModel::onAlreadyConfirmed,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.lg))
-
-            FFButton(
-                text = stringResource(R.string.check_email_manual_entry_link),
-                variant = FFButtonVariant.Text,
-                onClick = { showManualEntry = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-
-    if (showManualEntry) {
-        FFBottomSheet(onDismiss = { showManualEntry = false }) {
-            Text(
-                text = stringResource(R.string.check_email_manual_token_label),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.sm))
-
-            FFTextField(
-                value = state.activationToken,
-                onValueChange = viewModel::onActivationTokenChange,
-                label = stringResource(R.string.check_email_manual_token_field),
-                errorText = state.activationError?.userMessage(),
-                enabled = !state.isActivating,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(FFTheme.spacing.sm))
-
-            FFButton(
-                text = stringResource(R.string.check_email_manual_token_cta),
-                onClick = viewModel::activateWithToken,
-                enabled = state.activationToken.isNotBlank() && !state.isActivating,
-                loading = state.isActivating,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

@@ -193,7 +193,7 @@ class AuthRepositoryImplTest {
     fun `activate success saves session from response`() = runTest {
         coEvery { api.activate(any()) } returns authResponse(42L)
 
-        val result = repository.activate("plain-token")
+        val result = repository.activate("637615", "user@example.com")
 
         assertEquals(AppResult.Success(Unit), result)
         coVerify { sessionStore.save("access_token", "refresh_token", "42", "Felipe", "user@example.com") }
@@ -203,25 +203,25 @@ class AuthRepositoryImplTest {
     fun `activate success saves tokens exactly once`() = runTest {
         coEvery { api.activate(any()) } returns authResponse()
 
-        repository.activate("plain-token")
+        repository.activate("637615", "user@example.com")
 
         coVerify(exactly = 1) { sessionStore.save(any(), any(), any(), any(), any()) }
     }
 
     @Test
-    fun `activate sends token to api unmodified`() = runTest {
+    fun `activate sends token and email to api unmodified`() = runTest {
         coEvery { api.activate(any()) } returns authResponse()
 
-        repository.activate("plain-token")
+        repository.activate("637615", "user@example.com")
 
-        coVerify { api.activate(ActivateAccountRequestDto("plain-token")) }
+        coVerify { api.activate(ActivateAccountRequestDto("637615", "user@example.com")) }
     }
 
     @Test
     fun `activate io exception returns network failure`() = runTest {
         coEvery { api.activate(any()) } throws IOException("timeout")
 
-        val result = repository.activate("plain-token")
+        val result = repository.activate("637615", "user@example.com")
 
         assertEquals(AppResult.Failure(AppError.Network), result)
     }
@@ -230,7 +230,7 @@ class AuthRepositoryImplTest {
     fun `activate failure does not save session`() = runTest {
         coEvery { api.activate(any()) } throws IOException("no connection")
 
-        repository.activate("plain-token")
+        repository.activate("637615", "user@example.com")
 
         coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
     }
@@ -244,7 +244,7 @@ class AuthRepositoryImplTest {
         )
         coEvery { api.activate(any()) } returns dtoWithoutUser
 
-        val result = repository.activate("plain-token")
+        val result = repository.activate("637615", "user@example.com")
 
         assertTrue(result is AppResult.Failure)
         coVerify(exactly = 0) { sessionStore.save(any(), any(), any(), any(), any()) }
@@ -255,7 +255,7 @@ class AuthRepositoryImplTest {
         coEvery { api.activate(any()) } returns authResponse()
         coEvery { deviceTokenRepository.registerToken(any()) } returns AppResult.Success(Unit)
 
-        repository.activate("plain-token")
+        repository.activate("637615", "user@example.com")
 
         coVerify { deviceTokenRepository.registerToken(any()) }
     }

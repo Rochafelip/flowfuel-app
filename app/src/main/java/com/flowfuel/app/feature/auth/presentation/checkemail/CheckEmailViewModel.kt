@@ -71,12 +71,12 @@ class CheckEmailViewModel @Inject constructor(
     fun onActivationTokenChange(v: String) =
         _state.update { it.copy(activationToken = v, activationError = null) }
 
-    fun activateWithToken() {
+    fun activateWithToken(email: String) {
         val token = _state.value.activationToken
         if (token.isBlank() || _state.value.isActivating) return
         _state.update { it.copy(isActivating = true, activationError = null) }
         viewModelScope.launch {
-            when (val result = activateAccount(token)) {
+            when (val result = activateAccount(token, email)) {
                 is AppResult.Success -> {
                     _state.update { it.copy(isActivating = false) }
                     _effects.send(CheckEmailEffect.ActivatedAndLoggedIn)

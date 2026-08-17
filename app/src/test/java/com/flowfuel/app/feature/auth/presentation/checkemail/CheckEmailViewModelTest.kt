@@ -44,25 +44,35 @@ class CheckEmailViewModelTest {
 
     @Test
     fun `activateWithToken success emits ActivatedAndLoggedIn`() = runTest {
-        coEvery { activateAccount(any()) } returns AppResult.Success(Unit)
-        viewModel.onActivationTokenChange("plain-token")
+        coEvery { activateAccount(any(), any()) } returns AppResult.Success(Unit)
+        viewModel.onActivationTokenChange("637615")
 
         viewModel.effects.test {
-            viewModel.activateWithToken()
+            viewModel.activateWithToken("user@example.com")
             assertEquals(CheckEmailEffect.ActivatedAndLoggedIn, awaitItem())
         }
     }
 
     @Test
     fun `activateWithToken failure keeps showing error, no navigation effect`() = runTest {
-        coEvery { activateAccount(any()) } returns AppResult.Failure(AppError.Unauthorized)
-        viewModel.onActivationTokenChange("plain-token")
+        coEvery { activateAccount(any(), any()) } returns AppResult.Failure(AppError.Unauthorized)
+        viewModel.onActivationTokenChange("637615")
 
         viewModel.effects.test {
-            viewModel.activateWithToken()
+            viewModel.activateWithToken("user@example.com")
             expectNoEvents()
         }
 
         assertEquals(AppError.Api("AUTH_ACTIVATION_INVALID"), viewModel.state.value.activationError)
+    }
+
+    @Test
+    fun `activateWithToken sends trimmed email alongside token`() = runTest {
+        coEvery { activateAccount(any(), any()) } returns AppResult.Success(Unit)
+        viewModel.onActivationTokenChange("637615")
+
+        viewModel.activateWithToken("user@example.com")
+
+        io.mockk.coVerify { activateAccount("637615", "user@example.com") }
     }
 }

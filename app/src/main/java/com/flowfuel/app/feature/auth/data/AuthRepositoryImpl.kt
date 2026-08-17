@@ -65,8 +65,8 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun resendActivation(email: String): AppResult<Unit> =
         apiCall { api.resendActivation(ResendActivationRequestDto(email)) }
 
-    override suspend fun activate(token: String): AppResult<Unit> {
-        val result = apiCall { api.activate(ActivateAccountRequestDto(token)) }
+    override suspend fun activate(token: String, email: String): AppResult<Unit> {
+        val result = apiCall { api.activate(ActivateAccountRequestDto(token, email)) }
         return when (result) {
             is AppResult.Success -> handleAuthSuccess(result.value)
             is AppResult.Failure -> result

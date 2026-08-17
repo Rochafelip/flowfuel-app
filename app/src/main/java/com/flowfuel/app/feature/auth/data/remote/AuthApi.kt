@@ -28,7 +28,7 @@ data class ForgotPasswordRequestDto(val email: String)
 data class ResendActivationRequestDto(val email: String)
 
 @Serializable
-data class ActivateAccountRequestDto(val token: String)
+data class ActivateAccountRequestDto(val token: String, val email: String)
 
 @Serializable
 data class ResetPasswordRequestDto(val token: String, val newPassword: String)

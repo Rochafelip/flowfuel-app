@@ -24,7 +24,8 @@ class ResendActivationUseCase @Inject constructor(private val repo: AuthReposito
 }
 
 class ActivateAccountUseCase @Inject constructor(private val repo: AuthRepository) {
-    suspend operator fun invoke(token: String): AppResult<Unit> = repo.activate(token.trim())
+    suspend operator fun invoke(token: String, email: String): AppResult<Unit> =
+        repo.activate(token.trim(), email.trim().lowercase())
 }
 
 class ForgotPasswordUseCase @Inject constructor(private val repo: AuthRepository) {
