@@ -64,18 +64,18 @@ class ExportFormattingTest {
     }
 
     @Test
-    fun `pdfDate formats ISO timestamp with fractional seconds as dd-MM-yyyy`() {
-        assertEquals("30/06/2026", pdfDate("2026-06-30T13:27:29.296979"))
+    fun `displayDate formats ISO timestamp with fractional seconds as dd-MM-yyyy`() {
+        assertEquals("30/06/2026", displayDate("2026-06-30T13:27:29.296979"))
     }
 
     @Test
-    fun `pdfDate formats plain ISO date as dd-MM-yyyy`() {
-        assertEquals("30/06/2026", pdfDate("2026-06-30"))
+    fun `displayDate formats plain ISO date as dd-MM-yyyy`() {
+        assertEquals("30/06/2026", displayDate("2026-06-30"))
     }
 
     @Test
-    fun `pdfDate falls back to raw input when unparseable`() {
-        assertEquals("-", pdfDate(""))
-        assertEquals("not-a-date", pdfDate("not-a-date"))
+    fun `displayDate falls back to raw input when unparseable`() {
+        assertEquals("-", displayDate(""))
+        assertEquals("not-a-date", displayDate("not-a-date"))
     }
 }

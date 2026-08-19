@@ -30,4 +30,37 @@ class PdfReportWriterTest {
     fun `distributeColumnWidths handles empty input`() {
         assertEquals(emptyList<Float>(), distributeColumnWidths(desired = emptyList(), availableWidth = 200f, minWidth = 10f))
     }
+
+    @Test
+    fun `calculatePageCount returns one page when there are no rows`() {
+        assertEquals(1, calculatePageCount(rowCount = 0, firstPageCapacity = 20, otherPageCapacity = 30))
+    }
+
+    @Test
+    fun `calculatePageCount returns one page when rows exactly fill the first page`() {
+        assertEquals(1, calculatePageCount(rowCount = 20, firstPageCapacity = 20, otherPageCapacity = 30))
+    }
+
+    @Test
+    fun `calculatePageCount returns two pages when one row overflows the first page`() {
+        assertEquals(2, calculatePageCount(rowCount = 21, firstPageCapacity = 20, otherPageCapacity = 30))
+    }
+
+    @Test
+    fun `calculatePageCount does not add a blank page when rows exactly fill later pages`() {
+        assertEquals(2, calculatePageCount(rowCount = 50, firstPageCapacity = 20, otherPageCapacity = 30))
+    }
+
+    @Test
+    fun `calculatePageCount adds a third page for the remainder`() {
+        assertEquals(3, calculatePageCount(rowCount = 51, firstPageCapacity = 20, otherPageCapacity = 30))
+    }
+
+    @Test
+    fun `footerText formats generated date and page counter`() {
+        assertEquals(
+            "Gerado em 19/08/2026 · Página 1 de 3",
+            footerText(pageIndex = 1, totalPages = 3, generatedOnLabel = "19/08/2026"),
+        )
+    }
 }

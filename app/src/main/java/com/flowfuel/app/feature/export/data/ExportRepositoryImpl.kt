@@ -68,7 +68,7 @@ class ExportRepositoryImpl @Inject constructor(
                         energyUnit = energyUnit(vehicle),
                         consumptionUnit = consumptionUnit(vehicle),
                         tableHeader = REFUELS_TABLE_HEADER,
-                        tableRows = items.map(::refuelsTableRowPdf),
+                        tableRows = items.map(::refuelsTableRow),
                     )
                     AppResult.Success(saveFile(bytes, "flowfuel-abastecimentos.pdf"))
                 }.getOrElse { e -> Timber.e(e, "export save failure"); AppResult.Failure(AppError.Unknown(e)) }
@@ -104,7 +104,7 @@ class ExportRepositoryImpl @Inject constructor(
                         periodLabel = periodLabel(startDate, endDate),
                         summary = buildEventsSummary(items),
                         tableHeader = EVENTS_TABLE_HEADER,
-                        tableRows = items.map(::eventsTableRowPdf),
+                        tableRows = items.map(::eventsTableRow),
                     )
                     AppResult.Success(saveFile(bytes, "flowfuel-eventos.pdf"))
                 }.getOrElse { e -> Timber.e(e, "export save failure"); AppResult.Failure(AppError.Unknown(e)) }
@@ -154,7 +154,7 @@ class ExportRepositoryImpl @Inject constructor(
     }
 
     private fun refuelsTableRow(item: RefuelItem): List<String> = listOf(
-        item.date,
+        displayDate(item.date),
         item.refuelType ?: "FUEL",
         item.energyAmount.csvDecimal(),
         item.pricePerUnit.csvDecimal(),
@@ -166,7 +166,7 @@ class ExportRepositoryImpl @Inject constructor(
     )
 
     private fun eventsTableRow(item: VehicleEvent): List<String> = listOf(
-        item.eventDate,
+        displayDate(item.eventDate),
         item.category.label,
         item.title,
         item.description ?: "",
@@ -174,12 +174,6 @@ class ExportRepositoryImpl @Inject constructor(
         item.odometerKm?.toString() ?: "",
         item.notes ?: "",
     )
-
-    private fun refuelsTableRowPdf(item: RefuelItem): List<String> =
-        refuelsTableRow(item).toMutableList().also { it[0] = pdfDate(item.date) }
-
-    private fun eventsTableRowPdf(item: VehicleEvent): List<String> =
-        eventsTableRow(item).toMutableList().also { it[0] = pdfDate(item.eventDate) }
 
     private fun saveFile(bytes: ByteArray, filename: String): Uri {
         val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir

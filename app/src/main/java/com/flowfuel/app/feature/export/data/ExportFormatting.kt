@@ -24,7 +24,7 @@ fun energyUnit(vehicle: Vehicle): String = if (vehicle.energyType == EnergyType.
 
 fun consumptionUnit(vehicle: Vehicle): String = if (vehicle.energyType == EnergyType.Electric) "km/kWh" else "km/L"
 
-fun pdfDate(iso: String): String {
+fun displayDate(iso: String): String {
     if (iso.isBlank()) return "-"
     return runCatching {
         LocalDateTime.parse(iso.take(19)).format(PERIOD_FORMATTER)
