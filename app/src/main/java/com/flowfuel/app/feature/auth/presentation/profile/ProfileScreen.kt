@@ -260,7 +260,7 @@ private fun ProfileContent(
             onClick           = { if (!isBusy) showAvatarSheet = true },
         )
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(FFTheme.spacing.xs))
         Text(
             text  = "Alterar foto",
             style = MaterialTheme.typography.labelSmall,
@@ -315,17 +315,17 @@ private fun ProfileContent(
             modifier = Modifier.semantics { heading() },
         )
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.lg))
 
         // ── Estatísticas de uso ───────────────────────────────────────────────
         StatsRow(stats = stats)
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.lg))
 
         // ── Campos de informação ──────────────────────────────────────────────
         ProfileInfoSection(profile = profile)
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.xxl))
 
         // ── Ações ─────────────────────────────────────────────────────────────
         ProfileActionRow(
@@ -413,9 +413,10 @@ private fun DangerZone(
                 color    = MaterialTheme.colorScheme.error.copy(alpha = 0.4f),
             )
             Text(
-                text  = "  Zona de Perigo  ",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
+                text     = "Zona de Perigo",
+                style    = MaterialTheme.typography.labelSmall,
+                color    = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = FFTheme.spacing.sm),
             )
             HorizontalDivider(
                 modifier = Modifier.weight(1f),
@@ -584,7 +585,7 @@ private fun ProfileActionRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = FFTheme.spacing.md),
+                .padding(horizontal = FFTheme.spacing.sm, vertical = FFTheme.spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
         ) {
@@ -778,13 +779,13 @@ private fun ProfileLoadingSkeleton(modifier: Modifier = Modifier) {
 
         FFSkeletonCircle(size = 96.dp)
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(FFTheme.spacing.xs))
         FFSkeletonLine(height = 12.dp, widthFraction = 0.25f)
 
         Spacer(Modifier.height(FFTheme.spacing.md))
         FFSkeletonLine(height = 22.dp, widthFraction = 0.45f)
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.lg))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -802,7 +803,7 @@ private fun ProfileLoadingSkeleton(modifier: Modifier = Modifier) {
             }
         }
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.lg))
 
         repeat(3) {
             Column(
@@ -815,7 +816,7 @@ private fun ProfileLoadingSkeleton(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(FFTheme.spacing.sm))
         }
 
-        Spacer(Modifier.height(FFTheme.spacing.xl))
+        Spacer(Modifier.height(FFTheme.spacing.xxl))
 
         repeat(2) {
             FFSkeletonBlock(height = 52.dp)
