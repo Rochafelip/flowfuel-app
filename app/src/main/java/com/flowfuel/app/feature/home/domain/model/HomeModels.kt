@@ -101,3 +101,35 @@ data class UpcomingMaintenanceItem(
     val isOverdue: Boolean = false,
     val needsSetup: Boolean = false,
 )
+
+/** Texto de status pronto pra exibição, sem depender de Compose — usado no celular e no Android Auto. */
+data class MaintenanceStatusText(val title: String, val subtitle: String)
+
+fun UpcomingMaintenanceItem.toStatusText(): MaintenanceStatusText {
+    val title = when (type) {
+        UpcomingMaintenanceType.OIL_CHANGE -> "Troca de óleo"
+        UpcomingMaintenanceType.TIRE_ROTATION -> "Rodízio de pneus"
+        UpcomingMaintenanceType.LICENSING -> "Licenciamento"
+    }
+    val subtitle = when {
+        needsSetup -> "Defina a data de licenciamento"
+        isOverdue && remainingKm != null -> "Atrasado ${-remainingKm} km"
+        isOverdue && remainingDays != null -> overdueDaysLabel(-remainingDays)
+        remainingKm != null -> "Em $remainingKm km"
+        remainingDays != null -> dueDaysLabel(remainingDays)
+        else -> "—"
+    }
+    return MaintenanceStatusText(title, subtitle)
+}
+
+private fun dueDaysLabel(days: Int): String = when (days) {
+    0 -> "Vence hoje"
+    1 -> "Vence em 1 dia"
+    else -> "Vence em $days dias"
+}
+
+private fun overdueDaysLabel(days: Int): String = when (days) {
+    0 -> "Venceu hoje"
+    1 -> "Venceu há 1 dia"
+    else -> "Venceu há $days dias"
+}

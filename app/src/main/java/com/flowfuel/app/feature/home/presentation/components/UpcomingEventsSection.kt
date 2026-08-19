@@ -23,6 +23,7 @@ import com.flowfuel.app.core.designsystem.components.FFCardVariant
 import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceItem
 import com.flowfuel.app.feature.home.domain.model.UpcomingMaintenanceType
+import com.flowfuel.app.feature.home.domain.model.toStatusText
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.presentation.components.icon
 
@@ -105,32 +106,8 @@ private fun UpcomingMaintenanceItem.toPresentation(): CardPresentation {
         UpcomingMaintenanceType.TIRE_ROTATION -> EventCategory.TIRES.icon
         UpcomingMaintenanceType.LICENSING -> EventCategory.DOCUMENTS.icon
     }
-    val title = when (type) {
-        UpcomingMaintenanceType.OIL_CHANGE -> "Troca de óleo"
-        UpcomingMaintenanceType.TIRE_ROTATION -> "Rodízio de pneus"
-        UpcomingMaintenanceType.LICENSING -> "Licenciamento"
-    }
-    val subtitle = when {
-        needsSetup -> "Defina a data de licenciamento"
-        isOverdue && remainingKm != null -> "Atrasado ${-remainingKm} km"
-        isOverdue && remainingDays != null -> overdueDaysLabel(-remainingDays)
-        remainingKm != null -> "Em $remainingKm km"
-        remainingDays != null -> dueDaysLabel(remainingDays)
-        else -> "—"
-    }
-    return CardPresentation(icon, accent, title, subtitle)
-}
-
-private fun dueDaysLabel(days: Int): String = when (days) {
-    0 -> "Vence hoje"
-    1 -> "Vence em 1 dia"
-    else -> "Vence em $days dias"
-}
-
-private fun overdueDaysLabel(days: Int): String = when (days) {
-    0 -> "Venceu hoje"
-    1 -> "Venceu há 1 dia"
-    else -> "Venceu há $days dias"
+    val statusText = toStatusText()
+    return CardPresentation(icon, accent, statusText.title, statusText.subtitle)
 }
 
 @Preview(showBackground = true)
