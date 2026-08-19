@@ -89,6 +89,7 @@ private sealed interface HistoryListItem {
 fun HistoryScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToDetails: (id: Int) -> Unit = {},
+    onBack: (() -> Unit)? = null,
     historyNeedsRefresh: Boolean = false,
     onHistoryRefreshConsumed: () -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel(),
@@ -193,6 +194,7 @@ fun HistoryScreen(
             FFTopBar(
                 title   = "Histórico",
                 variant = FFTopBarVariant.Small,
+                onBack  = onBack,
                 actions = {
                     IconButton(onClick = { showExportSheet = true }) {
                         Icon(Icons.Outlined.FileDownload, contentDescription = "Exportar")

@@ -33,6 +33,7 @@ import com.flowfuel.app.feature.auth.presentation.forgot.ForgotPasswordScreen
 import com.flowfuel.app.feature.auth.presentation.login.LoginScreen
 import com.flowfuel.app.feature.auth.presentation.resetpassword.ResetPasswordScreen
 import com.flowfuel.app.feature.auth.presentation.register.RegisterScreen
+import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.history.presentation.details.RefuelDetailsScreen
 import com.flowfuel.app.feature.history.presentation.edit.EditRefuelScreen
 import com.flowfuel.app.feature.onboarding.OnboardingScreen
@@ -449,8 +450,8 @@ fun FlowFuelNavHost(
                 onNavigateToEdit = { navController.navigate(Destinations.refuelEdit(refuelId)) },
                 onDeletedNavigateBack = {
                     runCatching {
-                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
-                            .savedStateHandle["history_needs_refresh"] = true
+                        navController.getBackStackEntry(Destinations.HISTORY)
+                            .savedStateHandle["history_updated"] = true
                     }
                     navController.popBackStack()
                 },
@@ -472,8 +473,8 @@ fun FlowFuelNavHost(
                             .savedStateHandle["refuel_updated"] = true
                     }
                     runCatching {
-                        navController.getBackStackEntry(Destinations.MAIN_CONTAINER)
-                            .savedStateHandle["history_needs_refresh"] = true
+                        navController.getBackStackEntry(Destinations.HISTORY)
+                            .savedStateHandle["history_updated"] = true
                     }
                     navController.popBackStack()
                 },
@@ -664,9 +665,6 @@ fun FlowFuelNavHost(
             val passwordChanged by entry.savedStateHandle
                 .getStateFlow("password_changed", false)
                 .collectAsStateWithLifecycle()
-            val historyNeedsRefresh by entry.savedStateHandle
-                .getStateFlow("history_needs_refresh", false)
-                .collectAsStateWithLifecycle()
             val homeNeedsRefresh by entry.savedStateHandle
                 .getStateFlow("home_needs_refresh", false)
                 .collectAsStateWithLifecycle()
@@ -710,6 +708,9 @@ fun FlowFuelNavHost(
                 onNavigateToVehicles = {
                     navController.navigate(Destinations.VEHICLE_MANAGE)
                 },
+                onNavigateToHistory = {
+                    navController.navigate(Destinations.HISTORY)
+                },
                 onNavigateToVehiclePicker = {
                     // Convidado trocando de veículo (ou voltando ao picker após
                     // acesso revogado): mesmo padrão de limpeza de stack usado por
@@ -730,10 +731,6 @@ fun FlowFuelNavHost(
                 onPasswordChangedConsumed = {
                     entry.savedStateHandle["password_changed"] = false
                 },
-                historyNeedsRefresh = historyNeedsRefresh,
-                onHistoryRefreshConsumed = {
-                    entry.savedStateHandle["history_needs_refresh"] = false
-                },
                 homeNeedsRefresh = homeNeedsRefresh,
                 onHomeRefreshConsumed = {
                     entry.savedStateHandle["home_needs_refresh"] = false
@@ -753,6 +750,29 @@ fun FlowFuelNavHost(
                 profileUpdated = profileUpdated,
                 onProfileUpdatedConsumed = {
                     entry.savedStateHandle["profile_updated"] = false
+                },
+            )
+        }
+
+        // ── Histórico de abastecimentos (acessível pelo Perfil) ─────────────
+        composable(Destinations.HISTORY) { entry ->
+            val historyUpdated by entry.savedStateHandle
+                .getStateFlow("history_updated", false)
+                .collectAsStateWithLifecycle()
+
+            HistoryScreen(
+                onBack                   = { navController.popBackStack() },
+                onNavigateToLogin        = {
+                    navController.navigate(Destinations.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToDetails      = { refuelId ->
+                    navController.navigate(Destinations.refuelDetails(refuelId))
+                },
+                historyNeedsRefresh      = historyUpdated,
+                onHistoryRefreshConsumed = {
+                    entry.savedStateHandle["history_updated"] = false
                 },
             )
         }

@@ -23,11 +23,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -49,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -73,7 +72,6 @@ import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.core.notification.presentation.NotificationPermissionUiState
 import com.flowfuel.app.core.notification.presentation.NotificationPermissionViewModel
 import com.flowfuel.app.feature.auth.presentation.profile.ProfileScreen
-import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.home.presentation.HomeScreen
 import com.flowfuel.app.feature.home.presentation.QuickRefuelBottomSheet
 import com.flowfuel.app.feature.home.presentation.QuickRefuelEffect
@@ -86,14 +84,22 @@ import com.flowfuel.app.feature.vehicleevent.domain.model.EventCategory
 import com.flowfuel.app.feature.vehicleevent.presentation.list.VehicleEventsScreen
 import kotlinx.coroutines.flow.collectLatest
 
+/** Tamanho do FAB quando docado entre as abas Postos e Eventos — maior que o
+ * padrão M3 (56dp) para funcionar como peça central de destaque da barra, mas
+ * dentro dos 80dp de altura do BottomAppBar para sobrar respiro simétrico
+ * acima/abaixo dele. */
+private val BottomBarFabSize = 64.dp
+
 /**
  * Container principal autenticado.
  *
  * Responsável por:
- * - Exibir a [FFBottomBar] com as 5 abas do app (3 em modo convidado: Home/
- *   Postos/Perfil) e o FAB global docado (contextual: "Registrar
- *   abastecimento" em Home/Histórico/Postos/Perfil, "Novo evento" em Eventos;
- *   oculto em modo convidado, ver [MainContainerViewModel]).
+ * - Exibir a [FFBottomBar] com as 4 abas do app (3 em modo convidado: Home/
+ *   Postos/Perfil) e o FAB global (contextual: "Registrar abastecimento" em
+ *   Home/Postos/Perfil, "Novo evento" em Eventos; oculto em modo convidado,
+ *   ver [MainContainerViewModel]), posicionado inline entre as abas Postos e
+ *   Eventos. O Histórico deixou de ser aba — vira uma tela à parte, acessível
+ *   pelo Perfil (mesmo padrão de "Meus veículos" / [Destinations.VEHICLE_MANAGE]).
  * - Hospedar o [NavHost] aninhado das abas.
  * - Hospedar o [QuickRefuelBottomSheet] (via [QuickRefuelViewModel]), para que
  *   o FAB abra o sheet a partir de qualquer aba, sem trocar de aba.
@@ -113,6 +119,7 @@ fun MainContainerScreen(
     onNavigateToEventDetails: (eventId: Int) -> Unit = {},
     onNavigateToRefuelDetails: (refuelId: Int) -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {},
     onNavigateToVehiclePicker: () -> Unit = {},
     onNavigateToShareInvite: (shareId: Int) -> Unit = {},
     onNavigateToEditProfile: () -> Unit = {},
@@ -121,8 +128,6 @@ fun MainContainerScreen(
     onPasswordChangedConsumed: () -> Unit = {},
     profileUpdated: Boolean = false,
     onProfileUpdatedConsumed: () -> Unit = {},
-    historyNeedsRefresh: Boolean = false,
-    onHistoryRefreshConsumed: () -> Unit = {},
     homeNeedsRefresh: Boolean = false,
     onHomeRefreshConsumed: () -> Unit = {},
     tabEventCreated: Boolean = false,
@@ -146,19 +151,16 @@ fun MainContainerScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var triggerEventCreate by remember { mutableStateOf(false) }
-    // Sinalizadores locais de "houve um abastecimento registrado agora", um por
-    // aba consumidora — cada um só é resetado quando a própria aba (se e quando
-    // estiver ativa) processa o refresh, mesmo padrão de homeNeedsRefresh/
-    // historyNeedsRefresh vindos de fora (ver FlowFuelNavHost.kt).
+    // Sinalizador local de "houve um abastecimento registrado agora" — só é
+    // resetado quando a Home (se e quando estiver ativa) processa o refresh,
+    // mesmo padrão de homeNeedsRefresh vindo de fora (ver FlowFuelNavHost.kt).
     var homeRefuelPending by remember { mutableStateOf(false) }
-    var historyRefuelPending by remember { mutableStateOf(false) }
 
     LaunchedEffect(quickRefuelViewModel) {
         quickRefuelViewModel.effects.collectLatest { effect ->
             when (effect) {
                 QuickRefuelEffect.RefuelRegistered -> {
                     homeRefuelPending = true
-                    historyRefuelPending = true
                     snackbarHostState.showSnackbar(
                         FFSnackbarVisuals(
                             message = "Abastecimento registrado com sucesso!",
@@ -178,14 +180,6 @@ fun MainContainerScreen(
                 label        = "Home",
                 icon         = Icons.Outlined.Home,
                 selectedIcon = Icons.Filled.Home,
-            ),
-        )
-        val ownerOnlyBeforeStations = if (containerState.isGuestMode) emptyList() else listOf(
-            FFBottomItem(
-                route        = MainDestinations.HISTORY,
-                label        = "Histórico",
-                icon         = Icons.Outlined.History,
-                selectedIcon = Icons.Filled.History,
             ),
         )
         val stationsAndBeyond = listOf(
@@ -210,7 +204,7 @@ fun MainContainerScreen(
                 selectedIcon = Icons.Filled.Person,
             ),
         )
-        base + ownerOnlyBeforeStations + stationsAndBeyond
+        base + stationsAndBeyond
     }
 
     Scaffold(
@@ -222,6 +216,7 @@ fun MainContainerScreen(
             FFBottomBar(
                 items        = tabs,
                 currentRoute = currentRoute,
+                fabAfterRoute = MainDestinations.STATIONS,
                 onSelect     = { item ->
                     innerNavController.navigate(item.route) {
                         // Mantém o start destination na back stack e salva estado
@@ -243,12 +238,14 @@ fun MainContainerScreen(
                             icon               = Icons.Default.Add,
                             contentDescription = "Novo evento",
                             onClick            = { triggerEventCreate = true },
+                            size               = BottomBarFabSize,
                         )
                     } else {
                         FFFab(
                             icon               = Icons.Default.LocalGasStation,
                             contentDescription = "Registrar abastecimento",
                             onClick            = quickRefuelViewModel::openSheet,
+                            size               = BottomBarFabSize,
                         )
                     }
                 },
@@ -336,19 +333,6 @@ fun MainContainerScreen(
                 }
             }
 
-            // ── Histórico ─────────────────────────────────────────────────────
-            composable(MainDestinations.HISTORY) {
-                HistoryScreen(
-                    onNavigateToLogin        = onNavigateToLogin,
-                    onNavigateToDetails      = onNavigateToRefuelDetails,
-                    historyNeedsRefresh      = historyNeedsRefresh || historyRefuelPending,
-                    onHistoryRefreshConsumed = {
-                        onHistoryRefreshConsumed()
-                        historyRefuelPending = false
-                    },
-                )
-            }
-
             // ── Postos ────────────────────────────────────────────────────────
             composable(MainDestinations.STATIONS) {
                 StationsScreen(onNavigateToLogin = onNavigateToLogin)
@@ -380,6 +364,7 @@ fun MainContainerScreen(
                     onNavigateToEditProfile    = onNavigateToEditProfile,
                     onNavigateToChangePassword = onNavigateToChangePassword,
                     onNavigateToVehicles       = onNavigateToVehicles,
+                    onNavigateToHistory        = onNavigateToHistory,
                     onNavigateToShareInvite    = onNavigateToShareInvite,
                     passwordChanged            = passwordChanged,
                     onPasswordChangedConsumed  = onPasswordChangedConsumed,

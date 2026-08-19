@@ -22,6 +22,8 @@ object Destinations {
     const val EDIT_PROFILE     = "auth/edit-profile"
     const val REFUEL_DETAILS   = "refuel/details/{refuelId}"
     const val REFUEL_EDIT      = "refuel/edit/{refuelId}"
+    /** Histórico de abastecimentos, acessível a partir do Perfil (mesmo padrão de [VEHICLE_MANAGE]). */
+    const val HISTORY          = "history"
 
     const val VEHICLE_EVENTS        = "vehicle/events/{vehicleId}"
     const val VEHICLE_EVENT_CREATE  = "vehicle/events/create/{vehicleId}?category={category}&guestMode={guestMode}"
@@ -57,7 +59,6 @@ object Destinations {
 /** Rotas do NavHost aninhado dentro de MainContainerScreen. */
 object MainDestinations {
     const val HOME     = "main/home"
-    const val HISTORY  = "main/history"
     const val STATIONS = "main/stations"
     const val EVENTS   = "main/events"
     const val PROFILE  = "main/profile"

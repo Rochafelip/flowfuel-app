@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Notifications
@@ -93,6 +94,7 @@ fun ProfileScreen(
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToChangePassword: () -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {},
     onNavigateToShareInvite: (shareId: Int) -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedConsumed: () -> Unit = {},
@@ -111,6 +113,7 @@ fun ProfileScreen(
                 ProfileEffect.NavigateToEditProfile    -> onNavigateToEditProfile()
                 ProfileEffect.NavigateToChangePassword -> onNavigateToChangePassword()
                 ProfileEffect.NavigateToVehicles       -> onNavigateToVehicles()
+                ProfileEffect.NavigateToHistory        -> onNavigateToHistory()
                 ProfileEffect.ShowUploadError          -> snackbarHostState.showSnackbar(
                     FFSnackbarVisuals("Não foi possível enviar a foto", FFSnackbarKind.Error)
                 )
@@ -179,6 +182,7 @@ fun ProfileScreen(
                     onEditProfile         = viewModel::onEditProfile,
                     onChangePassword      = viewModel::onChangePassword,
                     onManageVehicles      = viewModel::onManageVehicles,
+                    onViewHistory         = viewModel::onViewHistory,
                     onPendingSharesClicked = viewModel::onPendingSharesClicked,
                     onLogoutRequest       = { showLogoutDialog = true },
                     onDeleteAccountRequest = viewModel::onShowDeleteDialog,
@@ -222,6 +226,7 @@ private fun ProfileContent(
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
     onManageVehicles: () -> Unit,
+    onViewHistory: () -> Unit,
     onPendingSharesClicked: () -> Unit,
     onLogoutRequest: () -> Unit,
     onDeleteAccountRequest: () -> Unit,
@@ -327,6 +332,12 @@ private fun ProfileContent(
             icon    = Icons.Outlined.DirectionsCar,
             label   = "Meus veículos",
             onClick = onManageVehicles,
+        )
+        HorizontalDivider()
+        ProfileActionRow(
+            icon    = Icons.Outlined.History,
+            label   = "Histórico de abastecimentos",
+            onClick = onViewHistory,
         )
         HorizontalDivider()
         ProfileActionRow(
