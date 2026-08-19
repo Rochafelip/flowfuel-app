@@ -68,7 +68,7 @@ class AutoMenuScreenTest {
         assertTrue("deve ter os 4 itens do menu, cabendo sem rolagem (limite é 6)", items.size == 4)
         val titles = items.map { (it as GridItem).title.toString() }
         assertEquals(
-            listOf("Registrar abastecimento", "Postos próximos", "Eventos", "Informações importantes"),
+            listOf("Abastecer", "Postos próximos", "Eventos", "Informações"),
             titles,
         )
         items.forEach { assertNotNull((it as GridItem).onClickDelegate) }

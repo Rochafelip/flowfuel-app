@@ -110,7 +110,7 @@ class AutoMenuScreen(
                 ItemList.Builder()
                     .addItem(
                         GridItem.Builder()
-                            .setTitle("Registrar abastecimento")
+                            .setTitle("Abastecer")
                             .setImage(icon(R.drawable.ic_auto_add))
                             .setOnClickListener {
                                 screenManager.push(AutoRefuelStep1Screen(carContext, vehicle, createRefuel))
@@ -139,7 +139,7 @@ class AutoMenuScreen(
                     )
                     .addItem(
                         GridItem.Builder()
-                            .setTitle("Informações importantes")
+                            .setTitle("Informações")
                             .setImage(icon(R.drawable.ic_auto_info))
                             .setOnClickListener {
                                 screenManager.push(
