@@ -4,13 +4,13 @@ import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.InputCallback
-import androidx.car.app.model.ParkedOnlyOnClickListener
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.Template
-import androidx.car.app.model.signin.InputSignInMethod
-import androidx.car.app.model.signin.SignInTemplate
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
+import java.util.Locale
+
+private const val MAX_DIGITS = 6
 
 class AutoRefuelStep1Screen(
     carContext: CarContext,
@@ -21,20 +21,32 @@ class AutoRefuelStep1Screen(
     private enum class Mode { TRIP, ODOMETER }
 
     private var mode: Mode = Mode.TRIP
-    private var inputText: String = ""
+    private var rawDigits: String = ""
 
-    internal fun testAdvance(text: String) = advance(text)
+    internal fun testDigit(d: Char) = onDigit(d)
+    internal fun testBackspace() = onBackspace()
+    internal fun testConfirm() = onConfirm()
     internal fun testToggleMode() = toggleMode()
 
-    private fun toggleMode() {
-        mode = if (mode == Mode.TRIP) Mode.ODOMETER else Mode.TRIP
-        inputText = ""
+    private fun onDigit(d: Char) {
+        if (rawDigits.length < MAX_DIGITS) rawDigits += d
         invalidate()
     }
 
-    private fun advance(text: String) {
-        val value = text.trim().replace(",", ".").toDoubleOrNull()
-        if (value == null || value <= 0) {
+    private fun onBackspace() {
+        rawDigits = rawDigits.dropLast(1)
+        invalidate()
+    }
+
+    private fun toggleMode() {
+        mode = if (mode == Mode.TRIP) Mode.ODOMETER else Mode.TRIP
+        rawDigits = ""
+        invalidate()
+    }
+
+    private fun onConfirm() {
+        val value = rawDigitsToTenths(rawDigits)
+        if (value <= 0) {
             val message = if (mode == Mode.TRIP)
                 "Informe km percorridos válidos (ex: 150)"
             else
@@ -49,40 +61,24 @@ class AutoRefuelStep1Screen(
     }
 
     override fun onGetTemplate(): Template {
-        val hint = if (mode == Mode.TRIP) "Ex: 150" else "Ex: ${vehicle.currentKm}"
-        val instructions = if (mode == Mode.TRIP)
-            "Km percorridos desde o último abastecimento"
-        else
-            "Odômetro atual (km)"
-        val toggleLabel = if (mode == Mode.TRIP) "Digitar odômetro total" else "Digitar percurso"
+        val value = rawDigitsToTenths(rawDigits)
+        val formatted = String.format(Locale("pt", "BR"), "%.1f", value)
+        val label = if (mode == Mode.TRIP) "Percurso" else "Odômetro"
+        val toggleTitle = if (mode == Mode.TRIP) "Digitar odômetro total" else "Digitar percurso"
 
-        val method = InputSignInMethod.Builder(
-            object : InputCallback {
-                override fun onInputTextChanged(text: String) { inputText = text }
-                override fun onInputSubmitted(text: String) { advance(text) }
-            }
+        val toggleItem = keypadItem(carContext, glyph = "⇄", title = toggleTitle) { toggleMode() }
+        val items = buildKeypadItemList(
+            carContext,
+            onDigit = ::onDigit,
+            onBackspace = ::onBackspace,
+            onConfirm = ::onConfirm,
+            extraItem = toggleItem,
         )
-            .setHint(hint)
-            .setKeyboardType(InputSignInMethod.KEYBOARD_NUMBER)
-            .setShowKeyboardByDefault(true)
-            .build()
 
-        return SignInTemplate.Builder(method)
-            .setTitle("Passo 1 de 3")
+        return GridTemplate.Builder()
+            .setSingleList(items)
+            .setTitle("$label: $formatted km")
             .setHeaderAction(Action.BACK)
-            .setInstructions(instructions)
-            .addAction(
-                Action.Builder()
-                    .setTitle("Próximo")
-                    .setOnClickListener(ParkedOnlyOnClickListener.create { advance(inputText) })
-                    .build()
-            )
-            .addAction(
-                Action.Builder()
-                    .setTitle(toggleLabel)
-                    .setOnClickListener(ParkedOnlyOnClickListener.create { toggleMode() })
-                    .build()
-            )
             .build()
     }
 }

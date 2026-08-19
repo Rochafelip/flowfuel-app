@@ -1,7 +1,7 @@
 package com.flowfuel.app.feature.auto
 
-import androidx.car.app.model.signin.InputSignInMethod
-import androidx.car.app.model.signin.SignInTemplate
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.testing.TestCarContext
 import androidx.car.app.testing.TestScreenManager
 import androidx.test.core.app.ApplicationProvider
@@ -32,56 +32,55 @@ class AutoRefuelStepScreensTest {
         capacity = 50.0, licensePlate = "ABC1234", energyType = "COMBUSTION", currentKm = 50000,
     )
 
+    private fun lastPushed() =
+        carContext.getCarService(TestScreenManager::class.java).screensPushed.last()
+
     // ─── Step 1 ───────────────────────────────────────────────────────────────
 
     @Test
-    fun `Step1 retorna SignInTemplate`() {
+    fun `Step1 retorna GridTemplate com 13 itens (12 do teclado + alternar modo)`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals(13, template.singleList!!.items.size)
     }
 
     @Test
-    fun `Step1 input zero mantem template sem excecao`() {
+    fun `Step1 comeca no modo Percurso, titulo com valor zerado`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        screen.testAdvance("0")
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals("Percurso: 0,0 km", template.title.toString())
     }
 
     @Test
-    fun `Step1 input texto invalido mantem template sem excecao`() {
+    fun `Step1 digitar 1,5,0 mostra 15,0 km no titulo`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        screen.testAdvance("abc")
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        screen.testDigit('1')
+        screen.testDigit('5')
+        screen.testDigit('0')
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals("Percurso: 15,0 km", template.title.toString())
     }
 
     @Test
-    fun `Step1 input valido nao lanca excecao`() {
+    fun `Step1 apagar remove o ultimo digito`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        screen.testAdvance("150")
+        screen.testDigit('1')
+        screen.testDigit('5')
+        screen.testDigit('0')
+        screen.testBackspace()
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals("Percurso: 1,5 km", template.title.toString())
     }
 
     @Test
-    fun `Step1 aceita virgula como separador decimal`() {
+    fun `Step1 alternar pro modo Odometro muda o titulo e zera o valor`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        screen.testAdvance("150,5")
-    }
-
-    @Test
-    fun `Step1 comeca no modo Percurso, com o hint de percurso`() {
-        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        val template = screen.onGetTemplate() as SignInTemplate
-        val method = template.signInMethod as InputSignInMethod
-        assertEquals("Ex: 150", method.hint.toString())
-    }
-
-    @Test
-    fun `Step1 alternar pro modo Odometro muda o hint pro do odometro`() {
-        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
+        screen.testDigit('1')
+        screen.testDigit('5')
         screen.testToggleMode()
 
-        val template = screen.onGetTemplate() as SignInTemplate
-        val method = template.signInMethod as InputSignInMethod
-        assertEquals("Ex: 50000", method.hint.toString())
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals("Odômetro: 0,0 km", template.title.toString())
     }
 
     @Test
@@ -90,80 +89,114 @@ class AutoRefuelStepScreensTest {
         screen.testToggleMode()
         screen.testToggleMode()
 
-        val template = screen.onGetTemplate() as SignInTemplate
-        val method = template.signInMethod as InputSignInMethod
-        assertEquals("Ex: 150", method.hint.toString())
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals("Percurso: 0,0 km", template.title.toString())
     }
 
     @Test
-    fun `Step1 no modo Odometro, avancar constroi OdometerInput_Odometer`() {
+    fun `Step1 confirmar com valor zero nao avanca de tela`() {
+        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
+        screen.testConfirm()
+        assertTrue(carContext.getCarService(TestScreenManager::class.java).screensPushed.isEmpty())
+    }
+
+    @Test
+    fun `Step1 no modo Percurso, confirmar constroi OdometerInput_Trip e avanca`() {
+        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
+        screen.testDigit('1')
+        screen.testDigit('5')
+        screen.testDigit('0')
+        screen.testDigit('0')
+        screen.testConfirm()
+
+        val pushed = lastPushed()
+        assertTrue(pushed is AutoRefuelStep2Screen)
+        val odometerInput = (pushed as AutoRefuelStep2Screen).testOdometerInput()
+        assertTrue(odometerInput is OdometerInput.Trip)
+        assertEquals(150.0, (odometerInput as OdometerInput.Trip).km, 0.0)
+    }
+
+    @Test
+    fun `Step1 no modo Odometro, confirmar constroi OdometerInput_Odometer e avanca`() {
         val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
         screen.testToggleMode()
-        screen.testAdvance("67520")
+        "675200".forEach { screen.testDigit(it) }
+        screen.testConfirm()
 
-        val pushed = carContext.getCarService(TestScreenManager::class.java).screensPushed.last()
+        val pushed = lastPushed()
         assertTrue(pushed is AutoRefuelStep2Screen)
         val odometerInput = (pushed as AutoRefuelStep2Screen).testOdometerInput()
         assertTrue(odometerInput is OdometerInput.Odometer)
         assertEquals(67520.0, (odometerInput as OdometerInput.Odometer).value, 0.0)
     }
 
-    @Test
-    fun `Step1 no modo Percurso, avancar constroi OdometerInput_Trip`() {
-        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
-        screen.testAdvance("150")
-
-        val pushed = carContext.getCarService(TestScreenManager::class.java).screensPushed.last()
-        val odometerInput = (pushed as AutoRefuelStep2Screen).testOdometerInput()
-        assertTrue(odometerInput is OdometerInput.Trip)
-        assertEquals(150.0, (odometerInput as OdometerInput.Trip).km, 0.0)
-    }
-
     // ─── Step 2 ───────────────────────────────────────────────────────────────
 
     @Test
-    fun `Step2 retorna SignInTemplate`() {
+    fun `Step2 retorna GridTemplate com 12 itens`() {
         val screen = AutoRefuelStep2Screen(carContext, vehicle, OdometerInput.Trip(100.0), createRefuel)
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals(12, template.singleList!!.items.size)
     }
 
     @Test
-    fun `Step2 input invalido mantem template sem excecao`() {
+    fun `Step2 confirmar com valor zero nao avanca`() {
         val screen = AutoRefuelStep2Screen(carContext, vehicle, OdometerInput.Trip(100.0), createRefuel)
-        screen.testAdvance("0")
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        screen.testConfirm()
+        assertTrue(carContext.getCarService(TestScreenManager::class.java).screensPushed.isEmpty())
     }
 
     @Test
-    fun `Step2 input valido nao lanca excecao`() {
+    fun `Step2 digitar 4,5,5 e confirmar avanca com 45,5 litros`() {
         val screen = AutoRefuelStep2Screen(carContext, vehicle, OdometerInput.Trip(100.0), createRefuel)
-        screen.testAdvance("45,5")
+        "455".forEach { screen.testDigit(it) }
+        screen.testConfirm()
+
+        val pushed = lastPushed()
+        assertTrue(pushed is AutoRefuelStep3Screen)
+        assertEquals(45.5, (pushed as AutoRefuelStep3Screen).testLiters(), 0.0)
     }
 
     // ─── Step 3 ───────────────────────────────────────────────────────────────
 
     @Test
-    fun `Step3 retorna SignInTemplate`() {
+    fun `Step3 retorna GridTemplate com 12 itens`() {
         val screen = AutoRefuelStep3Screen(
             carContext, vehicle, OdometerInput.Trip(100.0), liters = 45.5, createRefuel,
         )
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        val template = screen.onGetTemplate() as GridTemplate
+        assertEquals(12, template.singleList!!.items.size)
     }
 
     @Test
-    fun `Step3 input invalido mantem template sem excecao`() {
+    fun `Step3 confirmar com valor zero nao avanca`() {
         val screen = AutoRefuelStep3Screen(
             carContext, vehicle, OdometerInput.Trip(100.0), liters = 45.5, createRefuel,
         )
-        screen.testAdvance("0")
-        assertTrue(screen.onGetTemplate() is SignInTemplate)
+        screen.testConfirm()
+        assertTrue(carContext.getCarService(TestScreenManager::class.java).screensPushed.isEmpty())
     }
 
     @Test
-    fun `Step3 input valido nao lanca excecao`() {
+    fun `Step3 digitar 28990 mostra R$ 289,90 no titulo e confirmar avanca`() {
         val screen = AutoRefuelStep3Screen(
             carContext, vehicle, OdometerInput.Trip(100.0), liters = 45.5, createRefuel,
         )
-        screen.testAdvance("289,90")
+        "28990".forEach { screen.testDigit(it) }
+        val template = screen.onGetTemplate() as GridTemplate
+        assertTrue(template.title.toString().contains("289,90"))
+
+        screen.testConfirm()
+        val pushed = lastPushed()
+        assertTrue(pushed is com.flowfuel.app.feature.auto.refuel.AutoRefuelConfirmScreen)
+    }
+
+    @Test
+    fun `todos os botoes do teclado tem onClick configurado`() {
+        val screen = AutoRefuelStep1Screen(carContext, vehicle, createRefuel)
+        val template = screen.onGetTemplate() as GridTemplate
+        template.singleList!!.items.forEach { item ->
+            assertTrue((item as GridItem).onClickDelegate != null)
+        }
     }
 }

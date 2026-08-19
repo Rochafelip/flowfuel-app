@@ -4,13 +4,13 @@ import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.InputCallback
-import androidx.car.app.model.ParkedOnlyOnClickListener
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.Template
-import androidx.car.app.model.signin.InputSignInMethod
-import androidx.car.app.model.signin.SignInTemplate
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
+import java.util.Locale
+
+private const val MAX_DIGITS = 6
 
 class AutoRefuelStep2Screen(
     carContext: CarContext,
@@ -19,14 +19,26 @@ class AutoRefuelStep2Screen(
     private val createRefuel: CreateRefuelUseCase,
 ) : Screen(carContext) {
 
-    private var inputText: String = ""
+    private var rawDigits: String = ""
 
-    internal fun testAdvance(text: String) = advance(text)
+    internal fun testDigit(d: Char) = onDigit(d)
+    internal fun testBackspace() = onBackspace()
+    internal fun testConfirm() = onConfirm()
     internal fun testOdometerInput() = odometerInput
 
-    private fun advance(text: String) {
-        val liters = text.trim().replace(",", ".").toDoubleOrNull()
-        if (liters == null || liters <= 0) {
+    private fun onDigit(d: Char) {
+        if (rawDigits.length < MAX_DIGITS) rawDigits += d
+        invalidate()
+    }
+
+    private fun onBackspace() {
+        rawDigits = rawDigits.dropLast(1)
+        invalidate()
+    }
+
+    private fun onConfirm() {
+        val liters = rawDigitsToTenths(rawDigits)
+        if (liters <= 0) {
             CarToast.makeText(
                 carContext,
                 "Informe litros abastecidos válidos (ex: 45,5)",
@@ -40,27 +52,20 @@ class AutoRefuelStep2Screen(
     }
 
     override fun onGetTemplate(): Template {
-        val method = InputSignInMethod.Builder(
-            object : InputCallback {
-                override fun onInputTextChanged(text: String) { inputText = text }
-                override fun onInputSubmitted(text: String) { advance(text) }
-            }
-        )
-            .setHint("Ex: 45,5")
-            .setKeyboardType(InputSignInMethod.KEYBOARD_NUMBER)
-            .setShowKeyboardByDefault(true)
-            .build()
+        val liters = rawDigitsToTenths(rawDigits)
+        val formatted = String.format(Locale("pt", "BR"), "%.1f", liters)
 
-        return SignInTemplate.Builder(method)
-            .setTitle("Passo 2 de 3")
+        val items = buildKeypadItemList(
+            carContext,
+            onDigit = ::onDigit,
+            onBackspace = ::onBackspace,
+            onConfirm = ::onConfirm,
+        )
+
+        return GridTemplate.Builder()
+            .setSingleList(items)
+            .setTitle("Litros: $formatted L")
             .setHeaderAction(Action.BACK)
-            .setInstructions("Litros abastecidos")
-            .addAction(
-                Action.Builder()
-                    .setTitle("Próximo")
-                    .setOnClickListener(ParkedOnlyOnClickListener.create { advance(inputText) })
-                    .build()
-            )
             .build()
     }
 }

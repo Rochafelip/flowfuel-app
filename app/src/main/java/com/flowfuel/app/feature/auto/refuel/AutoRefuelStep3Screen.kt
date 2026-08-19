@@ -4,13 +4,14 @@ import androidx.car.app.CarContext
 import androidx.car.app.CarToast
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
-import androidx.car.app.model.InputCallback
-import androidx.car.app.model.ParkedOnlyOnClickListener
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.Template
-import androidx.car.app.model.signin.InputSignInMethod
-import androidx.car.app.model.signin.SignInTemplate
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
+import java.text.NumberFormat
+import java.util.Locale
+
+private const val MAX_DIGITS = 7
 
 class AutoRefuelStep3Screen(
     carContext: CarContext,
@@ -20,13 +21,26 @@ class AutoRefuelStep3Screen(
     private val createRefuel: CreateRefuelUseCase,
 ) : Screen(carContext) {
 
-    private var inputText: String = ""
+    private var rawDigits: String = ""
 
-    internal fun testAdvance(text: String) = advance(text)
+    internal fun testDigit(d: Char) = onDigit(d)
+    internal fun testBackspace() = onBackspace()
+    internal fun testConfirm() = onConfirm()
+    internal fun testLiters() = liters
 
-    private fun advance(text: String) {
-        val price = text.trim().replace(",", ".").toDoubleOrNull()
-        if (price == null || price <= 0) {
+    private fun onDigit(d: Char) {
+        if (rawDigits.length < MAX_DIGITS) rawDigits += d
+        invalidate()
+    }
+
+    private fun onBackspace() {
+        rawDigits = rawDigits.dropLast(1)
+        invalidate()
+    }
+
+    private fun onConfirm() {
+        val price = rawDigitsToCents(rawDigits)
+        if (price <= 0) {
             CarToast.makeText(
                 carContext,
                 "Informe o valor total válido (ex: 289,90)",
@@ -40,27 +54,20 @@ class AutoRefuelStep3Screen(
     }
 
     override fun onGetTemplate(): Template {
-        val method = InputSignInMethod.Builder(
-            object : InputCallback {
-                override fun onInputTextChanged(text: String) { inputText = text }
-                override fun onInputSubmitted(text: String) { advance(text) }
-            }
-        )
-            .setHint("Ex: 289,90")
-            .setKeyboardType(InputSignInMethod.KEYBOARD_NUMBER)
-            .setShowKeyboardByDefault(true)
-            .build()
+        val price = rawDigitsToCents(rawDigits)
+        val formatted = NumberFormat.getCurrencyInstance(Locale("pt", "BR")).format(price)
 
-        return SignInTemplate.Builder(method)
-            .setTitle("Passo 3 de 3")
+        val items = buildKeypadItemList(
+            carContext,
+            onDigit = ::onDigit,
+            onBackspace = ::onBackspace,
+            onConfirm = ::onConfirm,
+        )
+
+        return GridTemplate.Builder()
+            .setSingleList(items)
+            .setTitle("Valor: $formatted")
             .setHeaderAction(Action.BACK)
-            .setInstructions("Valor total pago em R$")
-            .addAction(
-                Action.Builder()
-                    .setTitle("Próximo")
-                    .setOnClickListener(ParkedOnlyOnClickListener.create { advance(inputText) })
-                    .build()
-            )
             .build()
     }
 }
