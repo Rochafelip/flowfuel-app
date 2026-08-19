@@ -156,6 +156,9 @@ dependencies {
     implementation(libs.sentry.android)
     implementation(libs.car.app)
     implementation(libs.car.app.projected)
+    // Só em debug: habilita rodar/testar o AutoCarAppService nativamente no
+    // emulador Android Automotive OS, sem precisar de DHU/celular físico.
+    debugImplementation(libs.car.app.automotive)
     testImplementation(libs.car.app.testing)
     testImplementation(libs.androidx.test.core)
     debugImplementation(libs.chucker)

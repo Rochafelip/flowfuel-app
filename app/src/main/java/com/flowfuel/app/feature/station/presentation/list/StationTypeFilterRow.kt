@@ -9,7 +9,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.station.domain.model.StationType
 
 private val STATION_TYPES = listOf(StationType.Fuel, StationType.Electric)
@@ -25,7 +25,7 @@ fun StationTypeFilterRow(
     modifier: Modifier = Modifier,
 ) {
     SingleChoiceSegmentedButtonRow(
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier.padding(horizontal = FFTheme.spacing.md),
     ) {
         STATION_TYPES.forEachIndexed { index, type ->
             val content = type.badgeContent()

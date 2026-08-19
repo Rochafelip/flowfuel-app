@@ -3,6 +3,7 @@ package com.flowfuel.app.feature.auto.menu
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
+import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.GridItem
 import androidx.car.app.model.GridTemplate
@@ -20,9 +21,11 @@ import com.flowfuel.app.feature.auto.driverinfo.AutoDriverInfoScreen
 import com.flowfuel.app.feature.auto.events.AutoEventsScreen
 import com.flowfuel.app.feature.auto.refuel.AutoRefuelStep1Screen
 import com.flowfuel.app.feature.auto.stations.AutoStationsScreen
+import com.flowfuel.app.feature.auto.vehicleinfo.AutoVehicleInfoScreen
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
@@ -37,6 +40,7 @@ class AutoMenuScreen(
     private val locationProvider: LocationProvider,
     private val getVehicleEvents: GetVehicleEventsUseCase,
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
+    private val getDashboard: GetDashboardUseCase,
 ) : Screen(carContext) {
 
     private sealed interface State {
@@ -148,6 +152,17 @@ class AutoMenuScreen(
                             }
                             .build()
                     )
+                    .addItem(
+                        GridItem.Builder()
+                            .setTitle("Veículo")
+                            .setImage(icon(R.drawable.ic_auto_car))
+                            .setOnClickListener {
+                                screenManager.push(
+                                    AutoVehicleInfoScreen(carContext, vehicle, getDashboard)
+                                )
+                            }
+                            .build()
+                    )
                     .build()
             )
             .setTitle(title)
@@ -156,5 +171,13 @@ class AutoMenuScreen(
     }
 
     private fun icon(resId: Int): CarIcon =
-        CarIcon.Builder(IconCompat.createWithResource(carContext, resId)).build()
+        CarIcon.Builder(IconCompat.createWithResource(carContext, resId))
+            .setTint(ICON_TINT)
+            .build()
+
+    private companion object {
+        // Verde da marca FlowFuel — sem tint explícito o host renderia os ícones
+        // com o preto sólido do drawable, quase invisível no tema escuro do carro.
+        val ICON_TINT: CarColor = CarColor.createCustom(0xFF0B6E4F.toInt(), 0xFF34D399.toInt())
+    }
 }

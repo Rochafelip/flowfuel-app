@@ -155,7 +155,10 @@ fun StationsScreen(
                         leadingIcon = Icons.Outlined.LocationOn,
                         onClick = {},
                         onTrailingClick = viewModel::clearSelectedLocation,
-                        modifier = Modifier.padding(horizontal = FFTheme.spacing.md),
+                        modifier = Modifier.padding(
+                            horizontal = FFTheme.spacing.md,
+                            vertical   = FFTheme.spacing.sm,
+                        ),
                     )
                 }
             }

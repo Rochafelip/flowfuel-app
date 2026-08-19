@@ -41,6 +41,8 @@ class HomeRepositoryImpl @Inject constructor(
                 currentKm    = dto.currentKm,
                 photoUrl     = dto.photo,
                 vehicleType  = VehicleType.entries.firstOrNull { it.apiValue == dto.type } ?: VehicleType.Car,
+                manufactureYear = dto.manufactureYear,
+                modelYear    = dto.modelYear,
             )
         }
 

@@ -3,7 +3,40 @@
     Manifest overlay aplicado SOMENTE no build DEBUG.
     Adiciona networkSecurityConfig para liberar HTTP em 10.0.2.2 (localhost do emulador).
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- androidx.car.app:app-automotive (só debug) exige minSdk 29; o app roda
+         a partir de 26. O override é seguro aqui pois só afeta o teste local no
+         emulador Android Automotive OS (API 35), não o build de produção. -->
+    <uses-sdk tools:overrideLibrary="androidx.car.app.automotive" />
+
     <application
-        android:networkSecurityConfig="@xml/network_security_config" />
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <!-- app-projected e app-automotive declaram valores diferentes pro mesmo
+             meta-data; ficamos com o do automotive, que é o que testamos aqui. -->
+        <service
+            android:name="androidx.car.app.CarAppMetadataHolderService"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.car.app.CarAppMetadataHolderService.CAR_HARDWARE_MANAGER"
+                android:value="androidx.car.app.hardware.AutomotiveCarHardwareManager"
+                tools:replace="android:value" />
+        </service>
+
+        <!-- Só em debug: hospeda o AutoCarAppService diretamente, sem precisar de
+             DHU/host. Ver .claude/android-auto-debug-playbook.md. Lançar com:
+             adb shell am start -n com.flowfuel.app.debug/androidx.car.app.activity.CarAppActivity -->
+        <activity
+            android:name="androidx.car.app.activity.CarAppActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:label="FlowFuel Auto">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+    </application>
 </manifest>

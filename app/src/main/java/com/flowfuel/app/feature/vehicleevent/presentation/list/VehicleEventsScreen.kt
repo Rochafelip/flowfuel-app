@@ -215,7 +215,7 @@ fun VehicleEventsScreen(
                 onCustomClick = { showDatePicker = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = FFTheme.spacing.sm),
+                    .padding(vertical = FFTheme.spacing.sm),
             )
 
             HorizontalDivider()

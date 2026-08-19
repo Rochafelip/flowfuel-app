@@ -94,6 +94,7 @@ chucker-no-op = { module = "com.github.chuckerteam.chucker:library-no-op", versi
 
 car-app = { module = "androidx.car.app:app", version.ref = "carApp" }
 car-app-projected = { module = "androidx.car.app:app-projected", version.ref = "carApp" }
+car-app-automotive = { module = "androidx.car.app:app-automotive", version.ref = "carApp" }
 car-app-testing = { module = "androidx.car.app:app-testing", version.ref = "carApp" }
 
 junit = { module = "junit:junit", version.ref = "junit" }

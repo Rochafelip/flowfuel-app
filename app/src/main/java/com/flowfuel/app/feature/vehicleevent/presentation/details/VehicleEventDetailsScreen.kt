@@ -198,7 +198,7 @@ private fun VehicleEventDetailsContent(event: VehicleEvent) {
             top = FFTheme.spacing.md,
             bottom = FFTheme.spacing.xxl,
         ),
-        verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.cardGap),
     ) {
         item(key = "header") {
             Column(verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm)) {
@@ -215,6 +215,10 @@ private fun VehicleEventDetailsContent(event: VehicleEvent) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // Respiro extra antes do primeiro card — maior que o gap entre
+                // cards (cardGap) porque aqui a transição é de conteúdo "hero"
+                // solto para o primeiro container com fundo, não card-para-card.
+                Spacer(Modifier.height(FFTheme.spacing.sm))
             }
         }
 

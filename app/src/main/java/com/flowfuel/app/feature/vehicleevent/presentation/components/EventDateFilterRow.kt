@@ -12,7 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.flowfuel.app.core.designsystem.theme.FFTheme
 import com.flowfuel.app.feature.vehicleevent.domain.model.EventDateFilter
 import com.flowfuel.app.feature.vehicleevent.domain.model.chipLabel
 
@@ -39,8 +39,8 @@ fun EventDateFilterRow(
 ) {
     LazyRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
+        contentPadding = PaddingValues(horizontal = FFTheme.spacing.md),
     ) {
         items(presetFilters.size) { index ->
             val filter = presetFilters[index]

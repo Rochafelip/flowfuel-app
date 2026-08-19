@@ -5,6 +5,7 @@ import androidx.car.app.validation.HostValidator
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
@@ -24,6 +25,7 @@ interface AutoCarAppServiceEntryPoint {
     fun locationProvider(): LocationProvider
     fun getVehicleEvents(): GetVehicleEventsUseCase
     fun getUpcomingMaintenance(): GetUpcomingMaintenanceUseCase
+    fun getDashboard(): GetDashboardUseCase
 }
 
 class AutoCarAppService : CarAppService() {
@@ -45,6 +47,7 @@ class AutoCarAppService : CarAppService() {
             ep.locationProvider(),
             ep.getVehicleEvents(),
             ep.getUpcomingMaintenance(),
+            ep.getDashboard(),
         )
     }
 }

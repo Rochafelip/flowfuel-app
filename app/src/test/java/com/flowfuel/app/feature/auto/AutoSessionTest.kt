@@ -25,6 +25,7 @@ class AutoSessionTest {
         locationProvider = mockk(),
         getVehicleEvents = mockk(),
         getUpcomingMaintenance = mockk(),
+        getDashboard = mockk(),
     )
 
     @Test

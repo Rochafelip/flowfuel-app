@@ -17,6 +17,9 @@ data class ActiveVehicleData(
     val currentKm: Int,
     val photoUrl: String? = null,
     val vehicleType: VehicleType = VehicleType.Car,
+    /** Pode ser null em veículos cadastrados antes da validação obrigatória. */
+    val manufactureYear: Int? = null,
+    val modelYear: Int? = null,
 )
 
 /** Consumo e gasto separados por modal para veículos HYBRID. */

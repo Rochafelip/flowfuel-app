@@ -7,6 +7,7 @@ import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.feature.auto.menu.AutoMenuScreen
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
 import com.flowfuel.app.feature.station.domain.LocationProvider
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
@@ -21,6 +22,7 @@ class AutoSession(
     private val locationProvider: LocationProvider,
     private val getVehicleEvents: GetVehicleEventsUseCase,
     private val getUpcomingMaintenance: GetUpcomingMaintenanceUseCase,
+    private val getDashboard: GetDashboardUseCase,
 ) : androidx.car.app.Session() {
 
     override fun onCreateScreen(intent: Intent): Screen = runBlocking {
@@ -37,5 +39,6 @@ class AutoSession(
             locationProvider,
             getVehicleEvents,
             getUpcomingMaintenance,
+            getDashboard,
         )
 }

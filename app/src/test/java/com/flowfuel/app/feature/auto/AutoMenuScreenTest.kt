@@ -46,7 +46,7 @@ class AutoMenuScreenTest {
     )
 
     private fun makeScreen(getActiveVehicle: GetActiveVehicleUseCase) = AutoMenuScreen(
-        carContext, getActiveVehicle, mockk(), mockk(), mockk(), mockk(), mockk(),
+        carContext, getActiveVehicle, mockk(), mockk(), mockk(), mockk(), mockk(), mockk(),
     )
 
     @Test
@@ -56,7 +56,7 @@ class AutoMenuScreenTest {
     }
 
     @Test
-    fun `apos loadData com sucesso retorna GridTemplate com os 4 itens do menu`() = runTest {
+    fun `apos loadData com sucesso retorna GridTemplate com os 5 itens do menu`() = runTest {
         val getActiveVehicle: GetActiveVehicleUseCase = mockk()
         coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
 
@@ -65,10 +65,10 @@ class AutoMenuScreenTest {
 
         val template = screen.onGetTemplate() as GridTemplate
         val items = template.singleList!!.items
-        assertTrue("deve ter os 4 itens do menu, cabendo sem rolagem (limite é 6)", items.size == 4)
+        assertTrue("deve ter os 5 itens do menu, cabendo sem rolagem (limite é 6)", items.size == 5)
         val titles = items.map { (it as GridItem).title.toString() }
         assertEquals(
-            listOf("Abastecer", "Postos próximos", "Eventos", "Informações"),
+            listOf("Abastecer", "Postos próximos", "Eventos", "Informações", "Veículo"),
             titles,
         )
         items.forEach { assertNotNull((it as GridItem).onClickDelegate) }
