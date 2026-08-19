@@ -82,10 +82,11 @@ Substitui `AutoDashboardScreen` como tela inicial pós-login.
     nome do posto, texto = distância formatada (`"350 m"` abaixo de
     1km, `"1,2 km"` acima). Reaproveita
     `formatDistance(meters: Int): String`
-    (`app/src/main/java/com/flowfuel/app/feature/station/presentation/list/StationCard.kt:125`),
-    hoje `internal` ao pacote `feature.station.presentation.list` —
-    promover a visibilidade pra pública (remover o `internal`) é
-    parte desta tarefa, não duplicar a função.
+    (`app/src/main/java/com/flowfuel/app/feature/station/presentation/list/StationCard.kt:125`)
+    via import direto — não duplicar a função. É `internal`, mas
+    `internal` no Kotlin é visível em todo o módulo `:app` (projeto de
+    módulo único, ver `settings.gradle.kts`), não só no pacote, então
+    já é acessível de `feature.auto` sem mudar a visibilidade.
 - **Ao tocar num posto**: dispara navegação real —
   `carContext.startCarApp(Intent(CarContext.ACTION_NAVIGATE).setData(Uri.parse("geo:${station.latitude},${station.longitude}")))`,
   que abre o app de navegação padrão do carro com destino no posto.

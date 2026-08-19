@@ -2,7 +2,7 @@ package com.flowfuel.app.feature.auto
 
 import androidx.car.app.testing.TestCarContext
 import androidx.test.core.app.ApplicationProvider
-import com.flowfuel.app.feature.auto.dashboard.AutoDashboardScreen
+import com.flowfuel.app.feature.auto.menu.AutoMenuScreen
 import io.mockk.mockk
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,8 +20,11 @@ class AutoSessionTest {
     private fun makeSession() = AutoSession(
         sessionStore = mockk(relaxed = true),
         getActiveVehicle = mockk(),
-        getDashboard = mockk(),
         createRefuel = mockk(),
+        getNearbyStations = mockk(),
+        locationProvider = mockk(),
+        getVehicleEvents = mockk(),
+        getUpcomingMaintenance = mockk(),
     )
 
     @Test
@@ -37,8 +40,8 @@ class AutoSessionTest {
     }
 
     @Test
-    fun `valid token returns AutoDashboardScreen`() {
+    fun `valid token returns AutoMenuScreen`() {
         val screen = makeSession().createInitialScreen(carContext, token = "some-jwt")
-        assertTrue(screen is AutoDashboardScreen)
+        assertTrue(screen is AutoMenuScreen)
     }
 }

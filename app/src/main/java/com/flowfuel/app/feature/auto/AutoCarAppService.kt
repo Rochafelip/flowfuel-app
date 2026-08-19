@@ -5,7 +5,10 @@ import androidx.car.app.validation.HostValidator
 import com.flowfuel.app.core.datastore.SessionStore
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 import com.flowfuel.app.feature.home.domain.usecase.GetActiveVehicleUseCase
-import com.flowfuel.app.feature.home.domain.usecase.GetDashboardUseCase
+import com.flowfuel.app.feature.home.domain.usecase.GetUpcomingMaintenanceUseCase
+import com.flowfuel.app.feature.station.domain.LocationProvider
+import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
+import com.flowfuel.app.feature.vehicleevent.domain.usecase.GetVehicleEventsUseCase
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -16,8 +19,11 @@ import dagger.hilt.components.SingletonComponent
 interface AutoCarAppServiceEntryPoint {
     fun sessionStore(): SessionStore
     fun getActiveVehicle(): GetActiveVehicleUseCase
-    fun getDashboard(): GetDashboardUseCase
     fun createRefuel(): CreateRefuelUseCase
+    fun getNearbyStations(): GetNearbyStationsUseCase
+    fun locationProvider(): LocationProvider
+    fun getVehicleEvents(): GetVehicleEventsUseCase
+    fun getUpcomingMaintenance(): GetUpcomingMaintenanceUseCase
 }
 
 class AutoCarAppService : CarAppService() {
@@ -31,6 +37,14 @@ class AutoCarAppService : CarAppService() {
             applicationContext,
             AutoCarAppServiceEntryPoint::class.java,
         )
-        return AutoSession(ep.sessionStore(), ep.getActiveVehicle(), ep.getDashboard(), ep.createRefuel())
+        return AutoSession(
+            ep.sessionStore(),
+            ep.getActiveVehicle(),
+            ep.createRefuel(),
+            ep.getNearbyStations(),
+            ep.locationProvider(),
+            ep.getVehicleEvents(),
+            ep.getUpcomingMaintenance(),
+        )
     }
 }
