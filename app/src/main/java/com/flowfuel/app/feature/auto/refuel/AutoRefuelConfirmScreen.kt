@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class AutoRefuelConfirmScreen(
     carContext: CarContext,
     private val vehicle: ActiveVehicleData,
-    private val tripKm: Double,
+    private val odometerInput: OdometerInput,
     private val liters: Double,
     private val totalPrice: Double,
     private val createRefuel: CreateRefuelUseCase,
@@ -30,10 +30,15 @@ class AutoRefuelConfirmScreen(
 
     private var state: State = State.Idle
 
+    private val odometerSummaryLine: String = when (odometerInput) {
+        is OdometerInput.Trip -> "Percurso: %.0f km".format(odometerInput.km)
+        is OdometerInput.Odometer -> "Odômetro: %.0f km".format(odometerInput.value)
+    }
+
     override fun onGetTemplate(): Template = when (val s = state) {
         is State.Idle, is State.Submitting -> MessageTemplate.Builder(
             buildString {
-                appendLine("Percurso: %.0f km".format(tripKm))
+                appendLine(odometerSummaryLine)
                 appendLine("Litros: %.1f L".format(liters))
                 append("Valor: R$ %.2f".format(totalPrice))
             }
@@ -94,7 +99,10 @@ class AutoRefuelConfirmScreen(
         state = State.Submitting
         invalidate()
         lifecycleScope.launch {
-            val odometer = vehicle.currentKm.toDouble() + tripKm
+            val odometer = when (odometerInput) {
+                is OdometerInput.Trip -> vehicle.currentKm.toDouble() + odometerInput.km
+                is OdometerInput.Odometer -> odometerInput.value
+            }
             val refuelType = if (vehicle.energyType == "ELECTRIC") "ELECTRIC" else "FUEL"
             val request = CreateRefuelRequest(
                 vehicleId = vehicle.id,

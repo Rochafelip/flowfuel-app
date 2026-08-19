@@ -15,7 +15,7 @@ import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
 class AutoRefuelStep3Screen(
     carContext: CarContext,
     private val vehicle: ActiveVehicleData,
-    private val tripKm: Double,
+    private val odometerInput: OdometerInput,
     private val liters: Double,
     private val createRefuel: CreateRefuelUseCase,
 ) : Screen(carContext) {
@@ -34,7 +34,7 @@ class AutoRefuelStep3Screen(
             ).show()
         } else {
             screenManager.push(
-                AutoRefuelConfirmScreen(carContext, vehicle, tripKm, liters, price, createRefuel)
+                AutoRefuelConfirmScreen(carContext, vehicle, odometerInput, liters, price, createRefuel)
             )
         }
     }

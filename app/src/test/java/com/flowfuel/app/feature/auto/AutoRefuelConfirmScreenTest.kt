@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.flowfuel.app.core.domain.AppError
 import com.flowfuel.app.core.domain.AppResult
 import com.flowfuel.app.feature.auto.refuel.AutoRefuelConfirmScreen
+import com.flowfuel.app.feature.auto.refuel.OdometerInput
 import com.flowfuel.app.feature.home.domain.model.ActiveVehicleData
 import com.flowfuel.app.feature.home.domain.model.CreateRefuelRequest
 import com.flowfuel.app.feature.home.domain.usecase.CreateRefuelUseCase
@@ -50,12 +51,12 @@ class AutoRefuelConfirmScreenTest {
     private val electricVehicle = combustionVehicle.copy(id = 9, energyType = "ELECTRIC")
 
     @Test
-    fun `submit calcula odometro corretamente para veiculo combustao`() = runTest {
+    fun `submit em modo Percurso calcula odometro somando ao km atual`() = runTest {
         coEvery { createRefuel(any()) } returns AppResult.Success(Unit)
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,
             vehicle = combustionVehicle,
-            tripKm = 150.0,
+            odometerInput = OdometerInput.Trip(150.0),
             liters = 45.5,
             totalPrice = 289.90,
             createRefuel = createRefuel,
@@ -77,12 +78,30 @@ class AutoRefuelConfirmScreenTest {
     }
 
     @Test
+    fun `submit em modo Odometro usa o valor digitado direto, sem somar`() = runTest {
+        coEvery { createRefuel(any()) } returns AppResult.Success(Unit)
+        val screen = AutoRefuelConfirmScreen(
+            carContext = carContext,
+            vehicle = combustionVehicle,
+            odometerInput = OdometerInput.Odometer(80500.0),
+            liters = 45.5,
+            totalPrice = 289.90,
+            createRefuel = createRefuel,
+        )
+        screen.testSubmit()
+        advanceUntilIdle()
+        coVerify {
+            createRefuel(match { it.odometer == 80500.0 })
+        }
+    }
+
+    @Test
     fun `submit usa refuelType FUEL para veiculo hibrido`() = runTest {
         coEvery { createRefuel(any()) } returns AppResult.Success(Unit)
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,
             vehicle = hybridVehicle,
-            tripKm = 100.0,
+            odometerInput = OdometerInput.Trip(100.0),
             liters = 30.0,
             totalPrice = 200.0,
             createRefuel = createRefuel,
@@ -100,7 +119,7 @@ class AutoRefuelConfirmScreenTest {
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,
             vehicle = electricVehicle,
-            tripKm = 80.0,
+            odometerInput = OdometerInput.Trip(80.0),
             liters = 30.0,
             totalPrice = 60.0,
             createRefuel = createRefuel,
@@ -118,7 +137,7 @@ class AutoRefuelConfirmScreenTest {
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,
             vehicle = combustionVehicle,
-            tripKm = 100.0,
+            odometerInput = OdometerInput.Trip(100.0),
             liters = 40.0,
             totalPrice = 250.0,
             createRefuel = createRefuel,
@@ -134,7 +153,7 @@ class AutoRefuelConfirmScreenTest {
         val screen = AutoRefuelConfirmScreen(
             carContext = carContext,
             vehicle = combustionVehicle,
-            tripKm = 100.0,
+            odometerInput = OdometerInput.Trip(100.0),
             liters = 40.0,
             totalPrice = 250.0,
             createRefuel = createRefuel,
