@@ -1,8 +1,8 @@
 package com.flowfuel.app.feature.auto
 
-import androidx.car.app.model.ListTemplate
+import androidx.car.app.model.GridItem
+import androidx.car.app.model.GridTemplate
 import androidx.car.app.model.MessageTemplate
-import androidx.car.app.model.Row
 import androidx.car.app.testing.TestCarContext
 import androidx.test.core.app.ApplicationProvider
 import com.flowfuel.app.core.domain.AppError
@@ -56,22 +56,22 @@ class AutoMenuScreenTest {
     }
 
     @Test
-    fun `apos loadData com sucesso retorna ListTemplate com os 4 itens do menu`() = runTest {
+    fun `apos loadData com sucesso retorna GridTemplate com os 4 itens do menu`() = runTest {
         val getActiveVehicle: GetActiveVehicleUseCase = mockk()
         coEvery { getActiveVehicle() } returns AppResult.Success(testVehicle)
 
         val screen = makeScreen(getActiveVehicle)
         screen.loadData()
 
-        val template = screen.onGetTemplate() as ListTemplate
+        val template = screen.onGetTemplate() as GridTemplate
         val items = template.singleList!!.items
-        assertTrue("deve ter os 4 itens do menu", items.size == 4)
-        val titles = items.map { (it as Row).title.toString() }
+        assertTrue("deve ter os 4 itens do menu, cabendo sem rolagem (limite é 6)", items.size == 4)
+        val titles = items.map { (it as GridItem).title.toString() }
         assertEquals(
             listOf("Registrar abastecimento", "Postos próximos", "Eventos", "Informações importantes"),
             titles,
         )
-        items.forEach { assertNotNull((it as Row).onClickDelegate) }
+        items.forEach { assertNotNull((it as GridItem).onClickDelegate) }
     }
 
     @Test
