@@ -119,7 +119,7 @@ O design system próprio (`core/designsystem`) segue Material 3 com tema claro/e
 Requer JDK 17 e Android SDK 35.
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleMobileDebug
 ```
 
 Configurações locais (URL da API de desenvolvimento, DSN do Sentry, keystore de release) vão em `local.properties` — veja o template comentado nesse arquivo.
