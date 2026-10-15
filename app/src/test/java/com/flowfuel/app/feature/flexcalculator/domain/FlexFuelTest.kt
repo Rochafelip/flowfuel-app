@@ -38,10 +38,17 @@ class FlexFuelTest {
     }
 
     @Test
-    fun `ratioRule ties at exactly 70 percent despite floating point error`() {
+    fun `ratioRule picks ethanol at exactly 70 percent despite floating point error`() {
         // 4,13 / 5,90 = 0,7000000000000001 em double.
-        assertEquals(FuelWinner.Tie, FlexFuel.ratioRule(ethanolPrice = 4.13, gasolinePrice = 5.90).winner)
-        assertEquals(FuelWinner.Tie, FlexFuel.ratioRule(ethanolPrice = 7.0, gasolinePrice = 10.0).winner)
+        assertEquals(FuelWinner.Ethanol, FlexFuel.ratioRule(ethanolPrice = 4.13, gasolinePrice = 5.90).winner)
+        assertEquals(FuelWinner.Ethanol, FlexFuel.ratioRule(ethanolPrice = 7.0, gasolinePrice = 10.0).winner)
+    }
+
+    @Test
+    fun `ratioRule follows the 4 over 6 example`() {
+        val result = FlexFuel.ratioRule(ethanolPrice = 4.00, gasolinePrice = 6.00)
+        assertEquals(FuelWinner.Ethanol, result.winner)
+        assertEquals(0.667, result.ratio, 0.001)
     }
 
     @Test

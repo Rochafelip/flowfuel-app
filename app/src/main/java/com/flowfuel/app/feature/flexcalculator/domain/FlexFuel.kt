@@ -33,15 +33,12 @@ object FlexFuel {
         return value
     }
 
+    /** Etanol compensa quando custa até 70% (inclusive) do preço da gasolina. */
     fun ratioRule(ethanolPrice: Double, gasolinePrice: Double): RatioResult {
         val ratio = ethanolPrice / gasolinePrice
         // Arredonda a 4 casas para que 70,00% exato não vire gasolina por erro de ponto flutuante.
         val rounded = (ratio * 10_000).roundToLong() / 10_000.0
-        val winner = when {
-            rounded < RATIO_THRESHOLD -> FuelWinner.Ethanol
-            rounded > RATIO_THRESHOLD -> FuelWinner.Gasoline
-            else -> FuelWinner.Tie
-        }
+        val winner = if (rounded <= RATIO_THRESHOLD) FuelWinner.Ethanol else FuelWinner.Gasoline
         return RatioResult(ratio, winner)
     }
 
