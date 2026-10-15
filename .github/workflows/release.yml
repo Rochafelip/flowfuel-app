@@ -43,13 +43,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleMobileRelease --no-daemon
 
       - name: Locate and rename APK
         id: apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          DEST="app/build/outputs/apk/release/flowfuel-app.apk"
+          APK_PATH=$(find app/build/outputs/apk/mobile/release -name "*.apk" | head -n 1)
+          DEST="app/build/outputs/apk/mobile/release/flowfuel-app.apk"
           mv "$APK_PATH" "$DEST"
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
 

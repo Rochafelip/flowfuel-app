@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Manifest overlay do flavor automotive (só usado pra testar o AutoCarAppService
+    no emulador Android Automotive OS, sem precisar de DHU/celular físico).
+    Nunca combinar com o flavor mobile — ver comentário em app/build.gradle.kts
+    sobre o conflito de meta-data entre app-projected e app-automotive.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- androidx.car.app:app-automotive exige minSdk 29; o app roda a partir de 26.
+         O override é seguro aqui pois só afeta o flavor automotive (emulador
+         Android Automotive OS, API 35), não o flavor mobile de produção. -->
+    <uses-sdk tools:overrideLibrary="androidx.car.app.automotive" />
+
+    <application>
+
+        <service
+            android:name="androidx.car.app.CarAppMetadataHolderService"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.car.app.CarAppMetadataHolderService.CAR_HARDWARE_MANAGER"
+                android:value="androidx.car.app.hardware.AutomotiveCarHardwareManager"
+                tools:replace="android:value" />
+        </service>
+
+        <!-- Hospeda o AutoCarAppService diretamente, sem precisar de DHU/host.
+             Ver .claude/android-auto-debug-playbook.md. Lançar com (mesmo
+             applicationId do flavor mobile debug — os dois nunca ficam
+             instalados ao mesmo tempo no mesmo dispositivo):
+             adb shell am start -n com.flowfuel.app.debug/androidx.car.app.activity.CarAppActivity -->
+        <activity
+            android:name="androidx.car.app.activity.CarAppActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:label="FlowFuel Auto">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+    </application>
+</manifest>

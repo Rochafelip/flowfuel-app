@@ -19,11 +19,29 @@ android {
         applicationId = "com.flowfuel.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 27
-        versionName = "1.9.0"
+        versionCode = 28
+        versionName = "1.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    // androidx.car.app:app-automotive e androidx.car.app:app-projected não podem
+    // conviver na mesma variante: os manifests dos dois módulos declaram valores
+    // diferentes pro meta-data do CarAppMetadataHolderService, e o merge silencioso
+    // do AGP resolve o conflito ficando com o do automotive — o que faz o app real
+    // (Android Auto via celular) parar de aparecer na central, porque o manifest
+    // final descreve um app de Android Automotive OS embarcado, não projetado.
+    // "mobile" é o flavor padrão (Android Auto via celular/cabo, sem app-automotive)
+    // e "automotive" só existe pra testar no emulador Android Automotive OS.
+    flavorDimensions += "carTarget"
+    productFlavors {
+        create("mobile") {
+            dimension = "carTarget"
+        }
+        create("automotive") {
+            dimension = "carTarget"
+        }
     }
 
     val localProps = Properties()
@@ -155,10 +173,11 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.sentry.android)
     implementation(libs.car.app)
-    implementation(libs.car.app.projected)
-    // Só em debug: habilita rodar/testar o AutoCarAppService nativamente no
-    // emulador Android Automotive OS, sem precisar de DHU/celular físico.
-    debugImplementation(libs.car.app.automotive)
+    "mobileImplementation"(libs.car.app.projected)
+    // Só no flavor automotive: habilita rodar/testar o AutoCarAppService
+    // nativamente no emulador Android Automotive OS, sem precisar de DHU/celular
+    // físico. Nunca combinado com car.app.projected — ver comentário em flavorDimensions.
+    "automotiveImplementation"(libs.car.app.automotive)
     testImplementation(libs.car.app.testing)
     testImplementation(libs.androidx.test.core)
     debugImplementation(libs.chucker)

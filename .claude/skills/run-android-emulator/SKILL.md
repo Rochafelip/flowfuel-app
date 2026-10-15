@@ -55,8 +55,11 @@ Do not spend time re-diagnosing this — just use the swiftshader flag.
 4. **Build and install the debug APK:**
    ```bash
    cd "C:\Users\rocha\AndroidStudioProjects\flowfuel-app"
-   ./gradlew.bat installDebug -x lint --console=plain
+   ./gradlew.bat installMobileDebug -x lint --console=plain
    ```
+   (The app has product flavors — `mobile` vs `automotive` — split to avoid a
+   car-app-library manifest conflict. `mobile` is the one that runs on a normal
+   device/emulator; `installDebug` no longer exists as a task name.)
 
 5. **Launch the app:**
    ```bash
