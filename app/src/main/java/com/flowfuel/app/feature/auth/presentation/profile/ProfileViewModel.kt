@@ -54,6 +54,7 @@ sealed interface ProfileEffect {
     data object NavigateToChangePassword : ProfileEffect
     data object NavigateToVehicles : ProfileEffect
     data object NavigateToHistory : ProfileEffect
+    data object NavigateToFlexCalculator : ProfileEffect
     data object ShowUploadError : ProfileEffect
     data object ShowDeleteError : ProfileEffect
     /**
@@ -168,6 +169,10 @@ class ProfileViewModel @Inject constructor(
 
     fun onViewHistory() {
         viewModelScope.launch { _effects.send(ProfileEffect.NavigateToHistory) }
+    }
+
+    fun onOpenFlexCalculator() {
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToFlexCalculator) }
     }
 
     fun onPickImage(uri: Uri) {

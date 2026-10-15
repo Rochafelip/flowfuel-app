@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
@@ -95,6 +96,7 @@ fun ProfileScreen(
     onNavigateToChangePassword: () -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToFlexCalculator: () -> Unit = {},
     onNavigateToShareInvite: (shareId: Int) -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedConsumed: () -> Unit = {},
@@ -114,6 +116,7 @@ fun ProfileScreen(
                 ProfileEffect.NavigateToChangePassword -> onNavigateToChangePassword()
                 ProfileEffect.NavigateToVehicles       -> onNavigateToVehicles()
                 ProfileEffect.NavigateToHistory        -> onNavigateToHistory()
+                ProfileEffect.NavigateToFlexCalculator -> onNavigateToFlexCalculator()
                 ProfileEffect.ShowUploadError          -> snackbarHostState.showSnackbar(
                     FFSnackbarVisuals("Não foi possível enviar a foto", FFSnackbarKind.Error)
                 )
@@ -183,6 +186,7 @@ fun ProfileScreen(
                     onChangePassword      = viewModel::onChangePassword,
                     onManageVehicles      = viewModel::onManageVehicles,
                     onViewHistory         = viewModel::onViewHistory,
+                    onOpenFlexCalculator  = viewModel::onOpenFlexCalculator,
                     onPendingSharesClicked = viewModel::onPendingSharesClicked,
                     onLogoutRequest       = { showLogoutDialog = true },
                     onDeleteAccountRequest = viewModel::onShowDeleteDialog,
@@ -227,6 +231,7 @@ private fun ProfileContent(
     onChangePassword: () -> Unit,
     onManageVehicles: () -> Unit,
     onViewHistory: () -> Unit,
+    onOpenFlexCalculator: () -> Unit,
     onPendingSharesClicked: () -> Unit,
     onLogoutRequest: () -> Unit,
     onDeleteAccountRequest: () -> Unit,
@@ -338,6 +343,12 @@ private fun ProfileContent(
             icon    = Icons.Outlined.History,
             label   = "Histórico de abastecimentos",
             onClick = onViewHistory,
+        )
+        HorizontalDivider()
+        ProfileActionRow(
+            icon    = Icons.Outlined.Calculate,
+            label   = "Calculadora flex",
+            onClick = onOpenFlexCalculator,
         )
         HorizontalDivider()
         ProfileActionRow(

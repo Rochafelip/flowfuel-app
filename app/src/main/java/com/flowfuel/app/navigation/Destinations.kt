@@ -24,6 +24,8 @@ object Destinations {
     const val REFUEL_EDIT      = "refuel/edit/{refuelId}"
     /** Histórico de abastecimentos, acessível a partir do Perfil (mesmo padrão de [VEHICLE_MANAGE]). */
     const val HISTORY          = "history"
+    /** Calculadora flex (etanol × gasolina), acessível a partir do Perfil. */
+    const val FLEX_CALCULATOR  = "flex-calculator"
 
     const val VEHICLE_EVENTS        = "vehicle/events/{vehicleId}"
     const val VEHICLE_EVENT_CREATE  = "vehicle/events/create/{vehicleId}?category={category}&guestMode={guestMode}"

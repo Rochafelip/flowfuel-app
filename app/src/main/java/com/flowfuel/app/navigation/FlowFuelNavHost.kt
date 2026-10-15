@@ -33,6 +33,7 @@ import com.flowfuel.app.feature.auth.presentation.forgot.ForgotPasswordScreen
 import com.flowfuel.app.feature.auth.presentation.login.LoginScreen
 import com.flowfuel.app.feature.auth.presentation.resetpassword.ResetPasswordScreen
 import com.flowfuel.app.feature.auth.presentation.register.RegisterScreen
+import com.flowfuel.app.feature.flexcalculator.presentation.FlexCalculatorScreen
 import com.flowfuel.app.feature.history.presentation.HistoryScreen
 import com.flowfuel.app.feature.history.presentation.details.RefuelDetailsScreen
 import com.flowfuel.app.feature.history.presentation.edit.EditRefuelScreen
@@ -711,6 +712,9 @@ fun FlowFuelNavHost(
                 onNavigateToHistory = {
                     navController.navigate(Destinations.HISTORY)
                 },
+                onNavigateToFlexCalculator = {
+                    navController.navigate(Destinations.FLEX_CALCULATOR)
+                },
                 onNavigateToVehiclePicker = {
                     // Convidado trocando de veículo (ou voltando ao picker após
                     // acesso revogado): mesmo padrão de limpeza de stack usado por
@@ -775,6 +779,11 @@ fun FlowFuelNavHost(
                     entry.savedStateHandle["history_updated"] = false
                 },
             )
+        }
+
+        // ── Calculadora flex (acessível pelo Perfil) ────────────────────────
+        composable(Destinations.FLEX_CALCULATOR) {
+            FlexCalculatorScreen(onBack = { navController.popBackStack() })
         }
 
         // ── Edição de perfil ───────────────────────────────────────────────
