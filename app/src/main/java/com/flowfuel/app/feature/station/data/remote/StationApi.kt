@@ -26,8 +26,8 @@ data class GeocodeResultDto(
 )
 
 interface StationApi {
-    /** Backend próprio, que proxeia OSM Overpass (postos de combustível) e Open Charge Map (recarga elétrica). */
-    @GET("stations/nearby")
+    /** Backend próprio, que proxeia Google Places (gas_station + electric_vehicle_charging_station). */
+    @GET("stations/nearby-google")
     suspend fun getNearbyStations(
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,

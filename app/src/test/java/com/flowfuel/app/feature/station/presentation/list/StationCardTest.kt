@@ -43,27 +43,34 @@ class StationCardTest {
     }
 
     @Test
-    fun `formatAddress combines street and house number with a comma`() {
-        assertEquals("Avenida Alfredo Lisboa, 173", formatAddress("Avenida Alfredo Lisboa", "173"))
+    fun `formatAddress extracts street and number from Google Places format`() {
+        // Formato completo: "Avenida Rei Kennedy, 850 - Sé, São Paulo - SP, 15070-220, Brazil"
+        // Extrai apenas as 2 primeiras partes (rua + número + bairro)
+        val result = formatAddress("Avenida Rei Kennedy, 850 - Sé, São Paulo - SP, 15070-220, Brazil", null)
+        println("Result: $result")
+        assertEquals("Avenida Rei Kennedy, 850 - Sé", result)
     }
 
     @Test
-    fun `formatAddress returns only the street when house number is null`() {
-        assertEquals("Avenida Conde da Boa Vista", formatAddress("Avenida Conde da Boa Vista", null))
+    fun `formatAddress handles partial Google Places format`() {
+        // Formato parcial: "Av. Jz J Saad, 165 - Sé, São Paulo - SP, 01018-010, Brazil"
+        val result = formatAddress("Av. Jz J Saad, 165 - Sé, São Paulo - SP, 01018-010, Brazil", null)
+        println("Result: $result")
+        assertEquals("Av. Jz J Saad, 165 - Sé", result)
     }
 
     @Test
-    fun `formatAddress returns null when street is null even if house number is present`() {
-        assertNull(formatAddress(null, "173"))
+    fun `formatAddress returns simple street when no commas present`() {
+        assertEquals("Rua Anita Garibaldi", formatAddress("Rua Anita Garibaldi", null))
     }
 
     @Test
-    fun `formatAddress returns null when both street and house number are null`() {
+    fun `formatAddress returns null when street is null`() {
         assertNull(formatAddress(null, null))
     }
 
     @Test
     fun `formatAddress treats a blank street as absent`() {
-        assertNull(formatAddress("", "173"))
+        assertNull(formatAddress("", null))
     }
 }

@@ -133,6 +133,18 @@ internal fun formatRating(rating: Double): String =
 
 internal fun formatAddress(street: String?, houseNumber: String?): String? = when {
     street.isNullOrBlank() -> null
-    houseNumber.isNullOrBlank() -> street
-    else -> "$street, $houseNumber"
+    else -> {
+        // Formato do Google Places: "Rua, Número - Bairro, Cidade - UF, CEP, País"
+        // Extrai apenas a primeira parte (rua + número + bairro) antes da cidade
+        val parts = street.split(",").map { it.trim() }
+        when (parts.size) {
+            // Caso completo: "Avenida Rei Kennedy, 850 - Sé, São Paulo - SP, 15070-220, Brazil"
+            // Retorna: "Avenida Rei Kennedy, 850 - Sé"
+            4, 5 -> parts.take(2).joinToString(", ")
+            // Caso parcial: "Av. Jz J Saad, 165 - Sé, São Paulo - SP, 01018-010, Brazil"
+            3 -> parts.take(2).joinToString(", ")
+            // Caso simples: apenas a rua
+            else -> street.trim()
+        }
+    }
 }
