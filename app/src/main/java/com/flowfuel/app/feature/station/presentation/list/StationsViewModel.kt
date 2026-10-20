@@ -14,6 +14,7 @@ import com.flowfuel.app.feature.station.domain.model.Station
 import com.flowfuel.app.feature.station.domain.model.StationType
 import com.flowfuel.app.feature.station.domain.model.stationDistanceBand
 import com.flowfuel.app.feature.station.domain.usecase.GeocodeLocationsUseCase
+import com.flowfuel.app.feature.station.domain.usecase.GetNearbyElectricStationsUseCase
 import com.flowfuel.app.feature.station.domain.usecase.GetNearbyStationsUseCase
 import com.flowfuel.app.feature.vehicle.domain.model.EnergyType
 import com.flowfuel.app.feature.vehicle.domain.usecase.GetVehicleByIdUseCase
@@ -30,6 +31,7 @@ import javax.inject.Inject
 @HiltViewModel
 class StationsViewModel @Inject constructor(
     private val getNearbyStations: GetNearbyStationsUseCase,
+    private val getNearbyElectricStations: GetNearbyElectricStationsUseCase,
     private val locationProvider: LocationProvider,
     private val sessionStore: SessionStore,
     private val getVehicleById: GetVehicleByIdUseCase,
@@ -82,8 +84,19 @@ class StationsViewModel @Inject constructor(
     fun load() {
         _state.value = StationsUiState.Loading
         val requestRadius = _radiusMeters.value
-        val band = stationDistanceBand(requestRadius)
         val selected = _selectedLocation.value
+        val selectedType = _selectedType.value
+        
+        // Google Places API tem limite de 20 resultados por requisição
+        // Para raios maiores, usamos um raio maior na requisição e filtramos no cliente
+        val apiRadius = when (selectedType) {
+            StationType.Fuel -> {
+                // Para Google Places: usa raio maior se for > 3km para obter mais resultados
+                if (requestRadius > 3_000) 50_000 else requestRadius
+            }
+            StationType.Electric -> requestRadius
+        }
+        
         viewModelScope.launch {
             val locationResult = selected?.let { LocationResult.Available(it.location) }
                 ?: locationProvider.getCurrentLocation()
@@ -91,9 +104,13 @@ class StationsViewModel @Inject constructor(
                 LocationResult.PermissionDenied -> _state.value = StationsUiState.PermissionRequired
                 LocationResult.Unavailable -> _state.value = StationsUiState.LocationUnavailable
                 is LocationResult.Available -> {
-                    when (val result = getNearbyStations(locationResult.location, band.maxMeters)) {
+                    val result = when (selectedType) {
+                        StationType.Electric -> getNearbyElectricStations(locationResult.location, apiRadius)
+                        StationType.Fuel -> getNearbyStations(locationResult.location, apiRadius)
+                    }
+                    when (result) {
                         is AppResult.Success -> {
-                            val stations = result.value.filter { it.distanceMeters >= band.minMeters }
+                            val stations = result.value.filter { it.distanceMeters <= requestRadius }
                             _state.value = if (stations.isEmpty()) {
                                 StationsUiState.Empty
                             } else {
@@ -102,7 +119,7 @@ class StationsViewModel @Inject constructor(
                             // Só atualiza o cache de "perto de mim" quando a busca é por GPS —
                             // salvar resultados de uma localidade pesquisada corromperia o
                             // prefetch que a Home usa pra mostrar postos rapidamente.
-                            if (requestRadius == DEFAULT_STATION_RADIUS_METERS && selected == null) {
+                            if (requestRadius == DEFAULT_STATION_RADIUS_METERS && selected == null && selectedType == StationType.Fuel) {
                                 stationsPrefetcher.updateCache(stations)
                             }
                         }
@@ -120,6 +137,7 @@ class StationsViewModel @Inject constructor(
 
     fun onTypeSelected(type: StationType) {
         _selectedType.value = type
+        load()
     }
 
     fun openLocationSearch() {
