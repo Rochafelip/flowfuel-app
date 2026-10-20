@@ -93,7 +93,9 @@ class StationsViewModel @Inject constructor(
                 is LocationResult.Available -> {
                     when (val result = getNearbyStations(locationResult.location, band.maxMeters)) {
                         is AppResult.Success -> {
-                            val stations = result.value.filter { it.distanceMeters >= band.minMeters }
+                            val stations = result.value
+                                .filter { it.distanceMeters >= band.minMeters }
+                                .filter { it.type == _selectedType.value }
                             _state.value = if (stations.isEmpty()) {
                                 StationsUiState.Empty
                             } else {
@@ -120,6 +122,7 @@ class StationsViewModel @Inject constructor(
 
     fun onTypeSelected(type: StationType) {
         _selectedType.value = type
+        load()
     }
 
     fun openLocationSearch() {
