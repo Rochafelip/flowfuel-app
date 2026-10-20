@@ -7,5 +7,6 @@ import com.flowfuel.app.feature.station.domain.model.Station
 
 interface StationRepository {
     suspend fun getNearbyStations(location: GeoLocation, radiusMeters: Int): AppResult<List<Station>>
+    suspend fun getNearbyElectricStations(location: GeoLocation, radiusMeters: Int): AppResult<List<Station>>
     suspend fun geocode(query: String): AppResult<List<GeocodeResult>>
 }

@@ -171,10 +171,7 @@ fun StationsScreen(
                     StationsUiState.Loading -> FFSkeletonList(modifier = Modifier.fillMaxSize(), itemCount = 4)
 
                     is StationsUiState.Success -> {
-                        val filteredStations = remember(s.stations, selectedType) {
-                            s.stations.filter { it.type == selectedType }
-                        }
-                        if (filteredStations.isEmpty()) {
+                        if (s.stations.isEmpty()) {
                             FFEmptyState(
                                 title = when (selectedType) {
                                     StationType.Fuel -> "Nenhum posto de combustível encontrado por perto"
@@ -196,7 +193,7 @@ fun StationsScreen(
                                     contentPadding = PaddingValues(FFTheme.spacing.md),
                                     verticalArrangement = Arrangement.spacedBy(FFTheme.spacing.sm),
                                 ) {
-                                    items(filteredStations, key = { it.placeId }) { station ->
+                                    items(s.stations, key = { it.placeId }) { station ->
                                         StationCard(station = station, onRouteClick = { viewModel.onRouteClick(station) })
                                     }
                                 }

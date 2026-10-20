@@ -21,7 +21,16 @@ class StationRepositoryImpl @Inject constructor(
 
     override suspend fun getNearbyStations(location: GeoLocation, radiusMeters: Int): AppResult<List<Station>> =
         apiCall {
-            api.getNearbyStations(
+            api.getNearbyFuelStations(
+                lat = location.latitude,
+                lng = location.longitude,
+                radiusMeters = radiusMeters,
+            )
+        }.map { list -> list.map { it.toDomain() }.sortedBy { it.distanceMeters } }
+
+    override suspend fun getNearbyElectricStations(location: GeoLocation, radiusMeters: Int): AppResult<List<Station>> =
+        apiCall {
+            api.getNearbyElectricStations(
                 lat = location.latitude,
                 lng = location.longitude,
                 radiusMeters = radiusMeters,

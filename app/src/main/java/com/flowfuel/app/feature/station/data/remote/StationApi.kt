@@ -26,9 +26,17 @@ data class GeocodeResultDto(
 )
 
 interface StationApi {
-    /** Backend próprio, que proxeia Google Places (gas_station + electric_vehicle_charging_station). */
+    /** Backend próprio, que proxeia Google Places (gas_station). */
     @GET("stations/nearby-google")
-    suspend fun getNearbyStations(
+    suspend fun getNearbyFuelStations(
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+        @Query("radius") radiusMeters: Int = 5000,
+    ): List<StationResponseDto>
+
+    /** Backend próprio, que proxeia Open Charge Map (electric_vehicle_charging_station). */
+    @GET("stations/nearby")
+    suspend fun getNearbyElectricStations(
         @Query("lat") lat: Double,
         @Query("lng") lng: Double,
         @Query("radius") radiusMeters: Int = 5000,
